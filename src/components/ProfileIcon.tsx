@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
+import colors from "@/app/color/color";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useTheme } from "@/app/hooks/useTheme";
-import { usePathname } from "next/navigation";
 import Image from "next/image";
-import colors from "@/app/color/color";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 // ──────────────────────────────────────────────────────────────
@@ -28,12 +28,12 @@ const ProfileIcon = ({ active }: ProfileIconProps) => {
 
   const lightMode =
     active === "profile"
-      ? `bg-transparent hover:bg-[#eeeeee] text-black ${colors.keyColorBorder}`
+      ? `bg-transparent hover:bg-[#eeeeee] text-black ${colors.keyBorder}`
       : `bg-transparent hover:bg-[#eeeeee] text-black border-[#333333]`;
 
   const darkMode =
     active === "profile"
-      ? `bg-[#000000] hover:bg-[#222222] text-white ${colors.keyColorBorder}`
+      ? `bg-[#000000] hover:bg-[#222222] text-white ${colors.keyBorder}`
       : `bg-[#000000] hover:bg-[#222222] text-white border-[#999999]`;
 
   const profileStyle = `${baseStyle} ${theme ? lightMode : darkMode}`;
@@ -54,10 +54,14 @@ const ProfileIcon = ({ active }: ProfileIconProps) => {
       <Link href={linkHref}>
         <div className="flex justify-center items-center h-full">
           <div className={profileStyle}>
-           <Image
+            <Image
               priority
               src={userPhoto}
-              alt={auth ? `${auth.name || "User"}'s profile picture` : "Profile Icon"}
+              alt={
+                auth
+                  ? `${auth.name || "User"}'s profile picture`
+                  : "Profile Icon"
+              }
               fill // ← Use `fill` instead of fixed width/height
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 30vw"
               className="object-cover"

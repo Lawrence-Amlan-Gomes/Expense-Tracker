@@ -1,6 +1,9 @@
 // src/lib/data-util.ts
 export const cleanUserForClient = (user: any) => {
   if (!user) return null;
+  // Set expiredAt to 7 days from now
+  const expiredAt = new Date();
+  expiredAt.setDate(expiredAt.getDate() + 7);
 
   return {
     id: user._id?.toString() || user.id,
@@ -12,6 +15,8 @@ export const cleanUserForClient = (user: any) => {
     createdAt: user.createdAt
       ? new Date(user.createdAt).toISOString()
       : new Date().toISOString(),
+    expiredAt: user.expiredAt?.toISOString() || expiredAt.toISOString(),
+    history: user.history || [],
   };
 };
 

@@ -2,11 +2,11 @@
 "use client";
 
 import { changePhoto, updateUser } from "@/app/actions"; // ← FIXED IMPORTS
+import colors from "@/app/color/color";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useTheme } from "@/app/hooks/useTheme";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import colors from "@/app/color/color";
 
 export default function ProfilePic() {
   const { theme } = useTheme();
@@ -90,7 +90,7 @@ export default function ProfilePic() {
     <div className="w-full mt-5 relative">
       <div className="w-full flex items-center justify-center relative">
         <div
-          className={`sm:w-[150px] w-[100px] sm:h-[150px] h-[100px] rounded-xl border-[1px] overflow-hidden flex items-center justify-center relative cursor-pointer ${colors.keyColorBorder}
+          className={`sm:w-[150px] w-[100px] sm:h-[150px] h-[100px] rounded-xl border-[1px] overflow-hidden flex items-center justify-center relative cursor-pointer ${colors.keyBorder}
           `}
           onClick={() => setEditPic((prev) => !prev)}
         >
@@ -141,9 +141,9 @@ export default function ProfilePic() {
           <button
             type="button"
             className={`sm:py-2 py-1 ${
-              colors.keyColorText
+              colors.keyText
             } text-[12px] sm:text-[16px] rounded-lg border-[2px] ${
-              colors.keyColorBorder
+              colors.keyBorder
             } px-3 w-[56%] m-[2%] box-border float-left ${theme ? "" : ""}`}
             onClick={handleImageClick}
           >

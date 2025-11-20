@@ -2,22 +2,22 @@
 "use client";
 
 import {
-  performLogin,
-  findUserByEmail,
   changePhoto,
-  updateUser,
+  findUserByEmail,
   generateJwtForGoogle,
+  performLogin,
+  updateUser,
 } from "@/app/actions";
 import colors from "@/app/color/color";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useTheme } from "@/app/hooks/useTheme";
+import { CleanUser } from "@/store/features/auth/authSlice";
 import { signIn, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import EachField from "./EachField";
-import { CleanUser } from "@/store/features/auth/authSlice";
 
 const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -66,93 +66,99 @@ const LoginForm = () => {
     }
   }, [googleError.isError]);
 
-const submitForm = async () => {
-  if (emailError.iserror || passwordError.iserror) return;
+  const submitForm = async () => {
+    if (emailError.iserror || passwordError.iserror) return;
 
-  setIsLoading(true);
-  try {
-    const result = await performLogin({ email, password });
+    setIsLoading(true);
+    try {
+      const result = await performLogin({ email, password });
 
-    if (result) {
-      const { user, token } = result;
+      if (result) {
+        const { user, token } = result;
 
-      if (typeof window !== "undefined" && !localStorage.getItem("authUser")) {
-        localStorage.setItem("authToken", token);
+        if (
+          typeof window !== "undefined" &&
+          !localStorage.getItem("authUser")
+        ) {
+          localStorage.setItem("authToken", token);
+        }
+
+        setAuth(user);
+        router.push("/");
+      } else {
+        setMainError({
+          isError: true,
+          error: "Email or password is incorrect",
+        });
       }
-
-      setAuth(user);
-      router.push("/");
-    } else {
+    } catch (err) {
+      console.error("Login error:", err);
       setMainError({
         isError: true,
-        error: "Email or password is incorrect",
+        error: "Something went wrong. Try again.",
       });
+    } finally {
+      setIsLoading(false);
     }
-  } catch (err) {
-    console.error("Login error:", err);
-    setMainError({
-      isError: true,
-      error: "Something went wrong. Try again.",
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
-const handleGoogleSignIn = async () => {
-  setIsLoadingGoogle(true);
-  try {
-    if (!session?.user) {
-      await signIn("google");
-      return;
-    }
-
-    const userEmail = session.user.email!;
-    const user = await findUserByEmail(userEmail);
-
-    if (user) {
-      // Update photo and firstTimeLogin if needed
-      if (user.firstTimeLogin && session.user.image) {
-        user.photo = session.user.image;
-        await changePhoto(userEmail, session.user.image);
-        await updateUser(userEmail, { firstTimeLogin: false });
+  const handleGoogleSignIn = async () => {
+    setIsLoadingGoogle(true);
+    try {
+      if (!session?.user) {
+        await signIn("google");
+        return;
       }
 
-      // Normalize paymentType to satisfy CleanUser type
-      const cleanUser: CleanUser = {
-        ...user,
-        paymentType: user.paymentType ?? "none",
-      };
+      const userEmail = session.user.email!;
+      const user = await findUserByEmail(userEmail);
 
-      const token = await generateJwtForGoogle(cleanUser);
+      if (user) {
+        // Update photo and firstTimeLogin if needed
+        if (user.firstTimeLogin && session.user.image) {
+          user.photo = session.user.image;
+          await changePhoto(userEmail, session.user.image);
+          await updateUser(userEmail, { firstTimeLogin: false });
+        }
 
-      if (typeof window !== "undefined" && !localStorage.getItem("authUser")) {
-        localStorage.setItem("authToken", token);
+        // Normalize paymentType to satisfy CleanUser type
+        const cleanUser: CleanUser = {
+          ...user,
+          paymentType: user.paymentType ?? "Expired",
+        };
+
+        const token = await generateJwtForGoogle(cleanUser);
+
+        if (
+          typeof window !== "undefined" &&
+          !localStorage.getItem("authUser")
+        ) {
+          localStorage.setItem("authToken", token);
+        }
+
+        setAuth(cleanUser);
+        setGoogleAuth({
+          name: session.user.name!,
+          email: session.user.email!,
+          image: session.user.image!,
+        });
+        router.push("/");
+      } else {
+        setGoogleError({
+          isError: true,
+          error: `Your email ${userEmail} hasn't registered yet`,
+        });
       }
-
-      setAuth(cleanUser);
-      setGoogleAuth({
-        name: session.user.name!,
-        email: session.user.email!,
-        image: session.user.image!,
-      });
-      router.push("/");
-    } else {
+    } catch (err: any) {
+      console.error("Google login error:", err);
       setGoogleError({
         isError: true,
-        error: `Your email ${userEmail} hasn't registered yet`,
+        error: err.message || "Google login failed. Try again.",
       });
+    } finally {
+      setIsLoadingGoogle(false);
     }
-  } catch (err: any) {
-    console.error("Google login error:", err);
-    setGoogleError({
-      isError: true,
-      error: err.message || "Google login failed. Try again.",
-    });
-  } finally {
-    setIsLoadingGoogle(false);
-  }
-};
+  };
   return (
     <div
       onKeyDown={(event) => {
@@ -247,8 +253,8 @@ const handleGoogleSignIn = async () => {
             onClick={handleGoogleSignIn}
             className={`text-[12px] lg:text-[16px] 2xl:text-[25px] flex items-center gap-4 lg:h-[60px] h-[40px] cursor-pointer rounded-md mt-10 py-2 px-4 lg:px-6 ${
               theme
-                ? `${colors.keyColorBg} ${colors.keyColortBgHover}`
-                : `${colors.keyColorBg} ${colors.keyColortBgHover}`
+                ? `${colors.keyBg} ${colors.keyHoverBg}`
+                : `${colors.keyBg} ${colors.keyHoverBg}`
             } text-white`}
           >
             <div className="h-full flex justify-center items-center">
@@ -278,7 +284,7 @@ const handleGoogleSignIn = async () => {
           No Account?{" "}
           <Link
             href="/register"
-            className={`${colors.keyColorText} ${colors.keyColortTextHover}`}
+            className={`${colors.keyText} ${colors.keyHoverText}`}
           >
             Register
           </Link>

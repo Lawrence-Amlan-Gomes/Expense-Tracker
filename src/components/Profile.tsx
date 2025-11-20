@@ -5,13 +5,13 @@ import { updateUser } from "@/app/actions";
 import colors from "@/app/color/color";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useTheme } from "@/app/hooks/useTheme";
+import { logout } from "@/store/features/auth/authSlice";
+import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import ProfilePic from "./ProfilePic";
 import { useDispatch } from "react-redux";
-import { logout } from "@/store/features/auth/authSlice";
-import { signOut } from "next-auth/react";
+import ProfilePic from "./ProfilePic";
 
 const Profile = () => {
   const router = useRouter();
@@ -70,7 +70,7 @@ const Profile = () => {
               <div className="w-full sm:mt-5 sm:mb-5 mt-5 text-[14px] flex items-center justify-center font-bold">
                 {isEditing ? (
                   <input
-                    className={`bg-transparent border-[2px] ${colors.keyColorBorder} focus:border-green-700 focus:outline-none text-center rounded-lg w-[70%] sm:w-full p-1 sm:p-3`}
+                    className={`bg-transparent border-[2px] ${colors.keyBorder} focus:border-green-700 focus:outline-none text-center rounded-lg w-[70%] sm:w-full p-1 sm:p-3`}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                   />
@@ -82,7 +82,10 @@ const Profile = () => {
                 {auth.email}
               </div>
               <div className="w-full sm:mt-5 sm:mb-5 my-2 text-[12px] sm:text-[20px] flex items-center justify-center">
-                {auth.paymentType}
+                {`Subscription: ${auth.paymentType}`}
+              </div>
+              <div className="w-full sm:mt-5 sm:mb-5 my-2 text-[12px] sm:text-[20px] flex items-center justify-center">
+                {`Expired At: ${auth.expiredAt.split("T")[0]}`}
               </div>
               <div className="w-full mt-5 mb-5 flex text-[12px] sm:text-[18px] items-center justify-center">
                 <button
@@ -90,7 +93,7 @@ const Profile = () => {
                   className={`${
                     isEditing
                       ? "bg-green-700 hover:bg-green-800"
-                      : `${colors.keyColorBg} ${colors.keyColortBgHover}`
+                      : `${colors.keyBg} ${colors.keyHoverBg}`
                   } bg-[#161616] sm:p-3 py-2 px-5 w-[70%] sm:w-full rounded-lg hover:bg-[#202020] tracking-wider text-white`}
                 >
                   {isEditing ? "Update" : "Edit"}
@@ -118,7 +121,9 @@ const Profile = () => {
                 <button
                   onClick={handleLogout}
                   className={`sm:p-3 p-1 w-[70%] text-[12px] sm:text-[18px] sm:w-full text-white tracking-wider py-2 px-5 shadow-lg rounded-lg ${
-                    theme ? "bg-red-700 hover:bg-red-800" : "bg-red-800 hover:bg-red-900"
+                    theme
+                      ? "bg-red-700 hover:bg-red-800"
+                      : "bg-red-800 hover:bg-red-900"
                   }`}
                 >
                   Log Out
@@ -144,7 +149,7 @@ const Profile = () => {
                 <div className="w-full mt-5 mb-5 flex items-center justify-center font-bold text-[20px]">
                   {isEditing ? (
                     <input
-                      className={`bg-transparent border-[2px] ${colors.keyColorBorder} focus:border-green-700 focus:outline-none text-center rounded-lg w-full p-3`}
+                      className={`bg-transparent border-[2px] ${colors.keyBorder} focus:border-green-700 focus:outline-none text-center rounded-lg w-full p-3`}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                     />
@@ -156,7 +161,10 @@ const Profile = () => {
                   {auth.email}
                 </div>
                 <div className="w-full mt-5 mb-5 flex items-center justify-center">
-                  {auth.paymentType}
+                  {`Subscription: ${auth.paymentType}`}
+                </div>
+                <div className="w-full mt-5 mb-5 flex items-center justify-center">
+                  {`Expired At: ${auth.expiredAt.split("T")[0]}`}
                 </div>
               </div>
             ) : (
@@ -176,7 +184,7 @@ const Profile = () => {
               className={`${
                 isEditing
                   ? "bg-green-700 hover:bg-green-800"
-                  : `${colors.keyColorBg} ${colors.keyColortBgHover}`
+                  : `${colors.keyBg} ${colors.keyHoverBg}`
               } text-[16px] py-2 px-5 w-[70%] sm:w-full rounded-lg hover:bg-[#202020] text-white`}
             >
               {isEditing ? "Update" : "Edit"}
@@ -208,7 +216,9 @@ const Profile = () => {
             <button
               onClick={handleLogout}
               className={`p-3 w-full text-white text-[16px] py-2 px-5 shadow-lg rounded-lg ${
-                theme ? "bg-red-700 hover:bg-red-800" : "bg-red-800 hover:bg-red-900"
+                theme
+                  ? "bg-red-700 hover:bg-red-800"
+                  : "bg-red-800 hover:bg-red-900"
               }`}
             >
               Log Out

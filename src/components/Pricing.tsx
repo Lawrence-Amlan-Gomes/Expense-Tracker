@@ -1,12 +1,12 @@
 // src/components/Pricing.tsx
 "use client";
 
-import { useTheme } from "@/app/hooks/useTheme";
-import { usePrice } from "@/app/hooks/usePrice";
-import { useAuth } from "@/app/hooks/useAuth";
-import { useEffect } from "react";
 import colors from "@/app/color/color";
+import { useAuth } from "@/app/hooks/useAuth";
+import { usePrice } from "@/app/hooks/usePrice";
+import { useTheme } from "@/app/hooks/useTheme";
 import Link from "next/link";
+import { useEffect } from "react";
 
 export default function Pricing() {
   const { theme } = useTheme();
@@ -35,43 +35,50 @@ export default function Pricing() {
     {
       id: "free",
       title: "Free",
-      description: "Perfect for beginners",
+      description: "Perfect for trying out AI replies",
       priceMonthly: 0,
       priceAnnual: 0,
       features: [
-        { name: "products", value: "5 products" },
-        { name: "subscribers", value: "Up to 1,000 subscribers" },
-        { name: "analytics", value: "Basic analytics" },
-        { name: "support", value: "Email support" },
+        { name: "replies", value: "3 replies per day" },
+        { name: "history", value: "Last 10 replies saved" },
+        { name: "tone", value: "Standard tone only" },
+        // { name: "support", value: "Community help" },
       ],
+      cta: "Start Free",
       isMostPopular: false,
     },
     {
       id: "standard",
       title: "Standard",
-      description: "Ideal for growing businesses",
-      priceMonthly: 25,
-      priceAnnual: 250,
+      description: "Ideal for active job seekers",
+      priceMonthly: 9,
+      priceAnnual: 90,
       features: [
-        { name: "products", value: "25 products" },
-        { name: "subscribers", value: "Up to 10,000 subscribers" },
-        { name: "analytics", value: "Advanced analytics" },
-        { name: "support", value: "24-hour support" },
+        { name: "replies", value: "10 replies per day" },
+        { name: "history", value: "Unlimited history" },
+        { name: "tone", value: "3 tone variants" },
+        { name: "export", value: "Copy & download" },
+        { name: "support", value: "Email support" },
       ],
+      cta: "Go Standard",
       isMostPopular: true,
+      badge: "Most Popular",
     },
     {
       id: "premium",
       title: "Premium",
-      description: "Best for large enterprises",
-      priceMonthly: 50,
-      priceAnnual: 500,
+      description: "For power users & career switchers",
+      priceMonthly: 19,
+      priceAnnual: 190,
       features: [
-        { name: "products", value: "Unlimited products" },
-        { name: "subscribers", value: "Unlimited subscribers" },
-        { name: "analytics", value: "Advanced analytics" },
-        { name: "support", value: "1-hour dedicated support" },
+        { name: "replies", value: "30 replies per day" },
+        { name: "history", value: "Unlimited + search" },
+        { name: "tone", value: "All tones + custom" },
+        { name: "export", value: "PDF, Word, Email" },
+        { name: "priority", value: "Faster AI generation" },
+        { name: "support", value: "Priority chat support" },
       ],
+      cta: "Go Premium",
       isMostPopular: false,
     },
   ];
@@ -163,10 +170,10 @@ export default function Pricing() {
                 className={`p-4 sm:p-6 rounded-lg ${
                   theme
                     ? plan.isMostPopular
-                      ? `bg-[#ffffff] border-2 ${colors.keyColorBorder} hover:cursor-pointer`
+                      ? `bg-[#ffffff] border-2 ${colors.keyBorder} hover:cursor-pointer`
                       : "bg-[#ffffff] border border-[#cccccc] hover:border-[#999999] hover:cursor-pointer"
                     : plan.isMostPopular
-                    ? `bg-[#000000] border-2 ${colors.keyColorBorder} hover:cursor-pointer`
+                    ? `bg-[#000000] border-2 ${colors.keyBorder} hover:cursor-pointer`
                     : `bg-[#000000] border border-[#444444] hover:border-[#666666] hover:cursor-pointer`
                 }`}
                 onMouseEnter={() => setSelectedPlan(plan.id)}
@@ -186,8 +193,8 @@ export default function Pricing() {
                       <span
                         className={`inline-block px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm font-semibold ${
                           theme
-                            ? `${colors.keyColorBg} text-[#ffffff]`
-                            : `${colors.keyColorBg} text-[#ffffff]`
+                            ? `${colors.keyBg} text-[#ffffff]`
+                            : `${colors.keyBg} text-[#ffffff]`
                         }`}
                       >
                         Most Popular
@@ -239,7 +246,7 @@ export default function Pricing() {
                           }}
                           className={`w-full mt-3 sm:mt-5 py-1.5 sm:py-2 rounded-md text-sm sm:text-base font-medium ${
                             plan.isMostPopular
-                              ? `${colors.keyColorBg} text-white hover:bg-blue-800`
+                              ? `${colors.keyBg} text-white hover:bg-blue-800`
                               : theme
                               ? "bg-gray-200 text-[#0a0a0a] hover:bg-gray-300"
                               : "bg-[#222222] text-[#ebebeb] hover:bg-[#2a2a2a]"

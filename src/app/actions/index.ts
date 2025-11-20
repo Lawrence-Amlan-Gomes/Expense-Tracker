@@ -1,26 +1,32 @@
 "use server";
 
-import { User } from "@/models/User";
-import { dbConnect } from "@/lib/mongo";
+import { signOut } from "@/app/auth";
 import { cleanUserForClient } from "@/lib/data-util";
+import { dbConnect } from "@/lib/mongo";
+import { generateToken, verifyToken } from "@/lib/server/jwt";
+import { User } from "@/models/User";
+import { CleanUser } from "@/store/features/auth/authSlice";
 import bcrypt from "bcrypt";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { generateToken } from "@/lib/server/jwt";
-import { signOut } from "@/app/auth";
-import { CleanUser } from "@/store/features/auth/authSlice";
-import { verifyToken } from "@/lib/server/jwt";
 
 // Helper – explicit type for the plain-object returned by .lean()
 type LeanUser = {
   _id: any;
   name: string;
   email: string;
-  password?: string;   // password is only present when we .select("+password")
+  password?: string; // password is only present when we .select("+password")
   photo?: string;
   firstTimeLogin?: boolean;
   isAdmin?: boolean;
   createdAt?: Date;
+  expiredAt?: Date;
+  history: {
+    date: string;
+    title: string;
+    context: [string, string][];
+    generation: string;
+  }[];
   paymentType?: string;
   __v?: number;
 };
@@ -43,6 +49,18 @@ export async function performLogin({
   const match = await bcrypt.compare(password, user.password!);
   if (!match) return null;
 
+  // Set expiredAt to 7 days from now
+  const expiredAt = new Date();
+  expiredAt.setDate(expiredAt.getDate() + 7);
+
+  // Properly serialize history to ensure no Mongoose objects leak through
+  const serializedHistory = (user.history || []).map((item: any) => ({
+    date: item.date,
+    title: item.title,
+    context: item.context.map((ctx: any) => [ctx[0], ctx[1]]),
+    generation: item.generation,
+  }));
+
   const cleanUser: CleanUser = {
     id: user._id.toString(),
     name: user.name,
@@ -51,7 +69,9 @@ export async function performLogin({
     firstTimeLogin: user.firstTimeLogin || false,
     isAdmin: user.isAdmin || false,
     createdAt: user.createdAt?.toISOString() || new Date().toISOString(),
-    paymentType: user.paymentType || "Free",
+    expiredAt: user.expiredAt?.toISOString() || expiredAt.toISOString(),
+    history: serializedHistory, // Use properly serialized history
+    paymentType: user.paymentType || "Free One Week",
   };
 
   const token = await generateToken(cleanUser);
@@ -76,8 +96,13 @@ export async function createUser(data: {
   }
 
   const hashed = await bcrypt.hash(data.password, 12);
+  // Set expiredAt to 7 days from now
+  const expiredAt = new Date();
+  expiredAt.setDate(expiredAt.getDate() + 7);
+
   const user = new User({
     ...data,
+    expiredAt,
     password: hashed,
   });
   await user.save();
@@ -90,9 +115,26 @@ export async function changePhoto(email: string, photo: string) {
   revalidatePath("/profile");
 }
 
-export async function updatePaymentType(email: string, paymentType: string) {
+export async function updateHistory(
+  email: string,
+  history: {
+    date: string;
+    title: string;
+    context: [string, string][];
+    generation: string;
+  }[]
+) {
   await dbConnect();
-  await User.updateOne({ email }, { paymentType });
+  await User.updateOne({ email }, { history });
+}
+
+export async function updatePaymentType(
+  email: string,
+  paymentType: string,
+  expiredAt: Date
+) {
+  await dbConnect();
+  await User.updateOne({ email }, { paymentType, expiredAt });
   revalidatePath("/");
 }
 
@@ -115,6 +157,18 @@ export async function findUserByEmail(email: string) {
   const user = await User.findOne({ email }).lean<LeanUser>();
   if (!user) return null;
 
+  // Set expiredAt to 7 days from now
+  const expiredAt = new Date();
+  expiredAt.setDate(expiredAt.getDate() + 7);
+
+  // Properly serialize history
+  const serializedHistory = (user.history || []).map((item: any) => ({
+    date: item.date,
+    title: item.title,
+    context: item.context.map((ctx: any) => [ctx[0], ctx[1]]),
+    generation: item.generation,
+  }));
+
   return {
     id: user._id.toString(),
     name: user.name,
@@ -123,6 +177,8 @@ export async function findUserByEmail(email: string) {
     firstTimeLogin: user.firstTimeLogin || false,
     isAdmin: user.isAdmin || false,
     createdAt: user.createdAt?.toISOString() || new Date().toISOString(),
+    expiredAt: user.expiredAt?.toISOString() || expiredAt.toISOString(),
+    history: serializedHistory, // Use properly serialized history
     paymentType: user.paymentType,
   };
 }

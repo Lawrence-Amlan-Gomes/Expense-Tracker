@@ -6,11 +6,11 @@ import colors from "@/app/color/color";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useTheme } from "@/app/hooks/useTheme";
 import { signIn, useSession } from "next-auth/react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import EachField from "./EachField";
-import Image from "next/image";
 
 const RegistrationForm = () => {
   const { theme } = useTheme();
@@ -114,7 +114,7 @@ const RegistrationForm = () => {
     if (!confirm("Are you sure to Register?")) return;
     setIsLoading(true);
     try {
-      await createUser({ name, email, password });
+      await createUser({ name, email, password, photo: "" });
       setSuccessMessage(`${email} successfully registered`);
     } catch (err: any) {
       if (err.message === "EMAIL_ALREADY_EXISTS") {
@@ -166,7 +166,7 @@ const RegistrationForm = () => {
           await createUser({
             name: user.name ?? userEmail.split("@")[0],
             email: userEmail,
-            password: "google-auth-12345678",
+            password: "",
             photo: user.image ?? "",
           });
           setSuccessMessage(`${userEmail} successfully registered`);
@@ -343,8 +343,8 @@ const RegistrationForm = () => {
             onClick={handleGoogleRegister}
             className={`text-[12px] lg:text-[16px] 2xl:text-[25px] flex items-center gap-4 lg:h-[60px] h-[40px] cursor-pointer rounded-md mt-10 py-2 px-4 lg:px-6 ${
               theme
-                ? `${colors.keyColorBg} ${colors.keyColortBgHover}`
-                : `${colors.keyColorBg} ${colors.keyColortBgHover}`
+                ? `${colors.keyBg} ${colors.keyHoverBg}`
+                : `${colors.keyBg} ${colors.keyHoverBg}`
             } text-white`}
           >
             <div className="h-full flex justify-center items-center">
@@ -383,7 +383,7 @@ const RegistrationForm = () => {
             Already Have An Account?{" "}
             <Link
               href="/login"
-              className={`${colors.keyColorText} ${colors.keyColortTextHover}`}
+              className={`${colors.keyText} ${colors.keyHoverText}`}
             >
               Login
             </Link>

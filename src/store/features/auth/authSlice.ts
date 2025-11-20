@@ -9,6 +9,13 @@ export interface CleanUser {
   firstTimeLogin: boolean;
   isAdmin: boolean;
   createdAt: string;
+  expiredAt: string;
+  history: {
+    date: string;
+    title: string;
+    context: [string, string][];
+    generation: string;
+  }[];
   paymentType: string;
 }
 
