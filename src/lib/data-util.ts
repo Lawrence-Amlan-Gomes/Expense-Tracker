@@ -16,7 +16,6 @@ export const cleanUserForClient = (user: any) => {
       ? new Date(user.createdAt).toISOString()
       : new Date().toISOString(),
     expiredAt: user.expiredAt?.toISOString() || expiredAt.toISOString(),
-    history: user.history || [],
   };
 };
 

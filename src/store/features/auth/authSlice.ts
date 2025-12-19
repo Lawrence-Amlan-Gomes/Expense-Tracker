@@ -1,6 +1,21 @@
 // src/store/features/auth/authSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
+export interface IRoutineItem {
+  name: string;
+  time: string;
+}
+
+export interface IRoutine {
+  saturday: IRoutineItem[];
+  sunday: IRoutineItem[];
+  monday: IRoutineItem[];
+  tuesday: IRoutineItem[];
+  wednesday: IRoutineItem[];
+  thursday: IRoutineItem[];
+  friday: IRoutineItem[];
+}
+
 export interface CleanUser {
   id: string;
   name: string;
@@ -10,13 +25,9 @@ export interface CleanUser {
   isAdmin: boolean;
   createdAt: string;
   expiredAt: string;
-  history: {
-    date: string;
-    title: string;
-    context: [string, string][];
-    generation: string;
-  }[];
   paymentType: string;
+  isEmailVerified: boolean;
+  routine: IRoutine;
 }
 
 export interface CleanGoogleUser {

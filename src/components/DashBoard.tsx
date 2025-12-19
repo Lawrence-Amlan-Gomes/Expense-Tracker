@@ -1,21 +1,30 @@
 "use client";
 
 import colors from "@/app/color/color";
+import { useAuth } from "@/app/hooks/useAuth";
 import { useTheme } from "@/app/hooks/useTheme";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import {
   MdKeyboardDoubleArrowLeft,
   MdKeyboardDoubleArrowRight,
 } from "react-icons/md";
 import Chat from "./Chat";
-import History from "./History";
+import EmailNotVerified from "./EmailNotVerified";
+import { useRouter } from "next/navigation";
 
-export default function ChatAndHistory() {
+export default function DashBoard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const { theme } = useTheme();
+  const { user: auth } = useAuth();
+  const router = useRouter();
 
+  useEffect(() => {
+    if(auth === null){
+      router.push("/login");
+    } 
+  }, []);
   // --------------------------------------------------------------
   // 1. Mark component as mounted after first render
   // --------------------------------------------------------------
@@ -44,7 +53,7 @@ export default function ChatAndHistory() {
   // --------------------------------------------------------------
   const transition = hasMounted ? spring : false;
 
-  return (
+  return auth?.isEmailVerified ? (
     <div className="h-full w-full overflow-hidden fixed">
       {/* -------------------- SIDEBAR (desktop only) -------------------- */}
       <motion.div
@@ -68,9 +77,8 @@ export default function ChatAndHistory() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.12 }}
-              className="h-full w-full"
+              className="h-full w-full pt-[150px]"
             >
-              <History whichSide="insideTheChat" />
             </motion.div>
           )}
         </AnimatePresence>
@@ -105,12 +113,14 @@ export default function ChatAndHistory() {
         style={{ width: "100%" }} // overrides animation on <sm
         transition={transition}
       >
-        <Chat />
+        
       </motion.div>
 
       <motion.div className="h-full w-full relative float-left sm:float-left block sm:hidden">
-        <Chat />
+        
       </motion.div>
     </div>
+  ) : (
+    <EmailNotVerified />
   );
 }

@@ -1,7 +1,7 @@
 // src/components/ProfilePic.tsx
 "use client";
 
-import { changePhoto, updateUser } from "@/app/actions"; // ← FIXED IMPORTS
+import { changePhoto, updateUser } from "@/app/actions";
 import colors from "@/app/color/color";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useTheme } from "@/app/hooks/useTheme";
@@ -33,6 +33,60 @@ export default function ProfilePic() {
     inputRef.current?.click();
   };
 
+  // Compress and resize image while maintaining HIGH quality
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new window.Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d", { alpha: true });
+          if (!ctx) {
+            reject(new Error("Canvas context not available"));
+            return;
+          }
+
+          // Use HIGHER resolution - 800x800 for crisp display
+          const MAX_SIZE = 800;
+          let width = img.width;
+          let height = img.height;
+
+          // Maintain aspect ratio
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height = (height * MAX_SIZE) / width;
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width = (width * MAX_SIZE) / height;
+              height = MAX_SIZE;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          // Enable highest quality rendering
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+
+          // Draw image with high quality
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Convert to PNG for lossless quality (best for profile pics)
+          const compressedDataUrl = canvas.toDataURL("image/png");
+          resolve(compressedDataUrl);
+        };
+        img.onerror = () => reject(new Error("Failed to load image"));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !auth) return;
@@ -45,29 +99,25 @@ export default function ProfilePic() {
 
     setIsUploading(true);
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const imageData = reader.result as string;
+    try {
+      // Compress image while maintaining high quality
+      const imageData = await compressImage(file);
 
       // Optimistic UI update
       setImage(imageData);
       setAuth({ ...auth, photo: imageData });
 
-      try {
-        await changePhoto(auth.email, imageData); // ← DIRECT SERVER ACTION
-        await updateUser(auth.email, { firstTimeLogin: false }); // ← DIRECT
-        alert("Profile picture updated!");
-      } catch (error) {
-        alert("Failed to save photo. Try again.");
-        // Revert on error
-        setImage(auth.photo || "");
-        setAuth(auth);
-      } finally {
-        setIsUploading(false);
-      }
-    };
-
-    reader.readAsDataURL(file);
+      await changePhoto(auth.email, imageData);
+      await updateUser(auth.email, { firstTimeLogin: false });
+      alert("Profile picture updated!");
+    } catch (error) {
+      alert("Failed to save photo. Try again.");
+      // Revert on error
+      setImage(auth.photo || "");
+      setAuth(auth);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleImageDelete = async () => {
@@ -86,15 +136,16 @@ export default function ProfilePic() {
       setAuth(auth);
     }
   };
+
   return (
     <div className="w-full mt-5 relative">
       <div className="w-full flex items-center justify-center relative">
         <div
-          className={`sm:w-[150px] w-[100px] sm:h-[150px] h-[100px] rounded-xl border-[1px] overflow-hidden flex items-center justify-center relative cursor-pointer ${colors.keyBorder}
-          `}
+          className={`sm:w-[150px] w-[100px] sm:h-[150px] h-[100px] rounded-xl border-[1px] overflow-hidden flex items-center justify-center relative cursor-pointer ${colors.keyBorder}`}
           onClick={() => setEditPic((prev) => !prev)}
+          style={{ imageRendering: "high-quality" }}
         >
-          {isUploading ? ( // 🔄 Show uploading message
+          {isUploading ? (
             <div
               className={`w-full h-full flex justify-center items-center text-lg font-bold ${
                 theme ? "bg-black text-white" : "bg-white text-black"
@@ -103,25 +154,27 @@ export default function ProfilePic() {
               Uploading...
             </div>
           ) : image ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <Image
               priority
               src={image}
-              alt={theme ? "Proflie Icon Light" : "Proflie Icon Dark"}
+              alt={theme ? "Profile Icon Light" : "Profile Icon Dark"}
               className="object-cover"
-              width={500}
-              height={500}
+              width={800}
+              height={800}
+              unoptimized={true}
+              style={{ imageRendering: "high-quality" }}
             />
           ) : (
-            <div className={` h-full w-full relative`}>
-              {" "}
+            <div className="h-full w-full relative">
               <Image
                 priority
                 src={theme ? "/profileIconLight.png" : "/profileIconDark.png"}
-                alt={theme ? "Proflie Icon Light" : "Proflie Icon Dark"}
+                alt={theme ? "Profile Icon Light" : "Profile Icon Dark"}
                 fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 30vw"
+                sizes="(max-width: 640px) 100px, 150px"
                 className="object-cover"
+                unoptimized={true}
+                style={{ imageRendering: "high-quality" }}
               />
             </div>
           )}
@@ -140,19 +193,13 @@ export default function ProfilePic() {
           />
           <button
             type="button"
-            className={`sm:py-2 py-1 ${
-              colors.keyText
-            } text-[12px] sm:text-[16px] rounded-lg border-[2px] ${
-              colors.keyBorder
-            } px-3 w-[56%] m-[2%] box-border float-left ${theme ? "" : ""}`}
+            className={`sm:py-2 py-1 ${colors.keyText} text-[12px] sm:text-[16px] rounded-lg border-[2px] ${colors.keyBorder} px-3 w-[56%] m-[2%] box-border float-left`}
             onClick={handleImageClick}
           >
             Upload
           </button>
           <button
-            className={`sm:py-2 py-1 rounded-lg text-red-700 text-[12px] sm:text-[16px] border-[2px] border-red-700 px-3 w-[36%] m-[2%] box-border float-left ${
-              theme ? "" : ""
-            }`}
+            className={`sm:py-2 py-1 rounded-lg text-red-700 text-[12px] sm:text-[16px] border-[2px] border-red-700 px-3 w-[36%] m-[2%] box-border float-left`}
             onClick={handleImageDelete}
           >
             Delete

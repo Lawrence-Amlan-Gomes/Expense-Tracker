@@ -41,8 +41,8 @@ export default function Hero() {
             theme ? "text-[#0a0a0a]" : "text-[#ebebeb]"
           }`}
         >
-          Craft <span className={`${colors.keyText}`}>Professional</span>{" "}
-          Recruiter Replies
+          Make Your <span className={`${colors.keyText}`}>Daily Routine</span>{" "}
+          And Utilize Your Time Better
         </h1>
         <p
           className={`text-md sm:text-lg lg:text-xl ${

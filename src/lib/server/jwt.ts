@@ -9,13 +9,6 @@ if (!process.env.JWT_SECRET) {
 const secret = new TextEncoder().encode(process.env.JWT_SECRET);
 
 export async function generateToken(user: CleanUser): Promise<string> {
-  // Serialize history to ensure it's JSON-safe
-  const serializedHistory = user.history.map(item => ({
-    date: item.date,
-    title: item.title,
-    context: item.context.map(([key, value]) => [key, value]),
-    generation: item.generation,
-  }));
 
   return await new SignJWT({
     id: user.id,
@@ -27,7 +20,7 @@ export async function generateToken(user: CleanUser): Promise<string> {
     createdAt: user.createdAt,
     expiredAt: user.expiredAt,
     paymentType: user.paymentType ?? "Free One Week",
-    history: serializedHistory, // Use serialized version
+    isEmailVerified: user.isEmailVerified ?? false, // ← NEW
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()

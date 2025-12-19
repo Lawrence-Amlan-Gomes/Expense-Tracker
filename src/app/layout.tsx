@@ -1,8 +1,7 @@
 // src/app/layout.tsx
 import { Roboto } from "next/font/google";
-import "./globals.css";
 import ClientLayout from "./ClientLayout";
-import { dbConnect } from "@/lib/mongo";
+import "./globals.css";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -12,8 +11,8 @@ const roboto = Roboto({
 });
 
 export const metadata = {
-  title: "Recruiter Reply",
-  description: "recruiter Reply",
+  title: "Daily Routine",
+  description: "Daily Routine",
   icons: {
     icon: ["/favicon.ico?v=4"],
     apple: ["/apple-touch-icon.png?v=4"],
@@ -27,8 +26,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={roboto.className}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={roboto.className} suppressHydrationWarning>
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

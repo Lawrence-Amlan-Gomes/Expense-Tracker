@@ -74,7 +74,7 @@ export default function LandingTestimonials() {
       <div className="flex justify-center mt-8">
         <Link href="/testimonials">
           <div
-            className={`px-4 py-2 rounded-md text-sm sm:text-[15px] font-medium hover:cursor-pointer ${colors.keyBg} text-[#ffffff] hover:bg-white border-[1px] ${colors.keyBorder} ${colors.keyHoverText}`}
+            className={`px-4 py-2 rounded-md text-sm sm:text-[15px] font-medium hover:cursor-pointer ${colors.keyBg} text-[#ffffff] hover:bg-transparent border-[1px] ${colors.keyBorder} ${colors.keyHoverText}`}
           >
             View All Feedbacks
           </div>

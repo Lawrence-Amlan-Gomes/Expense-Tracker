@@ -56,8 +56,7 @@ const TopNavbar = () => {
   const baseNavItems = [
     { href: "/home", label: "Home", activeKey: "home" },
     { href: "/pricing", label: "Pricing", activeKey: "pricing" },
-    { href: "/chat", label: "Chat", activeKey: "chat" },
-    { href: "/history", label: "History", activeKey: "history" },
+    { href: "/dashBoard", label: "DashBoard", activeKey: "dashBoard" },
   ];
 
   // Conditionally add Admin route if user is admin
@@ -81,7 +80,7 @@ const TopNavbar = () => {
     <>
       {/* Desktop Navbar */}
       <nav
-        className={`fixed top-0 z-50 w-[99%] h-12 sm:h-14 md:h-16 hidden sm:flex items-center justify-between border-b-[1px] px-[10%] bg-opacity-65 backdrop-blur-xl ${
+        className={`fixed top-0 z-50 w-[99%] h-12 sm:h-14 md:h-16 hidden sm:flex items-center justify-between border-b-[1px] pl-[10%] pr-[11%] bg-opacity-65 backdrop-blur-xl ${
           theme
             ? "bg-[#ffffff] border-[#dddddd]"
             : "bg-[#000000] border-[#222222]"
@@ -94,7 +93,7 @@ const TopNavbar = () => {
               theme ? "text-[#222222]" : "text-[#dadada]"
             }`}
           >
-            Recruiter Reply
+            Daily Routine
           </div>
         </Link>
 
@@ -132,7 +131,7 @@ const TopNavbar = () => {
               theme ? "text-[#222222]" : "text-[#dadada]"
             }`}
           >
-            Recruiter Reply
+            Daily Routine
           </div>
         </Link>
 

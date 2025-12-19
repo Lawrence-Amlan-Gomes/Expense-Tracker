@@ -1,8 +1,10 @@
+// src/app/actions.ts
 "use server";
 
 import { signOut } from "@/app/auth";
 import { cleanUserForClient } from "@/lib/data-util";
 import { dbConnect } from "@/lib/mongo";
+import { sendVerificationEmail, sendVerificationSuccessEmail } from "@/lib/server/email"; // ← UPDATED
 import { generateToken, verifyToken } from "@/lib/server/jwt";
 import { User } from "@/models/User";
 import { CleanUser } from "@/store/features/auth/authSlice";
@@ -10,24 +12,18 @@ import bcrypt from "bcrypt";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-// Helper – explicit type for the plain-object returned by .lean()
 type LeanUser = {
   _id: any;
   name: string;
   email: string;
-  password?: string; // password is only present when we .select("+password")
+  password?: string;
   photo?: string;
   firstTimeLogin?: boolean;
   isAdmin?: boolean;
   createdAt?: Date;
   expiredAt?: Date;
-  history: {
-    date: string;
-    title: string;
-    context: [string, string][];
-    generation: string;
-  }[];
   paymentType?: string;
+  isEmailVerified?: boolean; // ← NEW
   __v?: number;
 };
 
@@ -42,24 +38,15 @@ export async function performLogin({
 }) {
   await dbConnect();
 
-  // keep Mongoose document + explicitly select password
   const user = await User.findOne({ email }).select("+password");
   if (!user) return null;
 
   const match = await bcrypt.compare(password, user.password!);
   if (!match) return null;
 
-  // Set expiredAt to 7 days from now
   const expiredAt = new Date();
   expiredAt.setDate(expiredAt.getDate() + 7);
 
-  // Properly serialize history to ensure no Mongoose objects leak through
-  const serializedHistory = (user.history || []).map((item: any) => ({
-    date: item.date,
-    title: item.title,
-    context: item.context.map((ctx: any) => [ctx[0], ctx[1]]),
-    generation: item.generation,
-  }));
 
   const cleanUser: CleanUser = {
     id: user._id.toString(),
@@ -70,8 +57,8 @@ export async function performLogin({
     isAdmin: user.isAdmin || false,
     createdAt: user.createdAt?.toISOString() || new Date().toISOString(),
     expiredAt: user.expiredAt?.toISOString() || expiredAt.toISOString(),
-    history: serializedHistory, // Use properly serialized history
     paymentType: user.paymentType || "Free One Week",
+    isEmailVerified: user.isEmailVerified || false, // ← NEW
   };
 
   const token = await generateToken(cleanUser);
@@ -89,43 +76,100 @@ export async function createUser(data: {
 
   const { email } = data;
 
-  // lean is fine here – we only need to check existence
   const existingUser = await User.findOne({ email }).lean<LeanUser>();
   if (existingUser) {
     throw new Error("EMAIL_ALREADY_EXISTS");
   }
 
   const hashed = await bcrypt.hash(data.password, 12);
-  // Set expiredAt to 7 days from now
   const expiredAt = new Date();
   expiredAt.setDate(expiredAt.getDate() + 7);
+
+  // Check if it's Google registration (no password means Google)
+  const isGoogleAuth = !data.password || data.password === "";
 
   const user = new User({
     ...data,
     expiredAt,
     password: hashed,
+    isEmailVerified: isGoogleAuth, // ← true for Google, false for manual
   });
+
   await user.save();
+
+  // ← NEW: Send verification email only for manual registration
+  if (!isGoogleAuth) {
+    const verificationLink = `${
+      process.env.NEXTAUTH_URL
+    }/api/verify-email?email=${encodeURIComponent(email)}`;
+    await sendVerificationEmail(email, verificationLink, data.name);
+  }
+
   return cleanUserForClient(user.toObject());
+}
+
+// ← UPDATED: Verify email function with success email
+export async function verifyUserEmail(email: string) {
+  await dbConnect();
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    return { success: false, error: "User not found" };
+  }
+
+  if (user.isEmailVerified) {
+    return { success: false, error: "Email already verified" };
+  }
+
+  // Update MongoDB
+  await User.updateOne({ email }, { isEmailVerified: true });
+
+  // Send success email
+  await sendVerificationSuccessEmail(email, user.name);
+
+  return { success: true, message: "Email verified successfully!" };
+}
+
+export async function resendVerificationEmail(email: string, name: string) {
+  "use server";
+  
+  await dbConnect();
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    return { success: false, error: "User not found" };
+  }
+
+  if (user.isEmailVerified) {
+    return { success: false, error: "Email already verified" };
+  }
+
+  const verificationLink = `${
+    process.env.NEXTAUTH_URL
+  }/api/verify-email?email=${encodeURIComponent(email)}`;
+  
+  await sendVerificationEmail(email, verificationLink, name);
+
+  return { success: true };
+}
+
+export async function checkEmailVerificationStatus(email: string) {
+  "use server";
+  
+  await dbConnect();
+
+  const user = await User.findOne({ email }).select('isEmailVerified');
+  if (!user) {
+    return { success: false, isEmailVerified: false };
+  }
+
+  return { success: true, isEmailVerified: user.isEmailVerified };
 }
 
 export async function changePhoto(email: string, photo: string) {
   await dbConnect();
   await User.updateOne({ email }, { photo });
   revalidatePath("/profile");
-}
-
-export async function updateHistory(
-  email: string,
-  history: {
-    date: string;
-    title: string;
-    context: [string, string][];
-    generation: string;
-  }[]
-) {
-  await dbConnect();
-  await User.updateOne({ email }, { history });
 }
 
 export async function updatePaymentType(
@@ -153,21 +197,12 @@ export async function updateUser(
 export async function findUserByEmail(email: string) {
   await dbConnect();
 
-  // lean + explicit typing – password not needed
   const user = await User.findOne({ email }).lean<LeanUser>();
   if (!user) return null;
 
-  // Set expiredAt to 7 days from now
   const expiredAt = new Date();
   expiredAt.setDate(expiredAt.getDate() + 7);
 
-  // Properly serialize history
-  const serializedHistory = (user.history || []).map((item: any) => ({
-    date: item.date,
-    title: item.title,
-    context: item.context.map((ctx: any) => [ctx[0], ctx[1]]),
-    generation: item.generation,
-  }));
 
   return {
     id: user._id.toString(),
@@ -178,8 +213,8 @@ export async function findUserByEmail(email: string) {
     isAdmin: user.isAdmin || false,
     createdAt: user.createdAt?.toISOString() || new Date().toISOString(),
     expiredAt: user.expiredAt?.toISOString() || expiredAt.toISOString(),
-    history: serializedHistory, // Use properly serialized history
     paymentType: user.paymentType,
+    isEmailVerified: user.isEmailVerified || false, // ← NEW
   };
 }
 
@@ -190,7 +225,6 @@ export async function verifyAndChangePassword(
 ) {
   await dbConnect();
 
-  // need password → keep document + select it
   const user = await User.findOne({ email }).select("+password");
   if (!user) throw new Error("USER_NOT_FOUND");
 

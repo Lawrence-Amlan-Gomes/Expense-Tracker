@@ -1,5 +1,20 @@
 // src/models/User.ts
-import mongoose from "mongoose";
+import mongoose, { Document } from "mongoose";
+
+export interface IRoutineItem {
+  name: string;
+  time: string;
+}
+
+export interface IRoutine {
+  saturday: IRoutineItem[];
+  sunday: IRoutineItem[];
+  monday: IRoutineItem[];
+  tuesday: IRoutineItem[];
+  wednesday: IRoutineItem[];
+  thursday: IRoutineItem[];
+  friday: IRoutineItem[];
+}
 
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
@@ -9,15 +24,11 @@ export interface IUser extends Document {
   photo?: string;
   firstTimeLogin: boolean;
   createdAt: Date;
-  expiredAt: Date;
-  history: {
-    date: string;
-    title: string;
-    context: [string, string][];
-    generation: string;
-  }[];
+  expiredAt?: Date;
   isAdmin: boolean;
-  paymentType: string; // ← ADDED: This line was missing!
+  paymentType: string;
+  isEmailVerified: boolean;
+  routine: IRoutine;
 }
 
 const UserSchema = new mongoose.Schema<IUser>(
@@ -29,9 +40,77 @@ const UserSchema = new mongoose.Schema<IUser>(
     firstTimeLogin: { type: Boolean, default: true },
     createdAt: { type: Date, default: Date.now },
     expiredAt: { type: Date },
-    history: {type: Array, default: []},
-    isAdmin: { type: Boolean, default: false},
-    paymentType: { type: String, default: "Free One Week" }, // ← Now valid because type exists above
+    isAdmin: { type: Boolean, default: false },
+    paymentType: { type: String, default: "Free One Week" },
+    isEmailVerified: { type: Boolean, default: false },
+    routine: {
+      type: {
+        saturday: {
+          type: [
+            {
+              name: { type: String, required: true, trim: true },
+              time: { type: String, required: true, trim: true },
+            },
+          ],
+          default: [],
+        },
+        sunday: {
+          type: [
+            {
+              name: { type: String, required: true, trim: true },
+              time: { type: String, required: true, trim: true },
+            },
+          ],
+          default: [],
+        },
+        monday: {
+          type: [
+            {
+              name: { type: String, required: true, trim: true },
+              time: { type: String, required: true, trim: true },
+            },
+          ],
+          default: [],
+        },
+        tuesday: {
+          type: [
+            {
+              name: { type: String, required: true, trim: true },
+              time: { type: String, required: true, trim: true },
+            },
+          ],
+          default: [],
+        },
+        wednesday: {
+          type: [
+            {
+              name: { type: String, required: true, trim: true },
+              time: { type: String, required: true, trim: true },
+            },
+          ],
+          default: [],
+        },
+        thursday: {
+          type: [
+            {
+              name: { type: String, required: true, trim: true },
+              time: { type: String, required: true, trim: true },
+            },
+          ],
+          default: [],
+        },
+        friday: {
+          type: [
+            {
+              name: { type: String, required: true, trim: true },
+              time: { type: String, required: true, trim: true },
+            },
+          ],
+          default: [],
+        },
+      },
+      default: {},
+    },
   },
   {
     versionKey: false,
