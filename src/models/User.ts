@@ -34,7 +34,13 @@ export interface IUser extends Document {
 const UserSchema = new mongoose.Schema<IUser>(
   {
     name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
     password: { type: String, required: true },
     photo: { type: String, default: "" },
     firstTimeLogin: { type: Boolean, default: true },
@@ -53,6 +59,7 @@ const UserSchema = new mongoose.Schema<IUser>(
             },
           ],
           default: [],
+          _id: false,
         },
         sunday: {
           type: [
@@ -62,6 +69,7 @@ const UserSchema = new mongoose.Schema<IUser>(
             },
           ],
           default: [],
+          _id: false,
         },
         monday: {
           type: [
@@ -71,6 +79,7 @@ const UserSchema = new mongoose.Schema<IUser>(
             },
           ],
           default: [],
+          _id: false,
         },
         tuesday: {
           type: [
@@ -80,6 +89,7 @@ const UserSchema = new mongoose.Schema<IUser>(
             },
           ],
           default: [],
+          _id: false,
         },
         wednesday: {
           type: [
@@ -89,6 +99,7 @@ const UserSchema = new mongoose.Schema<IUser>(
             },
           ],
           default: [],
+          _id: false,
         },
         thursday: {
           type: [
@@ -98,6 +109,7 @@ const UserSchema = new mongoose.Schema<IUser>(
             },
           ],
           default: [],
+          _id: false,
         },
         friday: {
           type: [
@@ -107,9 +119,11 @@ const UserSchema = new mongoose.Schema<IUser>(
             },
           ],
           default: [],
+          _id: false,
         },
       },
       default: {},
+      _id: false,
     },
   },
   {
@@ -118,4 +132,5 @@ const UserSchema = new mongoose.Schema<IUser>(
   }
 );
 
-export const User = mongoose.models.users || mongoose.model<IUser>("users", UserSchema);
+export const User =
+  mongoose.models.users || mongoose.model<IUser>("users", UserSchema);

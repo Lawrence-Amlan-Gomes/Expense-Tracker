@@ -5,6 +5,22 @@ export const cleanUserForClient = (user: any) => {
   const expiredAt = new Date();
   expiredAt.setDate(expiredAt.getDate() + 7);
 
+  // Helper to clean routine items
+  const cleanRoutine = (routine: any) => {
+    if (!routine) {
+      return { saturday: [], sunday: [], monday: [], tuesday: [], wednesday: [], thursday: [], friday: [] };
+    }
+    return {
+      saturday: routine.saturday?.map((i: any) => ({ name: i.name, time: i.time })) || [],
+      sunday: routine.sunday?.map((i: any) => ({ name: i.name, time: i.time })) || [],
+      monday: routine.monday?.map((i: any) => ({ name: i.name, time: i.time })) || [],
+      tuesday: routine.tuesday?.map((i: any) => ({ name: i.name, time: i.time })) || [],
+      wednesday: routine.wednesday?.map((i: any) => ({ name: i.name, time: i.time })) || [],
+      thursday: routine.thursday?.map((i: any) => ({ name: i.name, time: i.time })) || [],
+      friday: routine.friday?.map((i: any) => ({ name: i.name, time: i.time })) || [],
+    };
+  };
+
   return {
     id: user._id?.toString() || user.id,
     name: user.name || "User",
@@ -16,6 +32,9 @@ export const cleanUserForClient = (user: any) => {
       ? new Date(user.createdAt).toISOString()
       : new Date().toISOString(),
     expiredAt: user.expiredAt?.toISOString() || expiredAt.toISOString(),
+    paymentType: user.paymentType || "Free One Week", // ← add fallback if needed
+    isEmailVerified: user.isEmailVerified ?? false,
+    routine: cleanRoutine(user.routine), // ← Cleaned properly
   };
 };
 

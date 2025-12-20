@@ -3,8 +3,12 @@
 
 import { signOut } from "@/app/auth";
 import { cleanUserForClient } from "@/lib/data-util";
+import { CleanUser, IRoutine } from "@/store/features/auth/authSlice";
 import { dbConnect } from "@/lib/mongo";
-import { sendVerificationEmail, sendVerificationSuccessEmail } from "@/lib/server/email"; // ← UPDATED
+import {
+  sendVerificationEmail,
+  sendVerificationSuccessEmail,
+} from "@/lib/server/email"; // ← UPDATED
 import { generateToken, verifyToken } from "@/lib/server/jwt";
 import { User } from "@/models/User";
 import { CleanUser } from "@/store/features/auth/authSlice";
@@ -47,7 +51,6 @@ export async function performLogin({
   const expiredAt = new Date();
   expiredAt.setDate(expiredAt.getDate() + 7);
 
-
   const cleanUser: CleanUser = {
     id: user._id.toString(),
     name: user.name,
@@ -58,7 +61,47 @@ export async function performLogin({
     createdAt: user.createdAt?.toISOString() || new Date().toISOString(),
     expiredAt: user.expiredAt?.toISOString() || expiredAt.toISOString(),
     paymentType: user.paymentType || "Free One Week",
-    isEmailVerified: user.isEmailVerified || false, // ← NEW
+    isEmailVerified: user.isEmailVerified || false,
+    routine: user.routine
+      ? {
+          saturday: user.routine.saturday.map((item) => ({
+            name: item.name,
+            time: item.time,
+          })),
+          sunday: user.routine.sunday.map((item) => ({
+            name: item.name,
+            time: item.time,
+          })),
+          monday: user.routine.monday.map((item) => ({
+            name: item.name,
+            time: item.time,
+          })),
+          tuesday: user.routine.tuesday.map((item) => ({
+            name: item.name,
+            time: item.time,
+          })),
+          wednesday: user.routine.wednesday.map((item) => ({
+            name: item.name,
+            time: item.time,
+          })),
+          thursday: user.routine.thursday.map((item) => ({
+            name: item.name,
+            time: item.time,
+          })),
+          friday: user.routine.friday.map((item) => ({
+            name: item.name,
+            time: item.time,
+          })),
+        }
+      : {
+          saturday: [],
+          sunday: [],
+          monday: [],
+          tuesday: [],
+          wednesday: [],
+          thursday: [],
+          friday: [],
+        },
   };
 
   const token = await generateToken(cleanUser);
@@ -93,6 +136,16 @@ export async function createUser(data: {
     expiredAt,
     password: hashed,
     isEmailVerified: isGoogleAuth, // ← true for Google, false for manual
+    // routine will use schema default, but explicitly setting is safer
+    routine: {
+      saturday: [],
+      sunday: [],
+      monday: [],
+      tuesday: [],
+      wednesday: [],
+      thursday: [],
+      friday: [],
+    },
   });
 
   await user.save();
@@ -132,7 +185,7 @@ export async function verifyUserEmail(email: string) {
 
 export async function resendVerificationEmail(email: string, name: string) {
   "use server";
-  
+
   await dbConnect();
 
   const user = await User.findOne({ email });
@@ -147,7 +200,7 @@ export async function resendVerificationEmail(email: string, name: string) {
   const verificationLink = `${
     process.env.NEXTAUTH_URL
   }/api/verify-email?email=${encodeURIComponent(email)}`;
-  
+
   await sendVerificationEmail(email, verificationLink, name);
 
   return { success: true };
@@ -155,10 +208,10 @@ export async function resendVerificationEmail(email: string, name: string) {
 
 export async function checkEmailVerificationStatus(email: string) {
   "use server";
-  
+
   await dbConnect();
 
-  const user = await User.findOne({ email }).select('isEmailVerified');
+  const user = await User.findOne({ email }).select("isEmailVerified");
   if (!user) {
     return { success: false, isEmailVerified: false };
   }
@@ -203,7 +256,6 @@ export async function findUserByEmail(email: string) {
   const expiredAt = new Date();
   expiredAt.setDate(expiredAt.getDate() + 7);
 
-
   return {
     id: user._id.toString(),
     name: user.name,
@@ -215,6 +267,46 @@ export async function findUserByEmail(email: string) {
     expiredAt: user.expiredAt?.toISOString() || expiredAt.toISOString(),
     paymentType: user.paymentType,
     isEmailVerified: user.isEmailVerified || false, // ← NEW
+    routine: user.routine
+      ? {
+          saturday: user.routine.saturday.map((item) => ({
+            name: item.name,
+            time: item.time,
+          })),
+          sunday: user.routine.sunday.map((item) => ({
+            name: item.name,
+            time: item.time,
+          })),
+          monday: user.routine.monday.map((item) => ({
+            name: item.name,
+            time: item.time,
+          })),
+          tuesday: user.routine.tuesday.map((item) => ({
+            name: item.name,
+            time: item.time,
+          })),
+          wednesday: user.routine.wednesday.map((item) => ({
+            name: item.name,
+            time: item.time,
+          })),
+          thursday: user.routine.thursday.map((item) => ({
+            name: item.name,
+            time: item.time,
+          })),
+          friday: user.routine.friday.map((item) => ({
+            name: item.name,
+            time: item.time,
+          })),
+        }
+      : {
+          saturday: [],
+          sunday: [],
+          monday: [],
+          tuesday: [],
+          wednesday: [],
+          thursday: [],
+          friday: [],
+        },
   };
 }
 
@@ -235,6 +327,13 @@ export async function verifyAndChangePassword(
   await User.updateOne({ email }, { password: hashed });
 
   revalidatePath("/profile");
+}
+
+// Add to src/app/actions.ts
+export async function updateRoutine(email: string, routine: IRoutine) {
+  await dbConnect();
+  await User.updateOne({ email }, { routine });
+  revalidatePath("/dashBoard"); // or wherever your routine page is
 }
 
 // ==================== GOOGLE + JWT ====================

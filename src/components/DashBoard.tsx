@@ -12,6 +12,8 @@ import {
 import Chat from "./Chat";
 import EmailNotVerified from "./EmailNotVerified";
 import { useRouter } from "next/navigation";
+import EditRoutine from "@/components/EditRoutine";
+import ShowRoutine from "./ShowRoutine";
 
 export default function DashBoard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -19,9 +21,10 @@ export default function DashBoard() {
   const { theme } = useTheme();
   const { user: auth } = useAuth();
   const router = useRouter();
+  console.log("Auth User:", auth);
 
   useEffect(() => {
-    if(auth === null){
+    if(auth === null && hasMounted){
       router.push("/login");
     } 
   }, []);
@@ -77,8 +80,9 @@ export default function DashBoard() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.12 }}
-              className="h-full w-full pt-[150px]"
+              className="h-full w-full sm:pt-[55px] md:pt-[60px] overflow-auto"
             >
+              <EditRoutine/>
             </motion.div>
           )}
         </AnimatePresence>
@@ -113,7 +117,7 @@ export default function DashBoard() {
         style={{ width: "100%" }} // overrides animation on <sm
         transition={transition}
       >
-        
+        <ShowRoutine/>
       </motion.div>
 
       <motion.div className="h-full w-full relative float-left sm:float-left block sm:hidden">
