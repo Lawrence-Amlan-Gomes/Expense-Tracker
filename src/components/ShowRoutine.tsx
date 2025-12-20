@@ -4,6 +4,7 @@
 import { useTheme } from "@/app/hooks/useTheme";
 import { useAuth } from "@/app/hooks/useAuth";
 import { IRoutineItem } from "@/store/features/auth/authSlice";
+import { useEffect, useState } from "react";
 
 const daysOfWeek = [
   { full: "Sunday", short: "Sun" },
@@ -15,9 +16,35 @@ const daysOfWeek = [
   { full: "Saturday", short: "Sat" },
 ] as const;
 
+const getMinutesPerSlot = (zoom: number) => {
+  if (zoom <= 1) return 60;
+  if (zoom <= 2) return 30;
+  if (zoom <= 4) return 15;
+  if (zoom <= 7) return 10;
+  return 5; // 9-10x → 5 min slots
+};
+
 export default function ShowRoutine() {
   const { theme } = useTheme();
   const { user: auth } = useAuth();
+  const [zoomLevel, setZoomLevel] = useState(3); // 1 to 10
+
+  const pxPerMinute = zoomLevel;
+  const hourHeight = 60 * pxPerMinute;
+
+  const minutesPerSlot = getMinutesPerSlot(zoomLevel);
+  const slotsPerHour = 60 / minutesPerSlot;
+
+  // Generate dynamic time slots
+  const timeSlots: string[] = [];
+  for (let hour = 0; hour < 24; hour++) {
+    for (let min = 0; min < 60; min += minutesPerSlot) {
+      const h = hour % 12 || 12;
+      const ampm = hour < 12 ? "AM" : "PM";
+      const m = min.toString().padStart(2, "0");
+      timeSlots.push(`${h}:${m} ${ampm}`);
+    }
+  }
 
   if (!auth) {
     return (
@@ -29,73 +56,161 @@ export default function ShowRoutine() {
     );
   }
 
+  useEffect(() => {
+    console.log(`Zoom level changed to: ${zoomLevel}`);
+  }, [zoomLevel]);
+
   const routine = auth.routine;
 
   return (
-    <div className="h-full overflow-auto p-6">
-      <h1 className="text-3xl font-bold text-center mb-8">My Weekly Routine</h1>
+    <div
+      className={`h-full relative scrollbar overflow-auto px-[10px] pt-[64px] pb-[30px] ${
+        theme
+          ? "bg-[#ffffff] scrollbar-thumb-black scrollbar-track-[#eeeeee]"
+          : "bg-[#000000] scrollbar-thumb-white scrollbar-track-[#222222]"
+      }`}
+    >
+      {/* Sticky header */}
+      <div className={`sticky top-0 left-0 right-0 z-20 bg-inherit`}>
+        <div
+          id="nav"
+          className={`h-[50px] w-full border-b-[1px] flex items-center justify-center gap-4 ${
+            theme ? "border-[#888888]" : "border-[#888888]"
+          }`}
+        >
+          <button
+            onClick={() => setZoomLevel((p) => Math.max(1, p - 1))}
+            className={`px-2 rounded
+              ${
+                theme
+                  ? zoomLevel === 1
+                    ? "bg-[#888888] text-[#bbbbbb] cursor-not-allowed"
+                    : "bg-[#000000] text-white hover:bg-[#333333]"
+                  : zoomLevel === 1
+                  ? "bg-[#888888] text-[#444444] cursor-not-allowed"
+                  : "bg-[#ffffff] text-black hover:bg-[#dddddd]"
+              }`}
+          >
+            -
+          </button>
+          <span
+            className={`font-semibold ${
+              theme ? "text-gray-900" : "text-white"
+            }`}
+          >
+            Zoom: {zoomLevel}×
+          </span>
+          <button
+            onClick={() => setZoomLevel((p) => Math.min(10, p + 1))}
+            className={`px-2 rounded
+              ${
+                theme
+                  ? zoomLevel === 10
+                    ? "bg-[#888888] text-[#bbbbbb] cursor-not-allowed"
+                    : "bg-[#000000] text-white hover:bg-[#333333]"
+                  : zoomLevel === 10
+                  ? "bg-[#888888] text-[#444444] cursor-not-allowed"
+                  : "bg-[#ffffff] text-black hover:bg-[#dddddd]"
+              }`}
+          >
+            +
+          </button>
+        </div>
+        <div
+          className={`h-[50px] w-full border-b-[1px] ${
+            theme ? "border-[#888888]" : "border-[#888888]"
+          }`}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-8 mx-auto">
+            <div className={`overflow-hidden`}>
+              <div
+                className={`p-3 text-center font-semibold ${
+                  theme ? "text-gray-900" : "text-white"
+                }`}
+              >
+                Time
+              </div>
+            </div>
 
-      {/* 7-Column Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4 max-w-7xl mx-auto">
-        {daysOfWeek.map((day, index) => {
+            {daysOfWeek.map((day) => (
+              <div
+                key={day.full}
+                className={`overflow-hidden border-l-[1px] ${
+                  theme ? "border-[#888888]" : "border-[#888888]"
+                }`}
+              >
+                <div
+                  className={`p-3 text-center font-semibold ${
+                    theme ? "text-gray-900" : "text-white"
+                  }`}
+                >
+                  {day.full}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Grid content */}
+      <div className="grid grid-cols-1 sm:grid-cols-8 mx-auto">
+        {/* Time column */}
+        <div
+          className={`font-bold text-lg pt-[20px] ${
+            theme ? "text-gray-900" : "text-white"
+          }`}
+        >
+          {timeSlots.map((time) => (
+            <div
+              key={time}
+              className={`w-full text-[13px] border-t-[1px] border-blue-600`}
+              style={{ height: `${hourHeight / slotsPerHour}px` }}
+            >
+              <div className={`flex justify-center items-center`}>
+                <div
+                  className={`absolute px-2 rounded-md border-[1px] border-blue-600 ${
+                    theme ? "bg-[#ffffff]" : "bg-[#000000]"
+                  }`}
+                >
+                  {time}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Days */}
+        {daysOfWeek.map((day) => {
           const dayKey = day.full.toLowerCase() as keyof typeof routine;
           const tasks: IRoutineItem[] = routine[dayKey] || [];
 
           return (
             <div
               key={day.full}
-              className={`rounded-xl shadow-md overflow-hidden ${
-                theme
-                  ? "bg-white border border-gray-200"
-                  : "bg-gray-800 border border-gray-700"
+              className={`overflow-hidden border-l-[1px] pt-[20px] ${
+                theme ? "border-[#888888]" : " border-[#888888]"
               }`}
             >
-              {/* Day Header */}
-              <div
-                className={`px-4 py-3 text-center font-semibold text-white ${
-                  index === 0 || index === 6
-                    ? "bg-red-600" // Weekend highlight
-                    : "bg-blue-600"
-                }`}
-              >
-                <div className="hidden sm:block">{day.full}</div>
-                <div className="sm:hidden">{day.short}</div>
-              </div>
-
-              {/* Tasks List */}
-              <div className="p-4 min-h-[200px]">
-                {tasks.length === 0 ? (
-                  <p className="text-center text-sm opacity-50 italic">
-                    No tasks
-                  </p>
-                ) : (
-                  <ul className="space-y-3">
-                    {tasks.map((task, i) => (
-                      <li
-                        key={i}
-                        className={`p-3 rounded-lg text-sm ${
-                          theme
-                            ? "bg-gray-100 text-gray-800"
-                            : "bg-gray-700 text-gray-200"
-                        }`}
-                      >
-                        <div className="font-medium">{task.name}</div>
-                        <div className="text-xs opacity-75 mt-1">
-                          {task.time}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+              <div className="">
+                <ul className="">
+                  {tasks.map((task, i) => (
+                    <li
+                      key={i}
+                      className={`p-2 text-sm border-t-[1px] border-blue-600 ${
+                        theme
+                          ? "bg-[#e0e0e0] text-gray-800"
+                          : "bg-[#222222] text-gray-200"
+                      }`}
+                    >
+                      <div className="font-medium">{task.name}</div>
+                      <div className="text-xs opacity-75 mt-1">{task.time}</div>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           );
         })}
-      </div>
-
-      {/* Optional: Legend for mobile */}
-      <div className="mt-8 text-center text-xs opacity-60 sm:hidden">
-        Swipe or scroll horizontally to see all days
       </div>
     </div>
   );

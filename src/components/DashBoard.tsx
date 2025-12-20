@@ -117,7 +117,7 @@ export default function DashBoard() {
         style={{ width: "100%" }} // overrides animation on <sm
         transition={transition}
       >
-        <ShowRoutine/>
+        <ShowRoutine />
       </motion.div>
 
       <motion.div className="h-full w-full relative float-left sm:float-left block sm:hidden">
