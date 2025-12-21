@@ -6,6 +6,7 @@ import { useAuth } from "@/app/hooks/useAuth";
 import { IRoutineItem } from "@/store/features/auth/authSlice";
 import { useEffect, useState } from "react";
 import { useRef } from "react";
+import { set } from "mongoose";
 
 const getMinutesPerSlot = (zoom: number) => {
   if (zoom <= 1.5) return 30;
@@ -55,10 +56,12 @@ export default function ShowRoutine({
   isSidebarOpen,
   setIsSidebarOpen,
   setSelectedDay,
+  setTaskSearchQuery,
 }: {
   isSidebarOpen?: boolean;
   setIsSidebarOpen?: React.Dispatch<React.SetStateAction<boolean>>;
   setSelectedDay?: React.Dispatch<React.SetStateAction<Day>>;
+  setTaskSearchQuery: React.Dispatch<React.SetStateAction<string>>;
 }) {
   const { theme } = useTheme();
   const { user: auth } = useAuth();
@@ -321,7 +324,7 @@ export default function ShowRoutine({
       <div className="grid grid-cols-1 sm:grid-cols-8 mx-auto">
         {/* Time column */}
         <div
-          className={`font-bold text-lg pt-[20px] ${
+          className={`text-lg pt-[20px] ${
             theme ? "text-gray-900" : "text-white"
           }`}
         >
@@ -488,8 +491,12 @@ export default function ShowRoutine({
                       key={i}
                       onClick={() => {
                         setSelectedDay(day.full.toLowerCase() as Day);
+
                         if (task.name !== "dummy") {
                           setIsSidebarOpen(true);
+                          setTaskSearchQuery(task.name);
+                        }else{
+                          setTaskSearchQuery("");
                         }
                       }}
                       className={`text-sm overflow-hidden border-t-[1px] pr-1 border-blue-600  ${

@@ -19,6 +19,7 @@ export default function DashBoard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<Day>("saturday");
   const [hasMounted, setHasMounted] = useState(false);
+  const [taskSearchQuery, setTaskSearchQuery] = useState("");
   const { theme } = useTheme();
   const { user: auth } = useAuth();
   const router = useRouter();
@@ -86,6 +87,8 @@ export default function DashBoard() {
               <EditRoutine
                 selectedDay={selectedDay}
                 setSelectedDay={setSelectedDay}
+                taskSearchQuery={taskSearchQuery}
+                setTaskSearchQuery={setTaskSearchQuery}
               />
             </motion.div>
           )}
@@ -125,6 +128,8 @@ export default function DashBoard() {
           setIsSidebarOpen={setIsSidebarOpen}
           selectedDay={selectedDay}
           setSelectedDay={setSelectedDay}
+          taskSearchQuery={taskSearchQuery}
+          setTaskSearchQuery={setTaskSearchQuery}
         />
       </motion.div>
 
