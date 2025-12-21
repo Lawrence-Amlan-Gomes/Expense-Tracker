@@ -778,244 +778,6 @@ export default function EditRoutine({
               : "bg-[#080808] scrollbar-thumb-white scrollbar-track-[#111111]"
           }`}
         >
-          {filteredTasks.length === 0 ? (
-            <p className="text-xs text-gray-500 italic">
-              {taskSearchQuery.trim() ? "No matching tasks" : "No tasks"}
-            </p>
-          ) : (
-            filteredTasks.map((task, index) => {
-              // IMPORTANT: We need the original index in the full tasks array
-              // for editing/deleting correctly
-              const originalIndex = tasks.indexOf(task);
-              return (
-                <div key={originalIndex}>
-                  {editingIndex === originalIndex ? (
-                    // Edit Portal
-                    <div
-                      className={`p-3 rounded text-sm border ${
-                        theme
-                          ? "bg-white border-gray-200"
-                          : "bg-[#222222] border-[#333333]"
-                      }`}
-                    >
-                      <div className="flex justify-between items-center mb-2">
-                        <h4 className="text-xs font-medium opacity-70">
-                          Edit task
-                        </h4>
-                        <button
-                          onClick={() => setEditingIndex(null)}
-                          className="text-white bg-red-600 hover:bg-red-700 text-xs border-[1px] px-1 font-bold flex justify-center items-center rounded-sm border-red-600"
-                        >
-                          Close
-                        </button>
-                      </div>
-
-                      <input
-                        type="text"
-                        placeholder="Task name"
-                        value={newName}
-                        onChange={(e) => setNewName(e.target.value)}
-                        onKeyDown={(e) =>
-                          e.key === "Enter" && !isAddDisabled && editTask()
-                        }
-                        className={`w-full px-3 py-2 text-sm rounded border mb-3 ${
-                          theme
-                            ? "bg-white border-gray-300 focus:border-blue-700"
-                            : "bg-[#080808] border-[#111111] focus:border-blue-700"
-                        } outline-none`}
-                      />
-
-                      <div className="space-y-3 text-sm">
-                        {/* From */}
-                        <div>
-                          <div className="text-xs opacity-70 mb-1">From</div>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              placeholder="HH"
-                              maxLength={2}
-                              value={fromHour}
-                              onChange={(e) =>
-                                setFromHour(
-                                  e.target.value.replace(/\D/g, "").slice(0, 2)
-                                )
-                              }
-                              className={`w-14 px-2 py-1 border-[1px] focus:border-blue-700 text-center rounded ${
-                                theme
-                                  ? "bg-white border-gray-300"
-                                  : "bg-[#080808] focus:outline-none border-[#111111]"
-                              }`}
-                            />
-                            <input
-                              type="text"
-                              maxLength={2}
-                              placeholder="MM"
-                              value={fromMinute}
-                              onChange={(e) =>
-                                setFromMinute(
-                                  e.target.value.replace(/\D/g, "").slice(0, 2)
-                                )
-                              }
-                              className={`w-14 px-2 py-1 border-[1px] focus:border-blue-700 text-center rounded ${
-                                theme
-                                  ? "bg-white border-gray-300"
-                                  : "bg-[#080808] focus:outline-none border-[#111111]"
-                              }`}
-                            />
-                            <select
-                              value={fromPeriod}
-                              onChange={(e) =>
-                                setFromPeriod(e.target.value as "AM" | "PM")
-                              }
-                              className={`px-2 py-1 border-[1px] focus:border-blue-700 text-center rounded ${
-                                theme
-                                  ? "bg-white border-gray-300"
-                                  : "bg-[#080808] focus:outline-none border-[#111111]"
-                              }`}
-                            >
-                              <option>AM</option>
-                              <option>PM</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        {/* To */}
-                        <div>
-                          <div className="text-xs opacity-70 mb-1">To</div>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              maxLength={2}
-                              placeholder="HH"
-                              value={toHour}
-                              onChange={(e) =>
-                                setToHour(
-                                  e.target.value.replace(/\D/g, "").slice(0, 2)
-                                )
-                              }
-                              className={`w-14 px-2 py-1 border-[1px] focus:border-blue-700 text-center rounded ${
-                                theme
-                                  ? "bg-white border-gray-300"
-                                  : "bg-[#080808] focus:outline-none border-[#111111]"
-                              }`}
-                            />
-                            <input
-                              type="text"
-                              maxLength={2}
-                              placeholder="MM"
-                              value={toMinute}
-                              onChange={(e) =>
-                                setToMinute(
-                                  e.target.value.replace(/\D/g, "").slice(0, 2)
-                                )
-                              }
-                              className={`w-14 px-2 py-1 border-[1px] focus:border-blue-700 text-center rounded ${
-                                theme
-                                  ? "bg-white border-gray-300"
-                                  : "bg-[#080808] focus:outline-none border-[#111111]"
-                              }`}
-                            />
-                            <select
-                              value={toPeriod}
-                              onChange={(e) =>
-                                setToPeriod(e.target.value as "AM" | "PM")
-                              }
-                              className={`px-2 py-1 border-[1px] focus:border-blue-700 text-center rounded ${
-                                theme
-                                  ? "bg-white border-gray-300"
-                                  : "bg-[#080808] focus:outline-none border-[#111111]"
-                              }`}
-                            >
-                              <option>AM</option>
-                              <option>PM</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Single-day error */}
-
-                      <div className="text-xs text-center opacity-70 mt-3">
-                        Preview:{" "}
-                        <span className="font-medium">
-                          {previewFrom} - {previewTo}
-                        </span>
-                      </div>
-
-                      <div className="mt-3 space-y-2">
-                        <button
-                          onClick={editTask}
-                          disabled={isAddDisabled}
-                          className={`w-full text-sm font-medium py-2 rounded transition ${
-                            isAddDisabled
-                              ? theme
-                                ? "bg-[#cccccc] text-gray-600 cursor-not-allowed"
-                                : "bg-[#444444] text-[#aaaaaa] cursor-not-allowed"
-                              : "bg-green-700 hover:bg-green-800 text-white"
-                          }`}
-                        >
-                          Edit
-                        </button>
-
-                        {singleDayValidationError && (
-                          <p className="text-xs text-red-600 text-center mt-3 font-medium">
-                            {singleDayValidationError}
-                          </p>
-                        )}
-
-                        {/* Edit for Every Day button */}
-                        <button
-                          onClick={editTaskForEveryDay}
-                          disabled={isAddDisabled}
-                          className={`w-full text-sm font-medium py-2 rounded transition mb-2 ${
-                            isAddDisabled
-                              ? theme
-                                ? "bg-[#cccccc] text-gray-600 cursor-not-allowed"
-                                : "bg-[#444444] text-[#aaaaaa] cursor-not-allowed"
-                              : "bg-blue-600 hover:bg-blue-700 text-white"
-                          }`}
-                        >
-                          Edit for Every Day
-                        </button>
-
-                        <button
-                          onClick={deleteTaskFromEveryDay}
-                          className="w-full text-sm font-medium py-2 rounded transition bg-red-600 hover:bg-red-700 text-white"
-                        >
-                          Delete from Every Day
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    // Task Card
-                    <div
-                      onClick={() => openEditPortal(originalIndex)}
-                      className={`flex items-center justify-between p-2 rounded text-sm cursor-pointer ${
-                        theme ? "bg-white" : "bg-[#222222]"
-                      } border ${
-                        theme ? "border-gray-200" : "border-[#333333]"
-                      }`}
-                    >
-                      <div>
-                        <div className="font-medium">{task.name}</div>
-                        <div className="text-xs opacity-70">{task.time}</div>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeTask(originalIndex, task.name);
-                        }}
-                        className="text-red-600 hover:text-white hover:bg-red-600 text-xs border-[1px] h-[15px] w-[15px] font-bold flex justify-center items-center rounded-sm border-red-600"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-
           {/* Inline Add Form */}
           {editingIndex === null && (
             <>
@@ -1255,7 +1017,7 @@ export default function EditRoutine({
               ) : (
                 <button
                   onClick={() => setIsPortalOpen(true)}
-                  className={`w-full text-sm font-medium py-3 rounded border-dashed border-2 transition ${
+                  className={`w-full text-sm font-medium py-[12px] rounded border-dashed border-2 transition ${
                     theme
                       ? "border-gray-400 text-gray-700 hover:bg-gray-100"
                       : "border-[#555555] text-gray-300 hover:bg-[#111111]"
@@ -1265,6 +1027,243 @@ export default function EditRoutine({
                 </button>
               )}
             </>
+          )}
+          {filteredTasks.length === 0 ? (
+            <p className="text-xs text-gray-500 italic">
+              {taskSearchQuery.trim() ? "No matching tasks" : "No tasks"}
+            </p>
+          ) : (
+            filteredTasks.map((task, index) => {
+              // IMPORTANT: We need the original index in the full tasks array
+              // for editing/deleting correctly
+              const originalIndex = tasks.indexOf(task);
+              return (
+                <div key={originalIndex}>
+                  {editingIndex === originalIndex ? (
+                    // Edit Portal
+                    <div
+                      className={`p-3 rounded text-sm border ${
+                        theme
+                          ? "bg-white border-gray-200"
+                          : "bg-[#222222] border-[#333333]"
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="text-xs font-medium opacity-70">
+                          Edit task
+                        </h4>
+                        <button
+                          onClick={() => setEditingIndex(null)}
+                          className="text-white bg-red-600 hover:bg-red-700 text-xs border-[1px] px-1 font-bold flex justify-center items-center rounded-sm border-red-600"
+                        >
+                          Close
+                        </button>
+                      </div>
+
+                      <input
+                        type="text"
+                        placeholder="Task name"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        onKeyDown={(e) =>
+                          e.key === "Enter" && !isAddDisabled && editTask()
+                        }
+                        className={`w-full px-3 py-2 text-sm rounded border mb-3 ${
+                          theme
+                            ? "bg-white border-gray-300 focus:border-blue-700"
+                            : "bg-[#080808] border-[#111111] focus:border-blue-700"
+                        } outline-none`}
+                      />
+
+                      <div className="space-y-3 text-sm">
+                        {/* From */}
+                        <div>
+                          <div className="text-xs opacity-70 mb-1">From</div>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="HH"
+                              maxLength={2}
+                              value={fromHour}
+                              onChange={(e) =>
+                                setFromHour(
+                                  e.target.value.replace(/\D/g, "").slice(0, 2)
+                                )
+                              }
+                              className={`w-14 px-2 py-1 border-[1px] focus:border-blue-700 text-center rounded ${
+                                theme
+                                  ? "bg-white border-gray-300"
+                                  : "bg-[#080808] focus:outline-none border-[#111111]"
+                              }`}
+                            />
+                            <input
+                              type="text"
+                              maxLength={2}
+                              placeholder="MM"
+                              value={fromMinute}
+                              onChange={(e) =>
+                                setFromMinute(
+                                  e.target.value.replace(/\D/g, "").slice(0, 2)
+                                )
+                              }
+                              className={`w-14 px-2 py-1 border-[1px] focus:border-blue-700 text-center rounded ${
+                                theme
+                                  ? "bg-white border-gray-300"
+                                  : "bg-[#080808] focus:outline-none border-[#111111]"
+                              }`}
+                            />
+                            <select
+                              value={fromPeriod}
+                              onChange={(e) =>
+                                setFromPeriod(e.target.value as "AM" | "PM")
+                              }
+                              className={`px-2 py-1 border-[1px] focus:border-blue-700 text-center rounded ${
+                                theme
+                                  ? "bg-white border-gray-300"
+                                  : "bg-[#080808] focus:outline-none border-[#111111]"
+                              }`}
+                            >
+                              <option>AM</option>
+                              <option>PM</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* To */}
+                        <div>
+                          <div className="text-xs opacity-70 mb-1">To</div>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              maxLength={2}
+                              placeholder="HH"
+                              value={toHour}
+                              onChange={(e) =>
+                                setToHour(
+                                  e.target.value.replace(/\D/g, "").slice(0, 2)
+                                )
+                              }
+                              className={`w-14 px-2 py-1 border-[1px] focus:border-blue-700 text-center rounded ${
+                                theme
+                                  ? "bg-white border-gray-300"
+                                  : "bg-[#080808] focus:outline-none border-[#111111]"
+                              }`}
+                            />
+                            <input
+                              type="text"
+                              maxLength={2}
+                              placeholder="MM"
+                              value={toMinute}
+                              onChange={(e) =>
+                                setToMinute(
+                                  e.target.value.replace(/\D/g, "").slice(0, 2)
+                                )
+                              }
+                              className={`w-14 px-2 py-1 border-[1px] focus:border-blue-700 text-center rounded ${
+                                theme
+                                  ? "bg-white border-gray-300"
+                                  : "bg-[#080808] focus:outline-none border-[#111111]"
+                              }`}
+                            />
+                            <select
+                              value={toPeriod}
+                              onChange={(e) =>
+                                setToPeriod(e.target.value as "AM" | "PM")
+                              }
+                              className={`px-2 py-1 border-[1px] focus:border-blue-700 text-center rounded ${
+                                theme
+                                  ? "bg-white border-gray-300"
+                                  : "bg-[#080808] focus:outline-none border-[#111111]"
+                              }`}
+                            >
+                              <option>AM</option>
+                              <option>PM</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Single-day error */}
+
+                      <div className="text-xs text-center opacity-70 mt-3">
+                        Preview:{" "}
+                        <span className="font-medium">
+                          {previewFrom} - {previewTo}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 space-y-2">
+                        <button
+                          onClick={editTask}
+                          disabled={isAddDisabled}
+                          className={`w-full text-sm font-medium py-2 rounded transition ${
+                            isAddDisabled
+                              ? theme
+                                ? "bg-[#cccccc] text-gray-600 cursor-not-allowed"
+                                : "bg-[#444444] text-[#aaaaaa] cursor-not-allowed"
+                              : "bg-green-700 hover:bg-green-800 text-white"
+                          }`}
+                        >
+                          Edit
+                        </button>
+
+                        {singleDayValidationError && (
+                          <p className="text-xs text-red-600 text-center mt-3 font-medium">
+                            {singleDayValidationError}
+                          </p>
+                        )}
+
+                        {/* Edit for Every Day button */}
+                        <button
+                          onClick={editTaskForEveryDay}
+                          disabled={isAddDisabled}
+                          className={`w-full text-sm font-medium py-2 rounded transition mb-2 ${
+                            isAddDisabled
+                              ? theme
+                                ? "bg-[#cccccc] text-gray-600 cursor-not-allowed"
+                                : "bg-[#444444] text-[#aaaaaa] cursor-not-allowed"
+                              : "bg-blue-600 hover:bg-blue-700 text-white"
+                          }`}
+                        >
+                          Edit for Every Day
+                        </button>
+
+                        <button
+                          onClick={deleteTaskFromEveryDay}
+                          className="w-full text-sm font-medium py-2 rounded transition bg-red-600 hover:bg-red-700 text-white"
+                        >
+                          Delete from Every Day
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    // Task Card
+                    <div
+                      onClick={() => openEditPortal(originalIndex)}
+                      className={`flex items-center justify-between p-2 rounded text-sm cursor-pointer ${
+                        theme ? "bg-white" : "bg-[#222222]"
+                      } border ${
+                        theme ? "border-gray-200" : "border-[#333333]"
+                      }`}
+                    >
+                      <div>
+                        <div className="font-medium">{task.name}</div>
+                        <div className="text-xs opacity-70">{task.time}</div>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeTask(originalIndex, task.name);
+                        }}
+                        className="text-red-600 hover:text-white hover:bg-red-600 text-xs border-[1px] h-[15px] w-[15px] font-bold flex justify-center items-center rounded-sm border-red-600"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
       </div>
