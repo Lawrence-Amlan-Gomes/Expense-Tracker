@@ -1,11 +1,11 @@
 "use client";
-import { useTheme } from "@/app/hooks/useTheme";
-import TestimonialCard from "./TestimonialCard";
-import testimonials from "@/app/testimonials/testimonials";
-import Footer from "./Footer";
-import { FaArrowLeft } from "react-icons/fa";
-import Link from "next/link";
 import colors from "@/app/color/color";
+import { useTheme } from "@/app/hooks/useTheme";
+import testimonials from "@/app/testimonials/testimonials";
+import Link from "next/link";
+import { FaArrowLeft } from "react-icons/fa";
+import Footer from "./Footer";
+import TestimonialCard from "./TestimonialCard";
 
 export default function Testimonials() {
   const { theme } = useTheme();
@@ -44,7 +44,7 @@ export default function Testimonials() {
               theme ? "text-[#666666]" : "text-[#aaaaaa]"
             }`}
           >
-            Here’s what early users are saying about Daily Routine. These
+            Here’s what early users are saying about Expense Tracker. These
             testimonials show how simple daily planning helps people stay
             consistent, reduce stress, and take control of their day —
             effortlessly.

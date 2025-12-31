@@ -1,6 +1,5 @@
 "use client";
 import { useTheme } from "@/app/hooks/useTheme";
-import colors from "@/app/color/color";
 import { useAuth } from "@/app/hooks/useAuth";
 
 export default function Admin() {

@@ -1,151 +1,1317 @@
 "use client";
 
-import colors from "@/app/color/color";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useTheme } from "@/app/hooks/useTheme";
-import { AnimatePresence, motion } from "framer-motion";
-import { use, useEffect, useState } from "react";
-import {
-  MdKeyboardDoubleArrowLeft,
-  MdKeyboardDoubleArrowRight,
-} from "react-icons/md";
+import { updateMoney } from "@/app/actions";
 import EmailNotVerified from "./EmailNotVerified";
 import { useRouter } from "next/navigation";
-import EditRoutine from "@/components/EditRoutine";
-import ShowRoutine from "./ShowRoutine";
-
-// ← ADD THESE TWO LINES HERE
-const daysOfWeek = [
-  "saturday",
-  "sunday",
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-] as const;
-
-type Day = (typeof daysOfWeek)[number];
-// ← END OF ADDITION
+import { useEffect, useState } from "react";
+import {
+  IBank,
+  IMonth,
+  ISpending,
+  IMoney,
+} from "@/store/features/auth/authSlice";
+import {
+  X,
+  Plus,
+  Save,
+  Send,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+} from "lucide-react";
 
 export default function DashBoard() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [selectedDay, setSelectedDay] = useState<Day>("saturday");
-  const [hasMounted, setHasMounted] = useState(false);
-  const [taskSearchQuery, setTaskSearchQuery] = useState("");
   const { theme } = useTheme();
-  const { user: auth } = useAuth();
+  const [hasMounted, setHasMounted] = useState(false);
+  const { user: auth, setAuth } = useAuth();
   const router = useRouter();
-  console.log("Auth User:", auth);
 
-  useEffect(() => {
-    if (auth === null && hasMounted) {
-      router.push("/login");
-    }
-  }, []);
-  // --------------------------------------------------------------
-  // 1. Mark component as mounted after first render
-  // --------------------------------------------------------------
+  // Local state for money management
+  const [banks, setBanks] = useState<IBank[]>([]);
+  const [inCash, setInCash] = useState<number>(0);
+  const [months, setMonths] = useState<IMonth[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [bankSearch, setBankSearch] = useState("");
+  const [monthSearch, setMonthSearch] = useState("");
+
+  // Modal states
+  const [bankModal, setBankModal] = useState<{
+    show: boolean;
+    bank: IBank | null;
+  }>({ show: false, bank: null });
+  const [cashModal, setCashModal] = useState(false);
+  const [addMonthModalOpen, setAddMonthModalOpen] = useState(false);
+  const [spendingModal, setSpendingModal] = useState<{
+    show: boolean;
+    spending: ISpending | null;
+    monthName: string;
+  }>({ show: false, spending: null, monthName: "" });
+
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
-  // --------------------------------------------------------------
-  // 2. Spring config – used **only** on desktop toggles
-  // --------------------------------------------------------------
-  const spring = {
-    stiffness: 320,
-    damping: 32,
-    mass: 1,
+  useEffect(() => {
+    if (auth === null && hasMounted) {
+      router.push("/login");
+    } else if (auth?.money) {
+      setBanks(auth.money.banks || []);
+      setInCash(auth.money.inCash || 0);
+      setMonths(auth.money.Months || []);
+    }
+  }, [auth, hasMounted, router]);
+
+  const handleSave = async () => {
+    if (!auth?.email) return;
+
+    setIsSaving(true);
+    try {
+      const updatedMoney: IMoney = { banks, inCash, Months: months };
+      await updateMoney(auth.email, updatedMoney);
+
+      // Update local auth state
+      setAuth({ ...auth, money: updatedMoney });
+
+      alert("✅ Changes saved successfully!");
+    } catch (error) {
+      alert("❌ Failed to save changes");
+      console.error(error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  // --------------------------------------------------------------
-  // 3. Width values
-  // --------------------------------------------------------------
-  const sidebar = { closed: "5%", open: "20%" };
-  const main = { closed: "95%", open: "80%" };
+  const handleBankDeposit = (bankName: string, amount: number) => {
+    setBanks(
+      banks.map((b) =>
+        b.name === bankName ? { ...b, amount: b.amount + amount } : b
+      )
+    );
+  };
 
-  // --------------------------------------------------------------
-  // 4. Conditional transition – **false** on mount AND on mobile
-  // --------------------------------------------------------------
-  const transition = hasMounted ? spring : undefined;
+  const handleBankWithdraw = (bankName: string, amount: number) => {
+    const bank = banks.find((b) => b.name === bankName);
+    if (!bank || bank.amount < amount) {
+      alert("❌ Insufficient bank balance");
+      return;
+    }
+    setBanks(
+      banks.map((b) =>
+        b.name === bankName ? { ...b, amount: b.amount - amount } : b
+      )
+    );
+    setInCash(inCash + amount);
+  };
+
+  const handleBankTransfer = (
+    fromBank: string,
+    toBank: string,
+    amount: number
+  ) => {
+    const source = banks.find((b) => b.name === fromBank);
+    if (!source || source.amount < amount) {
+      alert("❌ Insufficient balance in source bank");
+      return;
+    }
+    setBanks(
+      banks.map((b) => {
+        if (b.name === fromBank) return { ...b, amount: b.amount - amount };
+        if (b.name === toBank) return { ...b, amount: b.amount + amount };
+        return b;
+      })
+    );
+  };
+
+  const handleCashDeposit = (bankName: string, amount: number) => {
+    if (inCash < amount) {
+      alert("❌ Insufficient cash");
+      return;
+    }
+    setBanks(
+      banks.map((b) =>
+        b.name === bankName ? { ...b, amount: b.amount + amount } : b
+      )
+    );
+    setInCash(inCash - amount);
+  };
+
+  const handleAddMonth = (monthName: string) => {
+    if (months.some((m) => m.name === monthName)) {
+      alert("❌ This month already exists");
+      return;
+    }
+    setMonths([...months, { name: monthName, spendings: [] }]);
+  };
+
+  const handleAddSpending = (monthName: string, spending: ISpending) => {
+    if (inCash < spending.cost) {
+      alert("❌ Insufficient cash for this spending");
+      return;
+    }
+
+    const month = months.find((m) => m.name === monthName);
+    if (month && month.spendings.some((s) => s.date === spending.date)) {
+      alert("❌ A spending already exists for this date in this month");
+      return;
+    }
+
+    setMonths(
+      months.map((m) =>
+        m.name === monthName
+          ? { ...m, spendings: [...m.spendings, spending] }
+          : m
+      )
+    );
+    setInCash(inCash - spending.cost);
+  };
+
+  const handleUpdateSpending = (
+    monthName: string,
+    oldSpending: ISpending,
+    newSpending: ISpending
+  ) => {
+    const month = months.find((m) => m.name === monthName);
+    if (!month) return;
+
+    if (
+      oldSpending.date !== newSpending.date &&
+      month.spendings.some((s) => s.date === newSpending.date)
+    ) {
+      alert("❌ A spending already exists for this date");
+      return;
+    }
+
+    const costDiff = newSpending.cost - oldSpending.cost;
+    if (inCash < costDiff) {
+      alert("❌ Insufficient cash to increase spending");
+      return;
+    }
+
+    setMonths(
+      months.map((m) =>
+        m.name === monthName
+          ? {
+              ...m,
+              spendings: m.spendings.map((s) =>
+                s.date === oldSpending.date && s.item === oldSpending.item
+                  ? newSpending
+                  : s
+              ),
+            }
+          : m
+      )
+    );
+    setInCash(inCash - costDiff);
+  };
+
+  const handleDeleteSpending = (monthName: string, spending: ISpending) => {
+    setMonths(
+      months.map((m) =>
+        m.name === monthName
+          ? {
+              ...m,
+              spendings: m.spendings.filter(
+                (s) => !(s.date === spending.date && s.item === spending.item)
+              ),
+            }
+          : m
+      )
+    );
+    setInCash(inCash + spending.cost);
+  };
+
+  const selectedMonthData = months.find((m) => m.name === selectedMonth);
+  const totalSpending =
+    selectedMonthData?.spendings.reduce((sum, s) => sum + s.cost, 0) || 0;
+
+  if (!hasMounted) return null;
 
   return auth?.isEmailVerified ? (
-    <div className="h-full w-full overflow-hidden fixed">
-      {/* -------------------- SIDEBAR (desktop only) -------------------- */}
-      <motion.div
-        className={`
-          h-full float-left hidden sm:block 
-          ${
-            theme
-              ? "bg-white border-r-[1px] border-[#dddddd]"
-              : "bg-black border-r-[1px] border-[#222222]"
+    <div
+      className={`h-screen w-full bg-gradient-to-br pt-[63px] flex overflow-hidden`}
+    >
+      {/* Left Panel - Banks & Cash */}
+      <div
+        className={`w-1/4 border-r-[1px] flex flex-col ${
+          theme ? "border-[#dddddd]" : "border-[#222222]"
+        }`}
+      >
+        <div
+          className={`p-6 border-b-[1px] ${
+            theme ? "border-[#dddddd]" : "border-[#222222]"
           }`}
-        initial={{ width: sidebar.closed }}
-        animate={{
-          width: isSidebarOpen ? sidebar.open : sidebar.closed,
-        }}
-        transition={transition}
+        >
+          <h2
+            className={`text-2xl font-bold ${
+              theme ? "text-black" : "text-white"
+            } mb-2`}
+          >
+            Accounts
+          </h2>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
+          >
+            <Save size={20} />
+            {isSaving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+
+        <div
+          className={`flex-1 overflow-y-auto scrollbar-thin p-6 space-y-4 ${
+            theme
+              ? "bg-[#ffffff] scrollbar-thumb-black scrollbar-track-[#eeeeee]"
+              : "bg-[#000000] scrollbar-thumb-white scrollbar-track-[#222222]"
+          }`}
+        >
+          {/* Bank Search Bar */}
+          <input
+            type="text"
+            value={bankSearch}
+            onChange={(e) => setBankSearch(e.target.value)}
+            placeholder="Search banks..."
+            className={`w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              theme
+                ? "bg-[#f0f0f0] border border-[#cccccc] text-black placeholder:text-[#888888]"
+                : "bg-[#111111] border border-[#444444] text-white placeholder:text-[#888888]"
+            }`}
+          />
+          {/* Add Bank Button */}
+          <button
+            onClick={() => {
+              const bankName = prompt("Enter new bank name:");
+              if (bankName && bankName.trim()) {
+                if (banks.some((b) => b.name === bankName.trim())) {
+                  alert("❌ A bank with this name already exists");
+                  return;
+                }
+                setBanks([...banks, { name: bankName.trim(), amount: 0 }]);
+              }
+            }}
+            className={`w-full bg-transparent p-5 rounded-xl cursor-pointer hover:scale-105 transition-transform flex items-center justify-center gap-2 border-2 border-dashed ${
+              theme
+                ? "text-[#666666] border-[#888888]"
+                : "text-[#cccccc] border-[#aaaaaa]"
+            }`}
+          >
+            <Plus size={24} className={``} />
+            <span className={`font-bold text-lg`}>Add New Bank</span>
+          </button>
+
+          {/* Filtered Bank Cards */}
+          {banks
+            .filter((bank) =>
+              bank.name.toLowerCase().includes(bankSearch.toLowerCase())
+            )
+            .map((bank) => (
+              <div
+                key={bank.name}
+                onClick={() => setBankModal({ show: true, bank })}
+                className="bg-gradient-to-br from-blue-600 to-blue-800 p-5 rounded-xl cursor-pointer hover:scale-105 transition-transform"
+              >
+                <div className="text-blue-100 text-sm mb-1">Bank Account</div>
+                <div className="text-white font-bold text-lg mb-2">
+                  {bank.name}
+                </div>
+                <div className="text-2xl font-bold text-white">
+                  ৳ {bank.amount.toLocaleString()}
+                </div>
+              </div>
+            ))}
+
+          {/* No results message */}
+          {banks.length > 0 &&
+            banks.filter((bank) =>
+              bank.name.toLowerCase().includes(bankSearch.toLowerCase())
+            ).length === 0 && (
+              <div
+                className={`text-center py-8 ${
+                  theme ? "text-[#888888]" : "text-[#999999]"
+                }`}
+              >
+                No banks found
+              </div>
+            )}
+          {/* Cash Card */}
+          <div
+            onClick={() => setCashModal(true)}
+            className="bg-gradient-to-br from-emerald-600 to-emerald-800 p-5 rounded-xl cursor-pointer hover:scale-105 transition-transform"
+          >
+            <div className="text-emerald-100 text-sm mb-1">Available Cash</div>
+            <div className="text-white font-bold text-lg mb-2">In Cash</div>
+            <div className="text-2xl font-bold text-white">
+              ৳ {inCash.toLocaleString()}
+            </div>
+          </div>
+          {/* Total Money Card */}
+          <div className="bg-gradient-to-br from-purple-600 to-purple-800 p-5 rounded-xl border-2 border-purple-400">
+            <div className="text-purple-100 text-sm mb-1">Total Balance</div>
+            <div className="text-white font-bold text-lg mb-2">
+              All Accounts
+            </div>
+            <div className="text-2xl font-bold text-white">
+              ৳{" "}
+              {(
+                banks.reduce((sum, b) => sum + b.amount, 0) + inCash
+              ).toLocaleString()}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Middle Panel - Months */}
+      <div
+        className={`w-1/4 border-r flex flex-col ${
+          theme ? "border-[#dddddd]" : "border-[#222222]"
+        } `}
       >
-        <AnimatePresence>
-          {isSidebarOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.12 }}
-              className="h-full w-full sm:pt-[55px] md:pt-[60px] overflow-auto"
+        <div
+          className={`p-6 border-b ${
+            theme ? "border-[#dddddd]" : "border-[#222222]"
+          }`}
+        >
+          <h2
+            className={`text-2xl font-bold ${
+              theme ? "text-[#000000]" : "text-[#ffffff]"
+            }`}
+          >
+            Months
+          </h2>
+        </div>
+        <div
+          className={`flex-1 overflow-y-auto p-6 space-y-3 scrollbar-thin ${
+            theme
+              ? "bg-[#ffffff] scrollbar-thumb-black scrollbar-track-[#eeeeee]"
+              : "bg-[#000000] scrollbar-thumb-white scrollbar-track-[#222222]"
+          }`}
+        >
+          {/* Month Search Bar */}
+          <input
+            type="text"
+            value={monthSearch}
+            onChange={(e) => setMonthSearch(e.target.value)}
+            placeholder="Search months... (e.g., Dec, 2025)"
+            className={`w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              theme
+                ? "bg-[#f0f0f0] border border-[#cccccc] text-black placeholder:text-[#888888]"
+                : "bg-[#111111] border border-[#444444] text-white placeholder:text-[#888888]"
+            }`}
+          />
+
+          {/* Add Month Button */}
+          <button
+            onClick={() => setAddMonthModalOpen(true)}
+            className={`w-full bg-transparent p-5 rounded-xl cursor-pointer hover:scale-105 transition-transform flex items-center justify-center gap-2 border-2 border-dashed ${
+              theme
+                ? "text-[#666666] border-[#888888]"
+                : "text-[#cccccc] border-[#aaaaaa]"
+            }`}
+          >
+            <Plus size={20} className="" />
+            <span className="font-semibold text-lg">Add Month</span>
+          </button>
+
+          {/* Filtered & Sorted Months */}
+          {[...months]
+            .filter((month) =>
+              month.name.toLowerCase().includes(monthSearch.toLowerCase())
+            )
+            .sort((a, b) => {
+              return (
+                new Date(a.name + " 1").getTime() -
+                new Date(b.name + " 1").getTime()
+              );
+            })
+            .map((month) => {
+              const totalSpending = month.spendings.reduce(
+                (sum, s) => sum + s.cost,
+                0
+              );
+
+              const isEarliest =
+                months.length > 0 &&
+                new Date(month.name + " 1").getTime() ===
+                  Math.min(
+                    ...months.map((m) => new Date(m.name + " 1").getTime())
+                  );
+
+              const isLatest =
+                months.length > 0 &&
+                new Date(month.name + " 1").getTime() ===
+                  Math.max(
+                    ...months.map((m) => new Date(m.name + " 1").getTime())
+                  );
+
+              const canDelete = (isEarliest || isLatest) && totalSpending === 0;
+
+              return (
+                <div
+                  key={month.name}
+                  className={`p-4 rounded-lg cursor-pointer transition-all relative group ${
+                    selectedMonth === month.name
+                      ? "bg-indigo-600"
+                      : theme
+                      ? "bg-[#eeeeee] hover:bg-[#dddddd] border-[1px] border-[#bbbbbb]"
+                      : "bg-[#111111] hover:bg-[#222222] border-[1px] border-[#333333]"
+                  }`}
+                >
+                  <div
+                    onClick={() => setSelectedMonth(month.name)}
+                    className="pr-8"
+                  >
+                    <div
+                      className={`font-semibold text-lg ${
+                        selectedMonth === month.name
+                          ? "text-white"
+                          : theme
+                          ? "text-black"
+                          : "text-white"
+                      }`}
+                    >
+                      {month.name}
+                    </div>
+                    <div
+                      className={`text-sm mt-1 ${
+                        selectedMonth === month.name
+                          ? "text-white"
+                          : theme
+                          ? "text-black"
+                          : "text-[#dddddd]"
+                      }`}
+                    >
+                      {month.spendings.length} spending
+                      {month.spendings.length !== 1 ? "s" : ""}
+                      {totalSpending > 0 &&
+                        ` • ৳ ${totalSpending.toLocaleString()}`}
+                    </div>
+                  </div>
+
+                  {canDelete && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm(`Delete empty month "${month.name}"?`)) {
+                          setMonths(
+                            months.filter((m) => m.name !== month.name)
+                          );
+                          if (selectedMonth === month.name) {
+                            setSelectedMonth(null);
+                          }
+                        }
+                      }}
+                      className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 hover:bg-red-700 text-white p-2 rounded-md"
+                      title="Delete empty month"
+                    >
+                      <X size={18} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+
+          {/* No results message */}
+          {months.length > 0 &&
+            months.filter((month) =>
+              month.name.toLowerCase().includes(monthSearch.toLowerCase())
+            ).length === 0 && (
+              <div
+                className={`text-center py-8 ${
+                  theme ? "text-[#888888]" : "text-[#999999]"
+                }`}
+              >
+                No months found
+              </div>
+            )}
+        </div>
+      </div>
+
+      {/* Right Panel - Spendings */}
+      <div className="flex-1 flex flex-col">
+        <div
+          className={`p-6 border-b ${
+            theme ? "border-[#dddddd]" : "border-[#222222]"
+          }`}
+        >
+          <h2
+            className={`text-2xl font-bold ${
+              theme ? "text-black" : "text-[#ffffff]"
+            }`}
+          >
+            {selectedMonth || "Select a Month"}
+          </h2>
+        </div>
+
+        {selectedMonthData ? (
+          <div
+            className={`flex-1 overflow-y-auto p-6 scrollbar-thin ${
+              theme
+                ? "bg-[#ffffff] scrollbar-thumb-black scrollbar-track-[#eeeeee]"
+                : "bg-[#000000] scrollbar-thumb-white scrollbar-track-[#222222]"
+            }`}
+          >
+            <div className="space-y-3 mb-6">
+              {[...selectedMonthData.spendings]
+                .sort((a, b) => parseInt(a.date) - parseInt(b.date))
+                .map((spending) => (
+                  <div
+                    key={`${spending.date}-${spending.item}`} // Better key than index
+                    onClick={() =>
+                      setSpendingModal({
+                        show: true,
+                        spending,
+                        monthName: selectedMonth!,
+                      })
+                    }
+                    className={`p-4 rounded-lg cursor-pointer transition-colors ${
+                      theme
+                        ? "bg-[#f5f5f5] hover:bg-[#e0e0e0] text-black border-[1px] border-[#cccccc]"
+                        : "bg-[#111111] hover:bg-[#222222] text-white border-[1px] border-[#333333]"
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="text-sm">Date: {spending.date}</div>
+                        <div className="font-semibold text-lg mt-1">
+                          {spending.item}
+                        </div>
+                      </div>
+                      <div className="text-red-600 font-bold text-lg">
+                        ৳ {spending.cost.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+
+            <div
+              className={`p-5 rounded-lg mb-4  border-2 bg-red-700 border-red-800`}
             >
-              <EditRoutine
-                selectedDay={selectedDay}
-                setSelectedDay={setSelectedDay}
-                taskSearchQuery={taskSearchQuery}
-                setTaskSearchQuery={setTaskSearchQuery}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+              <div className="flex justify-between items-center">
+                <span className={`font-semibold text-lg text-white`}>
+                  Total Spending
+                </span>
+                <span className=" font-bold text-2xl text-white">
+                  ৳ {totalSpending.toLocaleString()}
+                </span>
+              </div>
+            </div>
 
-      {/* ------------------- TOGGLE ARROW (desktop only) ------------------- */}
-      <motion.div
-        onClick={() => setIsSidebarOpen((prev) => !prev)}
-        className={`
-          hidden sm:flex
-          absolute h-[30px] w-[30px] justify-center items-center
-          cursor-pointer border-[1px] ${colors.keyBorder} ${colors.keyHoverBg} ${colors.keyText} hover:text-white
-          rounded-md top-[80px] left-[1.25%] z-10
-        `}
-        whileTap={{ scale: 0.92 }}
-      >
-        {isSidebarOpen ? (
-          <MdKeyboardDoubleArrowLeft size={20} />
+            <button
+              onClick={() =>
+                setSpendingModal({
+                  show: true,
+                  spending: null,
+                  monthName: selectedMonth!,
+                })
+              }
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
+            >
+              <Plus size={20} />
+              Add New Spending
+            </button>
+          </div>
         ) : (
-          <MdKeyboardDoubleArrowRight size={20} />
+          <div
+            className={`flex-1 flex items-center justify-center text-lg ${
+              theme ? "text-[#333333]" : "text-[#cccccc]"
+            }`}
+          >
+            Select a month to view spendings
+          </div>
         )}
-      </motion.div>
+      </div>
 
-      {/* ----------------------- MAIN (Chat) ----------------------- */}
-      <motion.div
-        className="h-full relative float-left sm:float-left sm:block hidden"
-        initial={{ width: "100%" }} // mobile = full width instantly
-        animate={{
-          width: isSidebarOpen ? main.open : main.closed,
-        }}
-        // On mobile we **force** width 100% and **disable** animation
-        style={{ width: "100%" }} // overrides animation on <sm
-        transition={transition}
-      >
-        <ShowRoutine
-          setIsSidebarOpen={setIsSidebarOpen}
-          setSelectedDay={setSelectedDay}
-          setTaskSearchQuery={setTaskSearchQuery}
+      {/* Bank Modal */}
+      {bankModal.show && bankModal.bank && (
+        <BankModal
+          bank={bankModal.bank}
+          banks={banks}
+          onClose={() => setBankModal({ show: false, bank: null })}
+          onDeposit={handleBankDeposit}
+          onWithdraw={handleBankWithdraw}
+          onTransfer={handleBankTransfer}
         />
-      </motion.div>
+      )}
 
-      <motion.div className="h-full w-full relative float-left sm:float-left block sm:hidden"></motion.div>
+      {/* Cash Modal */}
+      {cashModal && (
+        <CashModal
+          inCash={inCash}
+          banks={banks}
+          onClose={() => setCashModal(false)}
+          onDeposit={handleCashDeposit}
+          onUpdateCash={setInCash}
+        />
+      )}
+
+      {/* Spending Modal */}
+      {spendingModal.show && (
+        <SpendingModal
+          spending={spendingModal.spending}
+          monthName={spendingModal.monthName}
+          existingDates={selectedMonthData?.spendings.map((s) => s.date) || []}
+          onClose={() =>
+            setSpendingModal({ show: false, spending: null, monthName: "" })
+          }
+          onAdd={handleAddSpending}
+          onUpdate={handleUpdateSpending}
+          onDelete={handleDeleteSpending}
+        />
+      )}
+
+      {/* Add Month Modal */}
+      <AddMonthModal
+        isOpen={addMonthModalOpen}
+        onClose={() => setAddMonthModalOpen(false)}
+        months={months}
+        onAddMonth={handleAddMonth}
+      />
     </div>
   ) : (
     <EmailNotVerified />
+  );
+}
+
+// Bank Modal Component
+function BankModal({
+  bank,
+  banks,
+  onClose,
+  onDeposit,
+  onWithdraw,
+  onTransfer,
+}: {
+  bank: IBank;
+  banks: IBank[];
+  onClose: () => void;
+  onDeposit: (name: string, amount: number) => void;
+  onWithdraw: (name: string, amount: number) => void;
+  onTransfer: (from: string, to: string, amount: number) => void;
+}) {
+  const [action, setAction] = useState<"deposit" | "withdraw" | "transfer">(
+    "deposit"
+  );
+  const [amount, setAmount] = useState("");
+  const [targetBank, setTargetBank] = useState("");
+  const { theme } = useTheme();
+
+  const handleSubmit = () => {
+    const amt = parseFloat(amount);
+    if (isNaN(amt) || amt <= 0) {
+      alert("❌ Please enter a valid amount");
+      return;
+    }
+
+    if (action === "deposit") {
+      onDeposit(bank.name, amt);
+    } else if (action === "withdraw") {
+      onWithdraw(bank.name, amt);
+    } else if (action === "transfer") {
+      if (!targetBank) {
+        alert("❌ Please select a target bank");
+        return;
+      }
+      onTransfer(bank.name, targetBank, amt);
+    }
+    onClose();
+  };
+
+  return (
+    <div
+      className={`fixed inset-0 flex items-center justify-center z-50 backdrop-blur-md`}
+    >
+      <div
+        className={` p-8 rounded-2xl w-full max-w-md ${
+          theme ? "bg-black" : "bg-white"
+        }`}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h3
+            className={`text-2xl font-bold ${
+              theme ? "text-[#ffffff]" : "text-[#000000]"
+            }`}
+          >
+            {bank.name}
+          </h3>
+          <button
+            onClick={onClose}
+            className={`bg-red-600 text-white hover:bg-red-700 p-1 rounded-md`}
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <div
+          className={`mb-6 p-4 rounded-lg ${
+            theme
+              ? "bg-emerald-900/30 border border-emerald-700"
+              : "bg-emerald-100/30 border border-emerald-300"
+          }`}
+        >
+          <div
+            className={`text-sm ${theme ? "text-[#ffffff]" : "text-[#000000]"}`}
+          >
+            Current Balance
+          </div>
+          <div
+            className={`text-2xl font-bold ${
+              theme ? "text-[#ffffff]" : "text-[#000000]"
+            }`}
+          >
+            ৳ {bank.amount.toLocaleString()}
+          </div>
+        </div>
+
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setAction("deposit")}
+            className={`flex-1 py-2 rounded-lg font-semibold transition-colors ${
+              action === "deposit"
+                ? "bg-emerald-600 text-white"
+                : theme
+                ? "bg-[#111111] border-[1px] border-[#555555] text-[#cccccc]"
+                : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#222222]"
+            }`}
+          >
+            <ArrowDownToLine className="inline mr-1" size={16} />
+            Deposit
+          </button>
+          <button
+            onClick={() => setAction("withdraw")}
+            className={`flex-1 py-2 rounded-lg font-semibold transition-colors ${
+              action === "withdraw"
+                ? "bg-red-600 text-white"
+                : theme
+                ? "bg-[#111111] border-[1px] border-[#555555] text-[#cccccc]"
+                : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#222222]"
+            }`}
+          >
+            <ArrowUpFromLine className="inline mr-1" size={16} />
+            Withdraw
+          </button>
+          <button
+            onClick={() => setAction("transfer")}
+            className={`flex-1 py-2 rounded-lg font-semibold transition-colors ${
+              action === "transfer"
+                ? "bg-blue-600 text-white"
+                : theme
+                ? "bg-[#111111] border-[1px] border-[#555555] text-[#cccccc]"
+                : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#222222]"
+            }`}
+          >
+            <Send className="inline mr-1" size={16} />
+            Transfer
+          </button>
+        </div>
+
+        <input
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="Enter amount"
+          className={`w-full p-3  rounded-lg mb-4 focus:outline-none focus:ring-2 focus:border-none focus:ring-indigo-500 ${
+            theme
+              ? "bg-[#111111] border-[1px] border-[#555555] text-[#eeeeee]"
+              : "bg-[#eeeeee] border-[1px] border-[#888888] placeholder:text-[#888888] text-[#111111]"
+          }`}
+        />
+
+        {action === "transfer" && (
+          <select
+            value={targetBank}
+            onChange={(e) => setTargetBank(e.target.value)}
+            className={`w-full p-3 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:border-none focus:ring-indigo-500 ${
+              theme
+                ? "bg-[#111111] border-[1px] border-[#555555] text-[#eeeeee]"
+                : "bg-[#eeeeee] border-[1px] border-[#888888] placeholder:text-[#888888] text-[#111111]"
+            }`}
+          >
+            <option value="">Select target bank</option>
+            {banks
+              .filter((b) => b.name !== bank.name)
+              .map((b) => (
+                <option key={b.name} value={b.name}>
+                  {b.name}
+                </option>
+              ))}
+          </select>
+        )}
+
+        <button
+          onClick={handleSubmit}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-semibold transition-colors"
+        >
+          Confirm {action.charAt(0).toUpperCase() + action.slice(1)}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Cash Modal Component
+function CashModal({
+  inCash,
+  banks,
+  onClose,
+  onDeposit,
+  onUpdateCash,
+}: {
+  inCash: number;
+  banks: IBank[];
+  onClose: () => void;
+  onDeposit: (bank: string, amount: number) => void;
+  onUpdateCash: (amount: number) => void;
+}) {
+  const [action, setAction] = useState<"deposit" | "earn">("deposit");
+  const [amount, setAmount] = useState("");
+  const [targetBank, setTargetBank] = useState("");
+  const { theme } = useTheme(); // assuming useTheme returns { theme: boolean }
+
+  const handleSubmit = () => {
+    const amt = parseFloat(amount);
+    if (isNaN(amt) || amt <= 0) {
+      alert("❌ Please enter a valid amount");
+      return;
+    }
+
+    if (action === "deposit") {
+      if (!targetBank) {
+        alert("❌ Please select a bank");
+        return;
+      }
+      onDeposit(targetBank, amt);
+    } else {
+      onUpdateCash(inCash + amt);
+    }
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-md">
+      <div
+        className={`p-8 rounded-2xl w-full max-w-md ${
+          theme ? "bg-black" : "bg-white"
+        }`}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h3
+            className={`text-2xl font-bold ${
+              theme ? "text-[#ffffff]" : "text-[#000000]"
+            }`}
+          >
+            Cash Management
+          </h3>
+          <button
+            onClick={onClose}
+            className="bg-red-600 text-white hover:bg-red-700 p-1 rounded-md"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <div
+          className={`mb-6 p-4 rounded-lg ${
+            theme
+              ? "bg-emerald-900/30 border border-emerald-700"
+              : "bg-emerald-100/30 border border-emerald-300"
+          }`}
+        >
+          <div
+            className={`text-sm ${theme ? "text-[#ffffff]" : "text-[#000000]"}`}
+          >
+            Current Cash
+          </div>
+          <div
+            className={`text-2xl font-bold ${
+              theme ? "text-[#ffffff]" : "text-[#000000]"
+            }`}
+          >
+            ৳ {inCash.toLocaleString()}
+          </div>
+        </div>
+
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setAction("deposit")}
+            className={`flex-1 py-2 rounded-lg font-semibold transition-colors ${
+              action === "deposit"
+                ? "bg-blue-600 text-white"
+                : theme
+                ? "bg-[#111111] border-[1px] border-[#555555] text-[#cccccc]"
+                : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#222222]"
+            }`}
+          >
+            Deposit to Bank
+          </button>
+          <button
+            onClick={() => setAction("earn")}
+            className={`flex-1 py-2 rounded-lg font-semibold transition-colors ${
+              action === "earn"
+                ? "bg-emerald-600 text-white"
+                : theme
+                ? "bg-[#111111] border-[1px] border-[#555555] text-[#cccccc]"
+                : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#222222]"
+            }`}
+          >
+            Earn Cash
+          </button>
+        </div>
+
+        <input
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder={
+            action === "earn"
+              ? "Enter amount earned"
+              : "Enter amount to deposit"
+          }
+          className={`w-full p-3 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:border-none focus:ring-indigo-500 ${
+            theme
+              ? "bg-[#111111] border-[1px] border-[#555555] text-[#eeeeee]"
+              : "bg-[#eeeeee] border-[1px] border-[#888888] placeholder:text-[#888888] text-[#111111]"
+          }`}
+        />
+
+        {action === "deposit" && (
+          <select
+            value={targetBank}
+            onChange={(e) => setTargetBank(e.target.value)}
+            className={`w-full p-3 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:border-none focus:ring-indigo-500 ${
+              theme
+                ? "bg-[#111111] border-[1px] border-[#555555] text-[#eeeeee]"
+                : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#111111]"
+            }`}
+          >
+            <option value="">Select bank</option>
+            {banks.map((b) => (
+              <option key={b.name} value={b.name}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        <button
+          onClick={handleSubmit}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-semibold transition-colors"
+        >
+          Confirm
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Spending Modal Component
+function SpendingModal({
+  spending,
+  monthName,
+  existingDates,
+  onClose,
+  onAdd,
+  onUpdate,
+  onDelete,
+}: {
+  spending: ISpending | null;
+  monthName: string;
+  existingDates: string[];
+  onClose: () => void;
+  onAdd: (month: string, spending: ISpending) => void;
+  onUpdate: (month: string, old: ISpending, updated: ISpending) => void;
+  onDelete: (month: string, spending: ISpending) => void;
+}) {
+  const [date, setDate] = useState(spending?.date || "");
+  const [item, setItem] = useState(spending?.item || "");
+  const [cost, setCost] = useState(spending?.cost.toString() || "");
+  const { theme } = useTheme();
+
+  const handleSubmit = () => {
+    const dateNum = parseInt(date);
+    const costNum = parseFloat(cost);
+
+    if (!date || dateNum < 1 || dateNum > 31) {
+      alert("❌ Date must be between 1 and 31");
+      return;
+    }
+
+    if (!item.trim()) {
+      alert("❌ Please enter an item");
+      return;
+    }
+
+    if (isNaN(costNum) || costNum <= 0) {
+      alert("❌ Please enter a valid cost");
+      return;
+    }
+
+    const newSpending: ISpending = { date, item: item.trim(), cost: costNum };
+
+    if (spending) {
+      onUpdate(monthName, spending, newSpending);
+    } else {
+      if (existingDates.includes(date)) {
+        alert("❌ A spending already exists for this date");
+        return;
+      }
+      onAdd(monthName, newSpending);
+    }
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-md">
+      <div
+        className={`p-8 rounded-2xl w-full max-w-md ${
+          theme ? "bg-black" : "bg-white"
+        }`}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h3
+            className={`text-2xl font-bold ${
+              theme ? "text-[#ffffff]" : "text-[#000000]"
+            }`}
+          >
+            {spending ? "Edit Spending" : "Add Spending"}
+          </h3>
+          <button
+            onClick={onClose}
+            className="bg-red-600 text-white hover:bg-red-700 p-1 rounded-md"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="space-y-4 mb-6">
+          <div>
+            <label
+              className={`block text-sm mb-2 ${
+                theme ? "text-[#cccccc]" : "text-[#444444]"
+              }`}
+            >
+              Date (1-31)
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="31"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className={`w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:border-none focus:ring-indigo-500 ${
+                theme
+                  ? "bg-[#111111] border-[1px] border-[#555555] text-[#eeeeee]"
+                  : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#111111]"
+              }`}
+            />
+          </div>
+
+          <div>
+            <label
+              className={`block text-sm mb-2 ${
+                theme ? "text-[#cccccc]" : "text-[#444444]"
+              }`}
+            >
+              Item
+            </label>
+            <input
+              type="text"
+              value={item}
+              onChange={(e) => setItem(e.target.value)}
+              className={`w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:border-none focus:ring-indigo-500 ${
+                theme
+                  ? "bg-[#111111] border-[1px] border-[#555555] text-[#eeeeee]"
+                  : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#111111]"
+              }`}
+            />
+          </div>
+
+          <div>
+            <label
+              className={`block text-sm mb-2 ${
+                theme ? "text-[#cccccc]" : "text-[#444444]"
+              }`}
+            >
+              Cost (৳)
+            </label>
+            <input
+              type="number"
+              value={cost}
+              onChange={(e) => setCost(e.target.value)}
+              className={`w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:border-none focus:ring-indigo-500 ${
+                theme
+                  ? "bg-[#111111] border-[1px] border-[#555555] text-[#eeeeee]"
+                  : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#111111]"
+              }`}
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          {spending && (
+            <button
+              onClick={() => {
+                if (confirm("Delete this spending?")) {
+                  onDelete(monthName, spending);
+                  onClose();
+                }
+              }}
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold transition-colors"
+            >
+              Delete
+            </button>
+          )}
+          <button
+            onClick={handleSubmit}
+            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-semibold transition-colors"
+          >
+            {spending ? "Update" : "Add"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Add Month Modal
+function AddMonthModal({
+  isOpen,
+  onClose,
+  months,
+  onAddMonth,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  months: IMonth[];
+  onAddMonth: (monthName: string) => void;
+}) {
+  const { theme } = useTheme();
+
+  if (!isOpen) return null;
+
+  let content;
+
+  if (months.length === 0) {
+    // No months: offer to create current month
+    const now = new Date();
+    const currentMonthName = now.toLocaleString("default", {
+      month: "long",
+      year: "numeric",
+    });
+
+    content = (
+      <div className="text-center py-8">
+        <p
+          className={`text-lg mb-8 ${
+            theme ? "text-[#cccccc]" : "text-[#444444]"
+          }`}
+        >
+          No months yet. Create the current month to start tracking?
+        </p>
+        <button
+          onClick={() => {
+            onAddMonth(currentMonthName);
+            onClose();
+          }}
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-lg font-semibold transition-colors"
+        >
+          Create {currentMonthName}
+        </button>
+      </div>
+    );
+  } else {
+    // Existing months: offer previous and next
+    const sortedMonths = [...months].sort((a, b) =>
+      new Date(a.name + " 1").getTime() > new Date(b.name + " 1").getTime()
+        ? 1
+        : -1
+    );
+
+    const earliest = sortedMonths[0];
+    const latest = sortedMonths[sortedMonths.length - 1];
+
+    const earliestDate = new Date(earliest.name + " 1");
+    const latestDate = new Date(latest.name + " 1");
+
+    const prevMonthDate = new Date(earliestDate);
+    prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+    const prevMonthName = prevMonthDate.toLocaleString("default", {
+      month: "long",
+      year: "numeric",
+    });
+
+    const nextMonthDate = new Date(latestDate);
+    nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
+    const nextMonthName = nextMonthDate.toLocaleString("default", {
+      month: "long",
+      year: "numeric",
+    });
+
+    content = (
+      <div className="space-y-4">
+        <p
+          className={`text-center text-lg mb-6 ${
+            theme ? "text-[#cccccc]" : "text-[#444444]"
+          }`}
+        >
+          Choose which month to add:
+        </p>
+
+        <button
+          onClick={() => {
+            onAddMonth(prevMonthName);
+            onClose();
+          }}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-lg font-semibold transition-colors"
+        >
+          ← Add Previous Month
+          <div className="text-sm font-normal mt-1 opacity-90">
+            {prevMonthName}
+          </div>
+        </button>
+
+        <button
+          onClick={() => {
+            onAddMonth(nextMonthName);
+            onClose();
+          }}
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-lg font-semibold transition-colors"
+        >
+          Add Next Month →
+          <div className="text-sm font-normal mt-1 opacity-90">
+            {nextMonthName}
+          </div>
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-md">
+      <div
+        className={`p-8 rounded-2xl w-full max-w-md ${
+          theme ? "bg-black" : "bg-white"
+        }`}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h3
+            className={`text-2xl font-bold ${
+              theme ? "text-[#ffffff]" : "text-[#000000]"
+            }`}
+          >
+            Add New Month
+          </h3>
+          <button
+            onClick={onClose}
+            className="bg-red-600 text-white hover:bg-red-700 p-1 rounded-md"
+          >
+            <X size={24} />
+          </button>
+        </div>
+        {content}
+      </div>
+    </div>
   );
 }

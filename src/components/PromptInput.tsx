@@ -52,7 +52,7 @@ export default function PromptInput({
         placeholder={
           iAmThinking
             ? "I am thinking..."
-            : "Ask me anything about Daily Routine..."
+            : "Ask me anything about Expense Tracker..."
         }
         value={myText}
         onChange={(e) => {

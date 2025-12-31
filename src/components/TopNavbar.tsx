@@ -93,7 +93,7 @@ const TopNavbar = () => {
               theme ? "text-[#222222]" : "text-[#dadada]"
             }`}
           >
-            Daily Routine
+            Expense Tracker
           </div>
         </Link>
 
@@ -131,7 +131,7 @@ const TopNavbar = () => {
               theme ? "text-[#222222]" : "text-[#dadada]"
             }`}
           >
-            Daily Routine
+            Expense Tracker
           </div>
         </Link>
 

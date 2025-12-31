@@ -21,7 +21,7 @@ export async function sendVerificationEmail(
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
-    subject: "Daily Routine: Verify Your Email Address",
+    subject: "Expense Tracker: Verify Your Email Address",
     html: `
       <!DOCTYPE html>
       <html>
@@ -44,7 +44,7 @@ export async function sendVerificationEmail(
         <body>
           <div class="container">
             <h2>Welcome, ${name}!</h2>
-            <p>Thank you for registering To Daily Routine. Please verify your email address by clicking the button below:</p>
+            <p>Thank you for registering To Expense Tracker. Please verify your email address by clicking the button below:</p>
             <a href="${verificationLink}" class="button">Verify Email</a>
             <div class="footer">
               <p>If you didn't create an account, please ignore this email.</p>
@@ -72,7 +72,7 @@ export async function sendVerificationSuccessEmail(
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
-    subject: "Daily Routine: Email Verified Successfully! 🎉",
+    subject: "Expense Tracker: Email Verified Successfully! 🎉",
     html: `
       <!DOCTYPE html>
       <html>
@@ -102,13 +102,13 @@ export async function sendVerificationSuccessEmail(
               <div class="success-icon">✅</div>
               <h2>Email Verified Successfully!</h2>
               <p>Hi ${name},</p>
-              <p>Congratulations! Your email has been successfully verified. You now have full access to all Daily Routine features.</p>
+              <p>Congratulations! Your email has been successfully verified. You now have full access to all Expense Tracker features.</p>
               <p>You can now log in to your account and start using our services.</p>
               <div style="text-align: center;">
                 <a href="${process.env.NEXTAUTH_URL}/login" class="button">Go to Login</a>
               </div>
               <div class="footer">
-                <p>Thank you for choosing Daily Routine!</p>
+                <p>Thank you for choosing Expense Tracker!</p>
               </div>
             </div>
           </div>

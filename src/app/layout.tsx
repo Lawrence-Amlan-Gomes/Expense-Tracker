@@ -11,8 +11,8 @@ const roboto = Roboto({
 });
 
 export const metadata = {
-  title: "Daily Routine",
-  description: "Daily Routine",
+  title: "Expense Tracker",
+  description: "Expense Tracker",
   icons: {
     icon: ["/favicon.ico?v=4"],
     apple: ["/apple-touch-icon.png?v=4"],

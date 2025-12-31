@@ -5,7 +5,7 @@ const testimonials = [
     clientRole: "Marketing Specialist at Growthly",
     clientImg: "/C1.png",
     clientQuote:
-      "Daily Routine helped me finally structure my day without feeling overwhelmed. I’m more focused, productive, and consistent than ever before.",
+      "Expense Tracker helped me finally structure my day without feeling overwhelmed. I’m more focused, productive, and consistent than ever before.",
   },
   {
     id: 2,
@@ -29,7 +29,7 @@ const testimonials = [
     clientRole: "Freelance Web Developer",
     clientImg: "/C4.png",
     clientQuote:
-      "Building a daily routine with this app completely changed how I manage my time. I get more done and feel less stressed every day.",
+      "Building a Expense Tracker with this app completely changed how I manage my time. I get more done and feel less stressed every day.",
   },
 ];
 

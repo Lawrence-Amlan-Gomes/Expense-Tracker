@@ -1,19 +1,26 @@
 // src/models/User.ts
 import mongoose, { Document } from "mongoose";
 
-export interface IRoutineItem {
+export interface IBank {
   name: string;
-  time: string;
+  amount: number;
 }
 
-export interface IRoutine {
-  saturday: IRoutineItem[];
-  sunday: IRoutineItem[];
-  monday: IRoutineItem[];
-  tuesday: IRoutineItem[];
-  wednesday: IRoutineItem[];
-  thursday: IRoutineItem[];
-  friday: IRoutineItem[];
+export interface ISpending {
+  date: string;
+  item: string;
+  cost: number;
+}
+
+export interface IMonth {
+  name: string;
+  spendings: ISpending[];
+}
+
+export interface IMoney {
+  banks: IBank[];
+  inCash: number;
+  Months: IMonth[];
 }
 
 export interface IUser extends Document {
@@ -28,7 +35,7 @@ export interface IUser extends Document {
   isAdmin: boolean;
   paymentType: string;
   isEmailVerified: boolean;
-  routine: IRoutine;
+  money: IMoney;
 }
 
 const UserSchema = new mongoose.Schema<IUser>(
@@ -49,73 +56,34 @@ const UserSchema = new mongoose.Schema<IUser>(
     isAdmin: { type: Boolean, default: false },
     paymentType: { type: String, default: "Free One Week" },
     isEmailVerified: { type: Boolean, default: false },
-    routine: {
+    money: {
       type: {
-        saturday: {
+        banks: {
           type: [
             {
               name: { type: String, required: true, trim: true },
-              time: { type: String, required: true, trim: true },
+              amount: { type: Number, required: true },
             },
           ],
           default: [],
           _id: false,
         },
-        sunday: {
+        inCash: { type: Number, default: 0 },
+        Months: {
           type: [
             {
               name: { type: String, required: true, trim: true },
-              time: { type: String, required: true, trim: true },
-            },
-          ],
-          default: [],
-          _id: false,
-        },
-        monday: {
-          type: [
-            {
-              name: { type: String, required: true, trim: true },
-              time: { type: String, required: true, trim: true },
-            },
-          ],
-          default: [],
-          _id: false,
-        },
-        tuesday: {
-          type: [
-            {
-              name: { type: String, required: true, trim: true },
-              time: { type: String, required: true, trim: true },
-            },
-          ],
-          default: [],
-          _id: false,
-        },
-        wednesday: {
-          type: [
-            {
-              name: { type: String, required: true, trim: true },
-              time: { type: String, required: true, trim: true },
-            },
-          ],
-          default: [],
-          _id: false,
-        },
-        thursday: {
-          type: [
-            {
-              name: { type: String, required: true, trim: true },
-              time: { type: String, required: true, trim: true },
-            },
-          ],
-          default: [],
-          _id: false,
-        },
-        friday: {
-          type: [
-            {
-              name: { type: String, required: true, trim: true },
-              time: { type: String, required: true, trim: true },
+              spendings: {
+                type: [
+                  {
+                    date: { type: String, required: true, trim: true },
+                    item: { type: String, required: true, trim: true },
+                    cost: { type: Number, required: true },
+                  },
+                ],
+                default: [],
+                _id: false,
+              },
             },
           ],
           default: [],

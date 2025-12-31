@@ -1,19 +1,26 @@
 // src/store/features/auth/authSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-export interface IRoutineItem {
+export interface IBank {
   name: string;
-  time: string;
+  amount: number;
 }
 
-export interface IRoutine {
-  saturday: IRoutineItem[];
-  sunday: IRoutineItem[];
-  monday: IRoutineItem[];
-  tuesday: IRoutineItem[];
-  wednesday: IRoutineItem[];
-  thursday: IRoutineItem[];
-  friday: IRoutineItem[];
+export interface ISpending {
+  date: string;
+  item: string;
+  cost: number;
+}
+
+export interface IMonth {
+  name: string;
+  spendings: ISpending[];
+}
+
+export interface IMoney {
+  banks: IBank[];
+  inCash: number;
+  Months: IMonth[];
 }
 
 export interface CleanUser {
@@ -27,7 +34,7 @@ export interface CleanUser {
   expiredAt: string;
   paymentType: string;
   isEmailVerified: boolean;
-  routine: IRoutine;
+  money: IMoney;
 }
 
 export interface CleanGoogleUser {

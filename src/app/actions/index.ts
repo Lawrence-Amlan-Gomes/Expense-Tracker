@@ -3,7 +3,7 @@
 
 import { signOut } from "@/app/auth";
 import { cleanUserForClient } from "@/lib/data-util";
-import { CleanUser, IRoutine } from "@/store/features/auth/authSlice";
+import { CleanUser, IMoney } from "@/store/features/auth/authSlice";
 import { dbConnect } from "@/lib/mongo";
 import {
   sendVerificationEmail,
@@ -27,14 +27,10 @@ type LeanUser = {
   expiredAt?: Date;
   paymentType?: string;
   isEmailVerified?: boolean;
-  routine?: {
-    saturday: { name: string; time: string }[];
-    sunday: { name: string; time: string }[];
-    monday: { name: string; time: string }[];
-    tuesday: { name: string; time: string }[];
-    wednesday: { name: string; time: string }[];
-    thursday: { name: string; time: string }[];
-    friday: { name: string; time: string }[];
+  money?: {
+    banks: { name: string; amount: number }[];
+    inCash: number;
+    Months: { name: string; spendings: { date: string; item: string; cost: number }[] }[];
   };
   __v?: number;
 };
@@ -70,59 +66,32 @@ export async function performLogin({
     expiredAt: user.expiredAt?.toISOString() || expiredAt.toISOString(),
     paymentType: user.paymentType || "Free One Week",
     isEmailVerified: user.isEmailVerified || false,
-    routine: user.routine
+    money: user.money
       ? {
-          saturday: user.routine.saturday.map(
-            (item: { name: string; time: string }) => ({
+          banks: user.money.banks.map(
+            (item: { name: string; amount: number }) => ({
               name: item.name,
-              time: item.time,
+              amount: item.amount,
             })
           ),
-          sunday: user.routine.sunday.map(
-            (item: { name: string; time: string }) => ({
-              name: item.name,
-              time: item.time,
-            })
-          ),
-          monday: user.routine.monday.map(
-            (item: { name: string; time: string }) => ({
-              name: item.name,
-              time: item.time,
-            })
-          ),
-          tuesday: user.routine.tuesday.map(
-            (item: { name: string; time: string }) => ({
-              name: item.name,
-              time: item.time,
-            })
-          ),
-          wednesday: user.routine.wednesday.map(
-            (item: { name: string; time: string }) => ({
-              name: item.name,
-              time: item.time,
-            })
-          ),
-          thursday: user.routine.thursday.map(
-            (item: { name: string; time: string }) => ({
-              name: item.name,
-              time: item.time,
-            })
-          ),
-          friday: user.routine.friday.map(
-            (item: { name: string; time: string }) => ({
-              name: item.name,
-              time: item.time,
+          inCash: user.money.inCash,
+          Months: user.money.Months.map(
+            (month: { name: string; spendings: { date: string; item: string; cost: number }[] }) => ({
+              name: month.name,
+              spendings: month.spendings.map(
+                (spending: { date: string; item: string; cost: number }) => ({
+                  date: spending.date,
+                  item: spending.item,
+                  cost: spending.cost,
+                })
+              ),
             })
           ),
         }
       : {
-          saturday: [],
-          sunday: [],
-          monday: [],
-          tuesday: [],
-          wednesday: [],
-          thursday: [],
-          friday: [],
+          banks: [],
+          inCash: 0,
+          Months: [],
         },
   };
 
@@ -158,15 +127,11 @@ export async function createUser(data: {
     expiredAt,
     password: hashed,
     isEmailVerified: isGoogleAuth, // ← true for Google, false for manual
-    // routine will use schema default, but explicitly setting is safer
-    routine: {
-      saturday: [],
-      sunday: [],
-      monday: [],
-      tuesday: [],
-      wednesday: [],
-      thursday: [],
-      friday: [],
+    // money will use schema default, but explicitly setting is safer
+    money: {
+      banks: [],
+      inCash: 0,
+      Months: [],
     },
   });
 
@@ -289,59 +254,32 @@ export async function findUserByEmail(email: string) {
     expiredAt: user.expiredAt?.toISOString() || expiredAt.toISOString(),
     paymentType: user.paymentType,
     isEmailVerified: user.isEmailVerified || false, // ← NEW
-    routine: user.routine
+    money: user.money
       ? {
-          saturday: user.routine.saturday.map(
-            (item: { name: string; time: string }) => ({
+          banks: user.money.banks.map(
+            (item: { name: string; amount: number }) => ({
               name: item.name,
-              time: item.time,
+              amount: item.amount,
             })
           ),
-          sunday: user.routine.sunday.map(
-            (item: { name: string; time: string }) => ({
-              name: item.name,
-              time: item.time,
-            })
-          ),
-          monday: user.routine.monday.map(
-            (item: { name: string; time: string }) => ({
-              name: item.name,
-              time: item.time,
-            })
-          ),
-          tuesday: user.routine.tuesday.map(
-            (item: { name: string; time: string }) => ({
-              name: item.name,
-              time: item.time,
-            })
-          ),
-          wednesday: user.routine.wednesday.map(
-            (item: { name: string; time: string }) => ({
-              name: item.name,
-              time: item.time,
-            })
-          ),
-          thursday: user.routine.thursday.map(
-            (item: { name: string; time: string }) => ({
-              name: item.name,
-              time: item.time,
-            })
-          ),
-          friday: user.routine.friday.map(
-            (item: { name: string; time: string }) => ({
-              name: item.name,
-              time: item.time,
+          inCash: user.money.inCash,
+          Months: user.money.Months.map(
+            (month: { name: string; spendings: { date: string; item: string; cost: number }[] }) => ({
+              name: month.name,
+              spendings: month.spendings.map(
+                (spending: { date: string; item: string; cost: number }) => ({
+                  date: spending.date,
+                  item: spending.item,
+                  cost: spending.cost,
+                })
+              ),
             })
           ),
         }
       : {
-          saturday: [],
-          sunday: [],
-          monday: [],
-          tuesday: [],
-          wednesday: [],
-          thursday: [],
-          friday: [],
+          banks: [],
+          inCash: 0,
+          Months: [],
         },
   };
 }
@@ -366,10 +304,10 @@ export async function verifyAndChangePassword(
 }
 
 // Add to src/app/actions.ts
-export async function updateRoutine(email: string, routine: IRoutine) {
+export async function updateMoney(email: string, money: IMoney) {
   await dbConnect();
-  await User.updateOne({ email }, { routine });
-  revalidatePath("/dashBoard"); // or wherever your routine page is
+  await User.updateOne({ email }, { money });
+  revalidatePath("/dashBoard"); // or wherever your money page is
 }
 
 // ==================== GOOGLE + JWT ====================

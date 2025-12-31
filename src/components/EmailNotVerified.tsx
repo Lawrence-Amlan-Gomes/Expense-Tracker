@@ -65,7 +65,7 @@ export default function EmailNotVerified() {
     >
       <div>
         <div className="text-red-600 rounded-lg">
-          Please verify your email to use Daily Routine!
+          Please verify your email to use Expense Tracker!
         </div>
         <div
           className={`${

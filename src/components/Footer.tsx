@@ -21,7 +21,7 @@ function Footer() {
               theme ? "text-[#0a0a0a]" : "text-[#ebebeb]"
             }`}
           >
-            Daily Routine
+            Expense Tracker
           </span>
           <span className="hidden sm:inline text-xs sm:text-sm">|</span>
           <span
