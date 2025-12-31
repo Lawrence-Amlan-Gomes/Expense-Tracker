@@ -63,6 +63,36 @@ export default function DashBoard() {
     }
   }, [auth, hasMounted, router]);
 
+  // Auto-select current month if it exists
+  useEffect(() => {
+    if (months.length > 0 && selectedMonth === null) {
+      const now = new Date();
+      const currentMonthName = now.toLocaleString("default", {
+        month: "long",
+        year: "numeric",
+      }); // e.g., "December 2025"
+
+      const currentMonthExists = months.find(
+        (m) => m.name === currentMonthName
+      );
+
+      if (currentMonthExists) {
+        setSelectedMonth(currentMonthName);
+      } else {
+        // Optional: fallback to the latest month
+        const sortedMonths = [...months].sort((a, b) => {
+          return (
+            new Date(b.name + " 1").getTime() -
+            new Date(a.name + " 1").getTime()
+          );
+        });
+        if (sortedMonths.length > 0) {
+          setSelectedMonth(sortedMonths[0].name); // Select the most recent month
+        }
+      }
+    }
+  }, [months, selectedMonth]); // Run when months load or change
+
   const handleSave = async () => {
     if (!auth?.email) return;
 
