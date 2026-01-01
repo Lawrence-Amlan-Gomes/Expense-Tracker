@@ -35,6 +35,7 @@ export default function DashBoard() {
   const [isSaving, setIsSaving] = useState(false);
   const [bankSearch, setBankSearch] = useState("");
   const [monthSearch, setMonthSearch] = useState("");
+  const [originalMoney, setOriginalMoney] = useState<IMoney | null>(null);
 
   // Modal states
   const [bankModal, setBankModal] = useState<{
@@ -60,8 +61,25 @@ export default function DashBoard() {
       setBanks(auth.money.banks || []);
       setInCash(auth.money.inCash || 0);
       setMonths(auth.money.Months || []);
+
+      // Save the original state for comparison
+      setOriginalMoney(auth.money);
     }
   }, [auth, hasMounted, router]);
+
+  const hasUnsavedChanges = () => {
+    if (!originalMoney) return false;
+
+    // Deep comparison needed because arrays/objects
+    const currentMoney: IMoney = {
+      banks,
+      inCash,
+      Months: months,
+    };
+
+    // Simple deep equality check for our structure
+    return JSON.stringify(currentMoney) !== JSON.stringify(originalMoney);
+  };
 
   // Auto-select current month if it exists
   useEffect(() => {
@@ -103,6 +121,9 @@ export default function DashBoard() {
 
       // Update local auth state
       setAuth({ ...auth, money: updatedMoney });
+
+      // Update originalMoney so "Changes Saved" shows
+      setOriginalMoney(updatedMoney);
 
       alert("✅ Changes saved successfully!");
     } catch (error) {
@@ -282,11 +303,21 @@ export default function DashBoard() {
           </h2>
           <button
             onClick={handleSave}
-            disabled={isSaving}
-            className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
+            disabled={isSaving || !hasUnsavedChanges()}
+            className={`w-full mt-4 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors ${
+              isSaving || !hasUnsavedChanges()
+                ? theme
+                  ? "bg-[#aaaaaa] text-[#444444] cursor-not-allowed"
+                  : "bg-[#444444] text-[#aaaaaa] cursor-not-allowed"
+                : "bg-emerald-600 hover:bg-emerald-700 text-white"
+            }`}
           >
             <Save size={20} />
-            {isSaving ? "Saving..." : "Save Changes"}
+            {isSaving
+              ? "Saving..."
+              : hasUnsavedChanges()
+              ? "Save Changes"
+              : "Changes Saved"}
           </button>
         </div>
 
