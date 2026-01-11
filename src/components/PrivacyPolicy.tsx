@@ -1,7 +1,5 @@
 "use client";
 import { useTheme } from "@/app/hooks/useTheme";
-import colors from "@/app/color/color";
-
 export default function PrivacyPolicy() {
   const { theme } = useTheme();
   return (

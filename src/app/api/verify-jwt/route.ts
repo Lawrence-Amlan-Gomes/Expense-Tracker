@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
     if (!user) return new Response('Invalid token', { status: 401 });
 
     return Response.json(user);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return new Response('Server error', { status: 500 });
   }

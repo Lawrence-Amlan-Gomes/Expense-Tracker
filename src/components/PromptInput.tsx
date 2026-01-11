@@ -22,6 +22,7 @@ export default function PromptInput({
   const { theme } = useTheme();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIAmThinking(false);
   }, [aiResponse]);
 

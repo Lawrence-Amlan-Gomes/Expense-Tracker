@@ -23,6 +23,7 @@ const Profile = () => {
 
   useEffect(() => {
     if (auth) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(auth.name);
     }
   }, [auth]);
@@ -34,6 +35,7 @@ const Profile = () => {
     try {
       await updateUser(auth.email, { name, firstTimeLogin: false });
       setAuth({ ...auth, name });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       alert("Failed to update name. Try again.");
       setName(auth.name);

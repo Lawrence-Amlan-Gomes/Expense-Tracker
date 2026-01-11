@@ -15,24 +15,53 @@ const defaultMoney: IMoney = {
   Months: [],
 };
 
+// Type narrowing helpers
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isArray(value: unknown): value is unknown[] {
+  return Array.isArray(value);
+}
+
+function toSafeString(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return value.toString();
+  if (isObject(value) && 'toString' in value && typeof value.toString === 'function') {
+    return value.toString();
+  }
+  return "";
+}
+
 // Helper to deeply clean money items (removes any Mongoose-specific properties)
-const cleanMoney = (money: any): IMoney => {
+const cleanMoney = (money: unknown): IMoney => {
   if (!money) return defaultMoney;
+  if (!isObject(money)) return defaultMoney;
 
   return {
-    banks: (money.banks || []).map((item: any) => ({
-      name: item.name?.toString() || "",
-      amount: Number(item.amount) || 0,
-    })),
+    banks: (isArray(money.banks) ? money.banks : []).map((item: unknown) => {
+      if (!isObject(item)) return { name: "", amount: 0 };
+      return {
+        name: toSafeString(item.name),
+        amount: Number(item.amount) || 0,
+      };
+    }),
     inCash: Number(money.inCash) || 0,
-    Months: (money.Months || []).map((month: any) => ({
-      name: month.name?.toString() || "",
-      spendings: (month.spendings || []).map((spending: any) => ({
-        date: spending.date?.toString() || "",
-        item: spending.item?.toString() || "",
-        cost: Number(spending.cost) || 0,
-      })),
-    })),
+    Months: (isArray(money.Months) ? money.Months : []).map((month: unknown) => {
+      if (!isObject(month)) return { name: "", spendings: [] };
+      return {
+        name: toSafeString(month.name),
+        spendings: (isArray(month.spendings) ? month.spendings : []).map((spending: unknown) => {
+          if (!isObject(spending)) return { date: "", item: "", cost: 0 };
+          return {
+            date: toSafeString(spending.date),
+            item: toSafeString(spending.item),
+            cost: Number(spending.cost) || 0,
+          };
+        }),
+      };
+    }),
   };
 };
 

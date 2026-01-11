@@ -2,7 +2,10 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-export async function response(prompt: string, inputOutputPair: [string, string][]) {
+export async function response(
+  prompt: string,
+  inputOutputPair: [string, string][]
+) {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error("GEMINI_API_KEY is not set in environment variables");
   }
@@ -41,34 +44,46 @@ export async function response(prompt: string, inputOutputPair: [string, string]
       model: "gemini-2.5-flash",
       contents: fullPrompt,
     });
-    
+
     console.log("✅ AI response received");
     return result.text;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    let message = String(error);
+    let status: number | undefined;
+    let name = "";
+
+    if (error instanceof Error) {
+      message = error.message;
+      name = error.name;
+      if ("status" in error && typeof error.status === "number") {
+        status = error.status;
+      }
+    }
+
     console.error("❌ Error generating content:", error);
     console.error("Error details:", {
-      message: error?.message,
-      status: error?.status,
-      name: error?.name
+      message,
+      status,
+      name,
     });
-    
+
     // Handle specific errors
-    if (error?.status === 401 || error?.status === 403) {
+    if (status === 401 || status === 403) {
       return "❌ Invalid API key. Please generate a new one at: https://aistudio.google.com/app/apikey";
     }
-    
-    if (error?.status === 429) {
+
+    if (status === 429) {
       return "⏸️ Rate limit exceeded. Please wait and try again.";
     }
-    
-    if (error?.status === 503) {
+
+    if (status === 503) {
       return "⚠️ Service temporarily unavailable. Try again in a moment.";
     }
-    
-    if (error?.message?.includes("SAFETY")) {
+
+    if (message.includes("SAFETY")) {
       return "🚫 Response blocked by safety filters. Please rephrase.";
     }
-    
+
     throw new Error("Failed to generate AI response");
   }
 }

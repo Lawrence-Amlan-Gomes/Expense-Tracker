@@ -162,6 +162,7 @@ export default function Pricing() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
           {plans.map((plan) => {
             const priceLabel = getPriceLabel(plan.id);
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const isSelected = selectedPlan === plan.id;
 
             return (

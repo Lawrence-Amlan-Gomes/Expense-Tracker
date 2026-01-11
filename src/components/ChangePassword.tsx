@@ -18,9 +18,18 @@ const ChangePassword = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [oldError, setOldError] = useState({ iserror: true, error: "Old password is required" });
-  const [newError, setNewError] = useState({ iserror: true, error: "Your password must be at least 8 characters" });
-  const [confirmError, setConfirmError] = useState({ iserror: true, error: "Your password must be at least 8 characters" });
+  const [oldError, setOldError] = useState({
+    iserror: true,
+    error: "Old password is required",
+  });
+  const [newError, setNewError] = useState({
+    iserror: true,
+    error: "Your password must be at least 8 characters",
+  });
+  const [confirmError, setConfirmError] = useState({
+    iserror: true,
+    error: "Your password must be at least 8 characters",
+  });
 
   const [serverMsg, setServerMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -93,8 +102,8 @@ const ChangePassword = () => {
       await verifyAndChangePassword(auth.email, oldPassword, newPassword);
       alert("Password changed successfully!");
       router.push("/profile");
-    } catch (err: any) {
-      if (err.message === "INCORRECT_OLD_PASSWORD") {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === "INCORRECT_OLD_PASSWORD") {
         setOldError({ iserror: true, error: "Old password is incorrect" });
       } else {
         setServerMsg("Failed to change password. Try again.");
@@ -254,9 +263,7 @@ const ChangePassword = () => {
         </div>
 
         {/* Server error */}
-        {serverMsg && (
-          <p className="mt-4 text-red-600 text-sm">{serverMsg}</p>
-        )}
+        {serverMsg && <p className="mt-4 text-red-600 text-sm">{serverMsg}</p>}
       </div>
     </div>
   );

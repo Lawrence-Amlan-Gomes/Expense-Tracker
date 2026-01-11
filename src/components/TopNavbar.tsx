@@ -66,6 +66,7 @@ const TopNavbar = () => {
 
   useEffect(() => {
     if (trimedPathname) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActive(trimedPathname);
     } else {
       setActive("home");

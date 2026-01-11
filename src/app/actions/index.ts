@@ -8,7 +8,7 @@ import { dbConnect } from "@/lib/mongo";
 import {
   sendVerificationEmail,
   sendVerificationSuccessEmail,
-} from "@/lib/server/email"; // ← UPDATED
+} from "@/lib/server/email";
 import { generateToken, verifyToken } from "@/lib/server/jwt";
 import { User } from "@/models/User";
 import bcrypt from "bcrypt";
@@ -16,7 +16,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 type LeanUser = {
-  _id: any;
+  _id: { toString(): string }
   name: string;
   email: string;
   password?: string;

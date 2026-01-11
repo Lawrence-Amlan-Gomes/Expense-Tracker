@@ -116,8 +116,8 @@ const RegistrationForm = () => {
     try {
       await createUser({ name, email, password, photo: "" });
       setSuccessMessage(`${email} successfully registered`);
-    } catch (err: any) {
-      if (err.message === "EMAIL_ALREADY_EXISTS") {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === "EMAIL_ALREADY_EXISTS") {
         setEmailError({
           iserror: true,
           error: "This email is already registered",
@@ -170,8 +170,8 @@ const RegistrationForm = () => {
             photo: user.image ?? "",
           });
           setSuccessMessage(`${userEmail} successfully registered`);
-        } catch (err: any) {
-          if (err.message === "EMAIL_ALREADY_EXISTS") {
+        } catch (err: unknown) {
+          if (err instanceof Error && err.message === "EMAIL_ALREADY_EXISTS") {
             setGoogleError({
               isError: true,
               error: `${userEmail} is already registered. Please log in.`,

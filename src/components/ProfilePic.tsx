@@ -110,6 +110,7 @@ export default function ProfilePic() {
       await changePhoto(auth.email, imageData);
       await updateUser(auth.email, { firstTimeLogin: false });
       alert("Profile picture updated!");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       alert("Failed to save photo. Try again.");
       // Revert on error
@@ -130,6 +131,7 @@ export default function ProfilePic() {
       await changePhoto(auth.email, "");
       await updateUser(auth.email, { firstTimeLogin: false });
       alert("Profile picture removed!");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       alert("Failed to delete photo.");
       setImage(auth.photo || "");

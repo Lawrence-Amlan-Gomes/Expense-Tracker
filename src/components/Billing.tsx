@@ -45,6 +45,7 @@ export default function Billing() {
       });
       alert("Payment successful!");
       router.push("/");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       alert("Payment failed. Please try again.");
     }

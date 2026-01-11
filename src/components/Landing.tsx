@@ -1,7 +1,6 @@
 "use client";
 import { useTheme } from "@/app/hooks/useTheme";
 import Hero from "./Hero";
-import LandingTestimonials from "./LandingTestimonials";
 import Footer from "./Footer";
 
 export default function LandingPage() {
@@ -13,7 +12,6 @@ export default function LandingPage() {
       }`}
     >
       <Hero/>
-      <LandingTestimonials/>
       <Footer/>
     </div>
   );

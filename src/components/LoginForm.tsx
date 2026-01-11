@@ -149,11 +149,18 @@ const LoginForm = () => {
           error: `Your email ${userEmail} hasn't registered yet`,
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Google login error:", err);
+
+      let errorMessage = "Google login failed. Try again.";
+
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
       setGoogleError({
         isError: true,
-        error: err.message || "Google login failed. Try again.",
+        error: errorMessage,
       });
     } finally {
       setIsLoadingGoogle(false);

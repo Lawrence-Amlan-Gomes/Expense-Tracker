@@ -32,6 +32,7 @@ const EachField = ({
 
   useEffect(() => {
     if (value === "") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFirstTime(true);
     } else {
       setFirstTime(false);

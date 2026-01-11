@@ -9,7 +9,6 @@ import {
   setToday,
   setClickedDate,
   setInputOutputPair,
-  clearInputOutputPairs,
 } from '@/store/features/response/responseSlice';
 
 export const useResponse = () => {

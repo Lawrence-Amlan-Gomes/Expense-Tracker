@@ -3,26 +3,28 @@
 
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@/store/store';
-import {
-  setAuth,
-  setGoogleAuth,
-  // clearAuth,  // ← NOT exported from authSlice → removed
-} from '@/store/features/auth/authSlice';
-import type { CleanUser } from '@/store/features/auth/authSlice'; // optional: explicit import if needed
-
-// If you need CleanGoogleUser, define or import it similarly
-// For now, assuming it's defined elsewhere or in the slice
-// import type { CleanGoogleUser } from '@/store/features/auth/authSlice';
+import { setAuth, setGoogleAuth } from '@/store/features/auth/authSlice';
+import type { CleanUser, CleanGoogleUser } from '@/store/features/auth/authSlice';
 
 export const useAuth = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const user = useSelector((state: RootState) => state.auth.user) as CleanUser | null;
-  const googleUser = useSelector((state: RootState) => state.auth.googleUser) as any | null; // replace `any` if type exists
+
+  const user = useSelector((state: RootState) => 
+    state.auth.user
+  ) as CleanUser | null;
+
+  const googleUser = useSelector((state: RootState) => 
+    state.auth.googleUser
+  ) as CleanGoogleUser | null;
 
   return {
     user,
     googleUser,
-    setAuth: (user: CleanUser | null) => dispatch(setAuth(user)),
-    setGoogleAuth: (user: any | null) => dispatch(setGoogleAuth(user)), // fix type if CleanGoogleUser exists
+
+    setAuth: (payload: CleanUser | null) => 
+      dispatch(setAuth(payload)),
+
+    setGoogleAuth: (payload: CleanGoogleUser | null) => 
+      dispatch(setGoogleAuth(payload)),
   };
 };

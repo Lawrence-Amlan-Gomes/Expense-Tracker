@@ -1,14 +1,12 @@
 "use client";
 
 import colors from "@/app/color/color";
-import { useAuth } from "@/app/hooks/useAuth";
 import { useTheme } from "@/app/hooks/useTheme";
 import Link from "next/link";
 import { useState, useRef } from "react";
 
 export default function Hero() {
   const { theme } = useTheme();
-  const { user: auth } = useAuth();
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -41,20 +39,18 @@ export default function Hero() {
             theme ? "text-[#0a0a0a]" : "text-[#ebebeb]"
           }`}
         >
-          Turn Every Day Into a{" "}
-          <span className={`${colors.keyText}`}>Well-Planned</span> Success{" "}
+          Master Your <span className={`${colors.keyText}`}>Money</span> Month by Month{" "}
         </h1>
         <p
           className={`text-md sm:text-lg lg:text-xl ${
             theme ? "text-gray-600" : "text-gray-300"
           }`}
         >
-          Build structured daily routines that help you focus better, waste less
-          time, and actually get things done.
+          Track every transaction effortlessly — banks, cash, daily spendings — and finally understand where your money really goes.
         </p>
         <div className="flex space-x-4">
           <Link
-            href="/chat"
+            href="/dashBoard"
             className={`px-6 py-2 rounded-lg text-sm md:text-lg font-semibold transition-all duration-300 flex justify-center items-center ${colors.keyBg} ${colors.keyHoverBg} text-white`}
           >
             Get Started
@@ -81,19 +77,18 @@ export default function Hero() {
           } overflow-hidden relative group`}
         >
           <div className="h-full w-full flex justify-center items-center">
-            The Video
+            <video
+              ref={videoRef}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            >
+              <source src="/video.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
           </div>
-          {/* <video
-            ref={videoRef}
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-full object-cover"
-          >
-            <source src="/video.mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video> */}
 
           {/* Controls Container */}
           <div className="absolute bottom-4 right-4 flex items-center space-x-2">
