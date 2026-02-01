@@ -1001,7 +1001,7 @@ function BankModal({
   );
 }
 
-//Total Balance Modal Component
+// Total Balance Modal Component
 function TotalBalanceModal({
   isOpen,
   onClose,
@@ -1023,13 +1023,13 @@ function TotalBalanceModal({
 
   const allSelected = banks.length > 0 && selectedBanks.length === banks.length;
   const selectedTotal = banks
-    .filter(b => selectedBanks.includes(b.name))
+    .filter((b) => selectedBanks.includes(b.name))
     .reduce((sum, b) => sum + b.amount, 0);
 
   const toggleBank = (bankName: string) => {
-    setSelectedBanks(prev =>
+    setSelectedBanks((prev: string[]) =>           // ← Fixed here
       prev.includes(bankName)
-        ? prev.filter(n => n !== bankName)
+        ? prev.filter((n) => n !== bankName)
         : [...prev, bankName]
     );
   };
@@ -1038,7 +1038,7 @@ function TotalBalanceModal({
     if (allSelected) {
       setSelectedBanks([]);
     } else {
-      setSelectedBanks(banks.map(b => b.name));
+      setSelectedBanks(banks.map((b) => b.name));
     }
   };
 
@@ -1078,7 +1078,7 @@ function TotalBalanceModal({
           </button>
 
           {/* Bank capsules */}
-          {banks.map(bank => {
+          {banks.map((bank) => {
             const isSelected = selectedBanks.includes(bank.name);
             return (
               <button
@@ -1099,9 +1099,11 @@ function TotalBalanceModal({
         </div>
 
         {/* Summary */}
-        <div className={`p-5 rounded-xl mb-6 ${
-          theme ? "bg-gray-900/60 border border-gray-700" : "bg-gray-50 border border-gray-200"
-        }`}>
+        <div
+          className={`p-5 rounded-xl mb-6 ${
+            theme ? "bg-gray-900/60 border border-gray-700" : "bg-gray-50 border border-gray-200"
+          }`}
+        >
           <div className={`text-sm mb-1 ${theme ? "text-gray-400" : "text-gray-600"}`}>
             Selected Accounts Total
           </div>
@@ -1109,7 +1111,6 @@ function TotalBalanceModal({
             ৳ {selectedTotal.toLocaleString()}
           </div>
 
-          {/* Optional: show cash separately if you want */}
           <div className={`text-sm mt-3 ${theme ? "text-gray-400" : "text-gray-600"}`}>
             Cash not included in selection • ৳ {inCash.toLocaleString()}
           </div>
