@@ -1022,12 +1022,13 @@ function TotalBalanceModal({
   if (!isOpen) return null;
 
   const allSelected = banks.length > 0 && selectedBanks.length === banks.length;
+
   const selectedTotal = banks
     .filter((b) => selectedBanks.includes(b.name))
     .reduce((sum, b) => sum + b.amount, 0);
 
   const toggleBank = (bankName: string) => {
-    setSelectedBanks((prev: string[]) =>           // ← Fixed here
+    setSelectedBanks((prev) =>
       prev.includes(bankName)
         ? prev.filter((n) => n !== bankName)
         : [...prev, bankName]
@@ -1111,6 +1112,7 @@ function TotalBalanceModal({
             ৳ {selectedTotal.toLocaleString()}
           </div>
 
+          {/* Optional: show cash separately */}
           <div className={`text-sm mt-3 ${theme ? "text-gray-400" : "text-gray-600"}`}>
             Cash not included in selection • ৳ {inCash.toLocaleString()}
           </div>
