@@ -36,6 +36,7 @@ export default function DashBoard() {
   const [bankSearch, setBankSearch] = useState("");
   const [monthSearch, setMonthSearch] = useState("");
   const [originalMoney, setOriginalMoney] = useState<IMoney | null>(null);
+  const [selectedBanks, setSelectedBanks] = useState<string[]>([]);
 
   // Modal states
   const [bankModal, setBankModal] = useState<{
@@ -44,6 +45,7 @@ export default function DashBoard() {
   }>({ show: false, bank: null });
   const [cashModal, setCashModal] = useState(false);
   const [addMonthModalOpen, setAddMonthModalOpen] = useState(false);
+  const [totalBalanceModalOpen, setTotalBalanceModalOpen] = useState(false);
   const [spendingModal, setSpendingModal] = useState<{
     show: boolean;
     spending: ISpending | null;
@@ -67,20 +69,6 @@ export default function DashBoard() {
     }
   }, [auth, hasMounted, router]);
 
-  const hasUnsavedChanges = () => {
-    if (!originalMoney) return false;
-
-    // Deep comparison needed because arrays/objects
-    const currentMoney: IMoney = {
-      banks,
-      inCash,
-      Months: months,
-    };
-
-    // Simple deep equality check for our structure
-    return JSON.stringify(currentMoney) !== JSON.stringify(originalMoney);
-  };
-
   // Auto-select current month if it exists
   useEffect(() => {
     if (months.length > 0 && selectedMonth === null) {
@@ -91,7 +79,7 @@ export default function DashBoard() {
       }); // e.g., "December 2025"
 
       const currentMonthExists = months.find(
-        (m) => m.name === currentMonthName
+        (m) => m.name === currentMonthName,
       );
 
       if (currentMonthExists) {
@@ -110,6 +98,18 @@ export default function DashBoard() {
       }
     }
   }, [months, selectedMonth]); // Run when months load or change
+
+  useEffect(() => {
+    if (auth?.money) {
+      setBanks(auth.money.banks || []);
+      setInCash(auth.money.inCash || 0);
+      setMonths(auth.money.Months || []);
+      setOriginalMoney(auth.money);
+
+      // NEW: pre-select all banks by default
+      setSelectedBanks(auth.money.banks?.map((b) => b.name) || []);
+    }
+  }, [auth, hasMounted, router]);
 
   const handleSave = async () => {
     if (!auth?.email) return;
@@ -137,8 +137,8 @@ export default function DashBoard() {
   const handleBankDeposit = (bankName: string, amount: number) => {
     setBanks(
       banks.map((b) =>
-        b.name === bankName ? { ...b, amount: b.amount + amount } : b
-      )
+        b.name === bankName ? { ...b, amount: b.amount + amount } : b,
+      ),
     );
   };
 
@@ -150,8 +150,8 @@ export default function DashBoard() {
     }
     setBanks(
       banks.map((b) =>
-        b.name === bankName ? { ...b, amount: b.amount - amount } : b
-      )
+        b.name === bankName ? { ...b, amount: b.amount - amount } : b,
+      ),
     );
     setInCash(inCash + amount);
   };
@@ -159,7 +159,7 @@ export default function DashBoard() {
   const handleBankTransfer = (
     fromBank: string,
     toBank: string,
-    amount: number
+    amount: number,
   ) => {
     const source = banks.find((b) => b.name === fromBank);
     if (!source || source.amount < amount) {
@@ -171,7 +171,7 @@ export default function DashBoard() {
         if (b.name === fromBank) return { ...b, amount: b.amount - amount };
         if (b.name === toBank) return { ...b, amount: b.amount + amount };
         return b;
-      })
+      }),
     );
   };
 
@@ -182,8 +182,8 @@ export default function DashBoard() {
     }
     setBanks(
       banks.map((b) =>
-        b.name === bankName ? { ...b, amount: b.amount + amount } : b
-      )
+        b.name === bankName ? { ...b, amount: b.amount + amount } : b,
+      ),
     );
     setInCash(inCash - amount);
   };
@@ -212,8 +212,8 @@ export default function DashBoard() {
       months.map((m) =>
         m.name === monthName
           ? { ...m, spendings: [...m.spendings, spending] }
-          : m
-      )
+          : m,
+      ),
     );
     setInCash(inCash - spending.cost);
   };
@@ -221,7 +221,7 @@ export default function DashBoard() {
   const handleUpdateSpending = (
     monthName: string,
     oldSpending: ISpending,
-    newSpending: ISpending
+    newSpending: ISpending,
   ) => {
     const month = months.find((m) => m.name === monthName);
     if (!month) return;
@@ -248,11 +248,11 @@ export default function DashBoard() {
               spendings: m.spendings.map((s) =>
                 s.date === oldSpending.date && s.item === oldSpending.item
                   ? newSpending
-                  : s
+                  : s,
               ),
             }
-          : m
-      )
+          : m,
+      ),
     );
     setInCash(inCash - costDiff);
   };
@@ -264,13 +264,47 @@ export default function DashBoard() {
           ? {
               ...m,
               spendings: m.spendings.filter(
-                (s) => !(s.date === spending.date && s.item === spending.item)
+                (s) => !(s.date === spending.date && s.item === spending.item),
               ),
             }
-          : m
-      )
+          : m,
+      ),
     );
     setInCash(inCash + spending.cost);
+  };
+
+  const hasUnsavedChanges = () => {
+    if (!originalMoney) return false;
+
+    // Deep comparison needed because arrays/objects
+    const currentMoney: IMoney = {
+      banks,
+      inCash,
+      Months: months,
+    };
+
+    // Simple deep equality check for our structure
+    return JSON.stringify(currentMoney) !== JSON.stringify(originalMoney);
+  };
+
+  const handleRenameBank = (oldName: string, newName: string) => {
+    if (!newName.trim()) {
+      alert("❌ Bank name cannot be empty");
+      return;
+    }
+    if (banks.some((b) => b.name === newName.trim() && b.name !== oldName)) {
+      alert("❌ A bank with this name already exists");
+      return;
+    }
+
+    setBanks(
+      banks.map((b) =>
+        b.name === oldName ? { ...b, name: newName.trim() } : b,
+      ),
+    );
+
+    // If the renamed bank was selected in transfer or other modals, it should still work
+    // because we update by reference — but UI will reflect new name after re-render
   };
 
   const selectedMonthData = months.find((m) => m.name === selectedMonth);
@@ -316,8 +350,8 @@ export default function DashBoard() {
             {isSaving
               ? "Saving..."
               : hasUnsavedChanges()
-              ? "Save Changes"
-              : "Changes Saved"}
+                ? "Save Changes"
+                : "Changes Saved"}
           </button>
         </div>
 
@@ -365,7 +399,7 @@ export default function DashBoard() {
           {/* Filtered Bank Cards */}
           {banks
             .filter((bank) =>
-              bank.name.toLowerCase().includes(bankSearch.toLowerCase())
+              bank.name.toLowerCase().includes(bankSearch.toLowerCase()),
             )
             .map((bank) => (
               <div
@@ -386,7 +420,7 @@ export default function DashBoard() {
           {/* No results message */}
           {banks.length > 0 &&
             banks.filter((bank) =>
-              bank.name.toLowerCase().includes(bankSearch.toLowerCase())
+              bank.name.toLowerCase().includes(bankSearch.toLowerCase()),
             ).length === 0 && (
               <div
                 className={`text-center py-8 ${
@@ -408,7 +442,10 @@ export default function DashBoard() {
             </div>
           </div>
           {/* Total Money Card */}
-          <div className="bg-gradient-to-br from-purple-600 to-purple-800 p-5 rounded-xl border-2 border-purple-400">
+          <div
+            onClick={() => setTotalBalanceModalOpen(true)}
+            className="bg-gradient-to-br from-purple-600 to-purple-800 p-5 rounded-xl border-2 border-purple-400"
+          >
             <div className="text-purple-100 text-sm mb-1">Total Balance</div>
             <div className="text-white font-bold text-lg mb-2">
               All Accounts
@@ -478,7 +515,7 @@ export default function DashBoard() {
           {/* Filtered & Sorted Months */}
           {[...months]
             .filter((month) =>
-              month.name.toLowerCase().includes(monthSearch.toLowerCase())
+              month.name.toLowerCase().includes(monthSearch.toLowerCase()),
             )
             .sort((a, b) => {
               return (
@@ -489,21 +526,21 @@ export default function DashBoard() {
             .map((month) => {
               const totalSpending = month.spendings.reduce(
                 (sum, s) => sum + s.cost,
-                0
+                0,
               );
 
               const isEarliest =
                 months.length > 0 &&
                 new Date(month.name + " 1").getTime() ===
                   Math.min(
-                    ...months.map((m) => new Date(m.name + " 1").getTime())
+                    ...months.map((m) => new Date(m.name + " 1").getTime()),
                   );
 
               const isLatest =
                 months.length > 0 &&
                 new Date(month.name + " 1").getTime() ===
                   Math.max(
-                    ...months.map((m) => new Date(m.name + " 1").getTime())
+                    ...months.map((m) => new Date(m.name + " 1").getTime()),
                   );
 
               const canDelete = (isEarliest || isLatest) && totalSpending === 0;
@@ -515,8 +552,8 @@ export default function DashBoard() {
                     selectedMonth === month.name
                       ? "bg-indigo-600"
                       : theme
-                      ? "bg-[#eeeeee] hover:bg-[#dddddd] border-[1px] border-[#bbbbbb]"
-                      : "bg-[#111111] hover:bg-[#222222] border-[1px] border-[#333333]"
+                        ? "bg-[#eeeeee] hover:bg-[#dddddd] border-[1px] border-[#bbbbbb]"
+                        : "bg-[#111111] hover:bg-[#222222] border-[1px] border-[#333333]"
                   }`}
                 >
                   <div
@@ -528,8 +565,8 @@ export default function DashBoard() {
                         selectedMonth === month.name
                           ? "text-white"
                           : theme
-                          ? "text-black"
-                          : "text-white"
+                            ? "text-black"
+                            : "text-white"
                       }`}
                     >
                       {month.name}
@@ -539,8 +576,8 @@ export default function DashBoard() {
                         selectedMonth === month.name
                           ? "text-white"
                           : theme
-                          ? "text-black"
-                          : "text-[#dddddd]"
+                            ? "text-black"
+                            : "text-[#dddddd]"
                       }`}
                     >
                       {month.spendings.length} spending
@@ -556,7 +593,7 @@ export default function DashBoard() {
                         e.stopPropagation();
                         if (confirm(`Delete empty month "${month.name}"?`)) {
                           setMonths(
-                            months.filter((m) => m.name !== month.name)
+                            months.filter((m) => m.name !== month.name),
                           );
                           if (selectedMonth === month.name) {
                             setSelectedMonth(null);
@@ -576,7 +613,7 @@ export default function DashBoard() {
           {/* No results message */}
           {months.length > 0 &&
             months.filter((month) =>
-              month.name.toLowerCase().includes(monthSearch.toLowerCase())
+              month.name.toLowerCase().includes(monthSearch.toLowerCase()),
             ).length === 0 && (
               <div
                 className={`text-center py-8 ${
@@ -694,6 +731,20 @@ export default function DashBoard() {
           onDeposit={handleBankDeposit}
           onWithdraw={handleBankWithdraw}
           onTransfer={handleBankTransfer}
+          onRename={handleRenameBank}
+        />
+      )}
+
+      {/* Total Balance Modal */}
+      {totalBalanceModalOpen && (
+        <TotalBalanceModal
+          isOpen={totalBalanceModalOpen}
+          onClose={() => setTotalBalanceModalOpen(false)}
+          banks={banks}
+          selectedBanks={selectedBanks}
+          setSelectedBanks={setSelectedBanks}
+          inCash={inCash} // optional
+          theme={theme}
         />
       )}
 
@@ -744,6 +795,7 @@ function BankModal({
   onDeposit,
   onWithdraw,
   onTransfer,
+  onRename, // ← new callback
 }: {
   bank: IBank;
   banks: IBank[];
@@ -751,15 +803,27 @@ function BankModal({
   onDeposit: (name: string, amount: number) => void;
   onWithdraw: (name: string, amount: number) => void;
   onTransfer: (from: string, to: string, amount: number) => void;
+  onRename: (oldName: string, newName: string) => void;
 }) {
-  const [action, setAction] = useState<"deposit" | "withdraw" | "transfer">(
-    "deposit"
-  );
+  const [action, setAction] = useState<
+    "deposit" | "withdraw" | "transfer" | "rename"
+  >("deposit");
   const [amount, setAmount] = useState("");
   const [targetBank, setTargetBank] = useState("");
+  const [newBankName, setNewBankName] = useState(bank.name); // initial value = current name
   const { theme } = useTheme();
 
   const handleSubmit = () => {
+    if (action === "rename") {
+      if (newBankName === bank.name) {
+        alert("ℹ️ Name is the same as before");
+        return;
+      }
+      onRename(bank.name, newBankName);
+      onClose();
+      return;
+    }
+
     const amt = parseFloat(amount);
     if (isNaN(amt) || amt <= 0) {
       alert("❌ Please enter a valid amount");
@@ -785,32 +849,24 @@ function BankModal({
       className={`fixed inset-0 flex items-center justify-center z-50 backdrop-blur-md`}
     >
       <div
-        className={` p-8 rounded-2xl w-full max-w-md ${
-          theme ? "bg-black" : "bg-white"
-        }`}
+        className={`p-8 rounded-2xl w-full max-w-xl ${theme ? "bg-black" : "bg-white"}`}
       >
         <div className="flex justify-between items-center mb-6">
           <h3
-            className={`text-2xl font-bold ${
-              theme ? "text-[#ffffff]" : "text-[#000000]"
-            }`}
+            className={`text-2xl font-bold ${theme ? "text-[#ffffff]" : "text-[#000000]"}`}
           >
             {bank.name}
           </h3>
           <button
             onClick={onClose}
-            className={`bg-red-600 text-white hover:bg-red-700 p-1 rounded-md`}
+            className="bg-red-600 text-white hover:bg-red-700 p-1 rounded-md"
           >
             <X size={24} />
           </button>
         </div>
 
         <div
-          className={`mb-6 p-4 rounded-lg ${
-            theme
-              ? "bg-emerald-900/30 border border-emerald-700"
-              : "bg-emerald-100/30 border border-emerald-300"
-          }`}
+          className={`mb-6 p-4 rounded-lg ${theme ? "bg-emerald-900/30 border border-emerald-700" : "bg-emerald-100/30 border border-emerald-300"}`}
         >
           <div
             className={`text-sm ${theme ? "text-[#ffffff]" : "text-[#000000]"}`}
@@ -818,94 +874,252 @@ function BankModal({
             Current Balance
           </div>
           <div
-            className={`text-2xl font-bold ${
-              theme ? "text-[#ffffff]" : "text-[#000000]"
-            }`}
+            className={`text-2xl font-bold ${theme ? "text-[#ffffff]" : "text-[#000000]"}`}
           >
             ৳ {bank.amount.toLocaleString()}
           </div>
         </div>
 
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 flex-wrap">
           <button
             onClick={() => setAction("deposit")}
-            className={`flex-1 py-2 rounded-lg font-semibold transition-colors ${
+            className={`flex-1 py-2 rounded-lg font-semibold transition-colors min-w-[80px] ${
               action === "deposit"
                 ? "bg-emerald-600 text-white"
                 : theme
-                ? "bg-[#111111] border-[1px] border-[#555555] text-[#cccccc]"
-                : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#222222]"
+                  ? "bg-[#111111] border border-[#555555] text-[#cccccc]"
+                  : "bg-[#eeeeee] border border-[#888888] text-[#222222]"
             }`}
           >
-            <ArrowDownToLine className="inline mr-1" size={16} />
-            Deposit
+            <ArrowDownToLine className="inline mr-1" size={16} /> Deposit
           </button>
           <button
             onClick={() => setAction("withdraw")}
-            className={`flex-1 py-2 rounded-lg font-semibold transition-colors ${
+            className={`flex-1 py-2 rounded-lg font-semibold transition-colors min-w-[80px] ${
               action === "withdraw"
                 ? "bg-red-600 text-white"
                 : theme
-                ? "bg-[#111111] border-[1px] border-[#555555] text-[#cccccc]"
-                : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#222222]"
+                  ? "bg-[#111111] border border-[#555555] text-[#cccccc]"
+                  : "bg-[#eeeeee] border border-[#888888] text-[#222222]"
             }`}
           >
-            <ArrowUpFromLine className="inline mr-1" size={16} />
-            Withdraw
+            <ArrowUpFromLine className="inline mr-1" size={16} /> Withdraw
           </button>
           <button
             onClick={() => setAction("transfer")}
-            className={`flex-1 py-2 rounded-lg font-semibold transition-colors ${
+            className={`flex-1 py-2 rounded-lg font-semibold transition-colors min-w-[80px] ${
               action === "transfer"
                 ? "bg-blue-600 text-white"
                 : theme
-                ? "bg-[#111111] border-[1px] border-[#555555] text-[#cccccc]"
-                : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#222222]"
+                  ? "bg-[#111111] border border-[#555555] text-[#cccccc]"
+                  : "bg-[#eeeeee] border border-[#888888] text-[#222222]"
             }`}
           >
-            <Send className="inline mr-1" size={16} />
-            Transfer
+            <Send className="inline mr-1" size={16} /> Transfer
+          </button>
+          <button
+            onClick={() => setAction("rename")}
+            className={`flex-1 py-2 rounded-lg font-semibold transition-colors min-w-[80px] ${
+              action === "rename"
+                ? "bg-amber-600 text-white"
+                : theme
+                  ? "bg-[#111111] border border-[#555555] text-[#cccccc]"
+                  : "bg-[#eeeeee] border border-[#888888] text-[#222222]"
+            }`}
+          >
+            Rename
           </button>
         </div>
 
-        <input
-          type="number"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="Enter amount"
-          className={`w-full p-3  rounded-lg mb-4 focus:outline-none focus:ring-2 focus:border-none focus:ring-indigo-500 ${
-            theme
-              ? "bg-[#111111] border-[1px] border-[#555555] text-[#eeeeee]"
-              : "bg-[#eeeeee] border-[1px] border-[#888888] placeholder:text-[#888888] text-[#111111]"
-          }`}
-        />
+        {action === "rename" ? (
+          <div className="space-y-4">
+            <input
+              type="text"
+              value={newBankName}
+              onChange={(e) => setNewBankName(e.target.value)}
+              placeholder="New bank name"
+              className={`w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                theme
+                  ? "bg-[#111111] border border-[#555555] text-[#eeeeee]"
+                  : "bg-[#eeeeee] border border-[#888888] text-[#111111]"
+              }`}
+              autoFocus
+            />
+            <p
+              className={`text-sm ${theme ? "text-amber-300" : "text-amber-700"}`}
+            >
+              Changing the name will update it everywhere in the app.
+            </p>
+          </div>
+        ) : (
+          <>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Enter amount"
+              className={`w-full p-3 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                theme
+                  ? "bg-[#111111] border border-[#555555] text-[#eeeeee]"
+                  : "bg-[#eeeeee] border border-[#888888] text-[#111111]"
+              }`}
+            />
 
-        {action === "transfer" && (
-          <select
-            value={targetBank}
-            onChange={(e) => setTargetBank(e.target.value)}
-            className={`w-full p-3 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:border-none focus:ring-indigo-500 ${
-              theme
-                ? "bg-[#111111] border-[1px] border-[#555555] text-[#eeeeee]"
-                : "bg-[#eeeeee] border-[1px] border-[#888888] placeholder:text-[#888888] text-[#111111]"
-            }`}
-          >
-            <option value="">Select target bank</option>
-            {banks
-              .filter((b) => b.name !== bank.name)
-              .map((b) => (
-                <option key={b.name} value={b.name}>
-                  {b.name}
-                </option>
-              ))}
-          </select>
+            {action === "transfer" && (
+              <select
+                value={targetBank}
+                onChange={(e) => setTargetBank(e.target.value)}
+                className={`w-full p-3 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  theme
+                    ? "bg-[#111111] border border-[#555555] text-[#eeeeee]"
+                    : "bg-[#eeeeee] border border-[#888888] text-[#111111]"
+                }`}
+              >
+                <option value="">Select target bank</option>
+                {banks
+                  .filter((b) => b.name !== bank.name)
+                  .map((b) => (
+                    <option key={b.name} value={b.name}>
+                      {b.name}
+                    </option>
+                  ))}
+              </select>
+            )}
+          </>
         )}
 
         <button
           onClick={handleSubmit}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-semibold transition-colors mt-2"
+        >
+          {action === "rename"
+            ? "Rename Bank"
+            : `Confirm ${action.charAt(0).toUpperCase() + action.slice(1)}`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+//Total Balance Modal Component
+function TotalBalanceModal({
+  isOpen,
+  onClose,
+  banks,
+  selectedBanks,
+  setSelectedBanks,
+  inCash,
+  theme,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  banks: IBank[];
+  selectedBanks: string[];
+  setSelectedBanks: (names: string[]) => void;
+  inCash: number;
+  theme: boolean;
+}) {
+  if (!isOpen) return null;
+
+  const allSelected = banks.length > 0 && selectedBanks.length === banks.length;
+  const selectedTotal = banks
+    .filter(b => selectedBanks.includes(b.name))
+    .reduce((sum, b) => sum + b.amount, 0);
+
+  const toggleBank = (bankName: string) => {
+    setSelectedBanks(prev =>
+      prev.includes(bankName)
+        ? prev.filter(n => n !== bankName)
+        : [...prev, bankName]
+    );
+  };
+
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelectedBanks([]);
+    } else {
+      setSelectedBanks(banks.map(b => b.name));
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-md">
+      <div
+        className={`p-8 rounded-2xl w-full max-w-lg ${theme ? "bg-black" : "bg-white"}`}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h3
+            className={`text-2xl font-bold ${theme ? "text-white" : "text-black"}`}
+          >
+            Select Accounts
+          </h3>
+          <button
+            onClick={onClose}
+            className="bg-red-600 text-white hover:bg-red-700 p-2 rounded-md"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* Capsules */}
+        <div className="flex flex-wrap gap-3 mb-8">
+          {/* All capsule */}
+          <button
+            onClick={toggleAll}
+            className={`px-5 py-2.5 rounded-full font-medium transition-all text-sm
+              ${allSelected
+                ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30"
+                : theme
+                ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+          >
+            All
+          </button>
+
+          {/* Bank capsules */}
+          {banks.map(bank => {
+            const isSelected = selectedBanks.includes(bank.name);
+            return (
+              <button
+                key={bank.name}
+                onClick={() => toggleBank(bank.name)}
+                className={`px-5 py-2.5 rounded-full font-medium transition-all text-sm
+                  ${isSelected
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30"
+                    : theme
+                    ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
+              >
+                {bank.name}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Summary */}
+        <div className={`p-5 rounded-xl mb-6 ${
+          theme ? "bg-gray-900/60 border border-gray-700" : "bg-gray-50 border border-gray-200"
+        }`}>
+          <div className={`text-sm mb-1 ${theme ? "text-gray-400" : "text-gray-600"}`}>
+            Selected Accounts Total
+          </div>
+          <div className={`text-3xl font-bold ${theme ? "text-white" : "text-black"}`}>
+            ৳ {selectedTotal.toLocaleString()}
+          </div>
+
+          {/* Optional: show cash separately if you want */}
+          <div className={`text-sm mt-3 ${theme ? "text-gray-400" : "text-gray-600"}`}>
+            Cash not included in selection • ৳ {inCash.toLocaleString()}
+          </div>
+        </div>
+
+        <button
+          onClick={onClose}
           className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-semibold transition-colors"
         >
-          Confirm {action.charAt(0).toUpperCase() + action.slice(1)}
+          Done
         </button>
       </div>
     </div>
@@ -1001,8 +1215,8 @@ function CashModal({
               action === "deposit"
                 ? "bg-blue-600 text-white"
                 : theme
-                ? "bg-[#111111] border-[1px] border-[#555555] text-[#cccccc]"
-                : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#222222]"
+                  ? "bg-[#111111] border-[1px] border-[#555555] text-[#cccccc]"
+                  : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#222222]"
             }`}
           >
             Deposit to Bank
@@ -1013,8 +1227,8 @@ function CashModal({
               action === "earn"
                 ? "bg-emerald-600 text-white"
                 : theme
-                ? "bg-[#111111] border-[1px] border-[#555555] text-[#cccccc]"
-                : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#222222]"
+                  ? "bg-[#111111] border-[1px] border-[#555555] text-[#cccccc]"
+                  : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#222222]"
             }`}
           >
             Earn Cash
@@ -1287,7 +1501,7 @@ function AddMonthModal({
     const sortedMonths = [...months].sort((a, b) =>
       new Date(a.name + " 1").getTime() > new Date(b.name + " 1").getTime()
         ? 1
-        : -1
+        : -1,
     );
 
     const earliest = sortedMonths[0];
