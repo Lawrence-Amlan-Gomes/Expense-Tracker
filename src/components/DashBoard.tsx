@@ -1028,19 +1028,14 @@ function TotalBalanceModal({
     .reduce((sum, b) => sum + b.amount, 0);
 
   const toggleBank = (bankName: string) => {
-    setSelectedBanks((prev) =>
-      prev.includes(bankName)
-        ? prev.filter((n) => n !== bankName)
-        : [...prev, bankName]
-    );
+    const newSelectedBanks = selectedBanks.includes(bankName)
+      ? selectedBanks.filter((n) => n !== bankName)
+      : [...selectedBanks, bankName];
+    setSelectedBanks(newSelectedBanks);
   };
 
   const toggleAll = () => {
-    if (allSelected) {
-      setSelectedBanks([]);
-    } else {
-      setSelectedBanks(banks.map((b) => b.name));
-    }
+    setSelectedBanks(allSelected ? [] : banks.map((b) => b.name));
   };
 
   return (
@@ -1068,11 +1063,12 @@ function TotalBalanceModal({
           <button
             onClick={toggleAll}
             className={`px-5 py-2.5 rounded-full font-medium transition-all text-sm
-              ${allSelected
-                ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30"
-                : theme
-                ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              ${
+                allSelected
+                  ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30"
+                  : theme
+                    ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
           >
             All
@@ -1086,11 +1082,12 @@ function TotalBalanceModal({
                 key={bank.name}
                 onClick={() => toggleBank(bank.name)}
                 className={`px-5 py-2.5 rounded-full font-medium transition-all text-sm
-                  ${isSelected
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30"
-                    : theme
-                    ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  ${
+                    isSelected
+                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30"
+                      : theme
+                        ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                   }`}
               >
                 {bank.name}
@@ -1102,18 +1099,25 @@ function TotalBalanceModal({
         {/* Summary */}
         <div
           className={`p-5 rounded-xl mb-6 ${
-            theme ? "bg-gray-900/60 border border-gray-700" : "bg-gray-50 border border-gray-200"
+            theme
+              ? "bg-gray-900/60 border border-gray-700"
+              : "bg-gray-50 border border-gray-200"
           }`}
         >
-          <div className={`text-sm mb-1 ${theme ? "text-gray-400" : "text-gray-600"}`}>
+          <div
+            className={`text-sm mb-1 ${theme ? "text-gray-400" : "text-gray-600"}`}
+          >
             Selected Accounts Total
           </div>
-          <div className={`text-3xl font-bold ${theme ? "text-white" : "text-black"}`}>
+          <div
+            className={`text-3xl font-bold ${theme ? "text-white" : "text-black"}`}
+          >
             ৳ {selectedTotal.toLocaleString()}
           </div>
 
-          {/* Optional: show cash separately */}
-          <div className={`text-sm mt-3 ${theme ? "text-gray-400" : "text-gray-600"}`}>
+          <div
+            className={`text-sm mt-3 ${theme ? "text-gray-400" : "text-gray-600"}`}
+          >
             Cash not included in selection • ৳ {inCash.toLocaleString()}
           </div>
         </div>
