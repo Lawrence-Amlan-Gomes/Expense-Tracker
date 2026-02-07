@@ -21,6 +21,22 @@ import {
   ArrowUpFromLine,
 } from "lucide-react";
 
+function parseItem(item: string): {
+  Name: string;
+  [key: string]: number | string;
+} {
+  try {
+    const parsed = JSON.parse(item);
+    if (typeof parsed === "object" && parsed !== null && "Name" in parsed) {
+      return parsed;
+    }
+    throw new Error("Invalid format");
+  } catch {
+    // Fallback for legacy / plain string items
+    return { Name: item };
+  }
+}
+
 export default function DashBoard() {
   const { theme } = useTheme();
   const [hasMounted, setHasMounted] = useState(false);
@@ -37,6 +53,8 @@ export default function DashBoard() {
   const [monthSearch, setMonthSearch] = useState("");
   const [originalMoney, setOriginalMoney] = useState<IMoney | null>(null);
   const [selectedBanks, setSelectedBanks] = useState<string[]>([]);
+  const [subItemSearchModalOpen, setSubItemSearchModalOpen] = useState(false);
+  const [subItemSearchQuery, setSubItemSearchQuery] = useState("");
 
   // Modal states
   const [bankModal, setBankModal] = useState<{
@@ -673,7 +691,7 @@ export default function DashBoard() {
                       <div>
                         <div className="text-sm">Date: {spending.date}</div>
                         <div className="font-semibold text-lg mt-1">
-                          {spending.item}
+                          {parseItem(spending.item).Name}
                         </div>
                       </div>
                       <div className="text-red-600 font-bold text-lg">
@@ -685,13 +703,17 @@ export default function DashBoard() {
             </div>
 
             <div
-              className={`p-5 rounded-lg mb-4  border-2 bg-red-700 border-red-800`}
+              onClick={() => {
+                setSubItemSearchQuery(""); // reset search when opening
+                setSubItemSearchModalOpen(true);
+              }}
+              className={`p-5 rounded-lg mb-4 border-2 bg-red-700 border-red-800 cursor-pointer hover:bg-red-800 transition-colors`}
             >
               <div className="flex justify-between items-center">
                 <span className={`font-semibold text-lg text-white`}>
-                  Total Spending
+                  Total Spending (click to see sub-items)
                 </span>
-                <span className=" font-bold text-2xl text-white">
+                <span className="font-bold text-2xl text-white">
                   ৳ {totalSpending.toLocaleString()}
                 </span>
               </div>
@@ -780,6 +802,12 @@ export default function DashBoard() {
         onClose={() => setAddMonthModalOpen(false)}
         months={months}
         onAddMonth={handleAddMonth}
+      />
+      <SubItemSearchModal
+        isOpen={subItemSearchModalOpen}
+        onClose={() => setSubItemSearchModalOpen(false)}
+        spendings={selectedMonthData?.spendings || []}
+        theme={theme}
       />
     </div>
   ) : (
@@ -1306,33 +1334,107 @@ function SpendingModal({
   onUpdate: (month: string, old: ISpending, updated: ISpending) => void;
   onDelete: (month: string, spending: ISpending) => void;
 }) {
-  const [date, setDate] = useState(spending?.date || "");
-  const [item, setItem] = useState(spending?.item || "");
-  const [cost, setCost] = useState(spending?.cost.toString() || "");
+  const [name, setName] = useState("Multiple Spendings");
+  const [subItems, setSubItems] = useState<
+    { subName: string; subCost: number }[]
+  >([]);
   const { theme } = useTheme();
+
+  const getNextMissingDate = (): string => {
+    if (!existingDates || existingDates.length === 0) {
+      return "1";
+    }
+
+    const usedDates = new Set(
+      existingDates
+        .map((d) => parseInt(d, 10))
+        .filter((n) => !isNaN(n) && n >= 1 && n <= 31),
+    );
+
+    for (let day = 1; day <= 31; day++) {
+      if (!usedDates.has(day)) {
+        return day.toString();
+      }
+    }
+
+    return ""; // all days are already used
+  };
+
+    const isAddingNew = spending === null;
+
+  const [date, setDate] = useState<string>(
+    isAddingNew ? getNextMissingDate() : spending?.date || "",
+  );
+
+  useEffect(() => {
+    if (spending) {
+      const parsed = parseItem(spending.item);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setName(parsed.Name as string);
+      const subs = Object.entries(parsed)
+        .filter(([key]) => key !== "Name")
+        .map(([subName, subCost]) => ({ subName, subCost: Number(subCost) }));
+      setSubItems(subs);
+    }
+  }, [spending]);
+
+  const totalCost = subItems.reduce((sum, sub) => sum + sub.subCost, 0);
+
+  const handleAddSubItem = () => {
+    setSubItems([...subItems, { subName: "", subCost: 0 }]);
+  };
+
+  const handleUpdateSubItem = (
+    index: number,
+    field: "subName" | "subCost",
+    value: string,
+  ) => {
+    const updated = [...subItems];
+
+    if (field === "subName") {
+      updated[index].subName = value;
+    } else if (field === "subCost") {
+      updated[index].subCost = parseFloat(value) || 0;
+    }
+
+    setSubItems(updated);
+  };
+
+  const handleDeleteSubItem = (index: number) => {
+    setSubItems(subItems.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = () => {
     const dateNum = parseInt(date);
-    const costNum = parseFloat(cost);
-
     if (!date || dateNum < 1 || dateNum > 31) {
       alert("❌ Date must be between 1 and 31");
       return;
     }
-
-    if (!item.trim()) {
-      alert("❌ Please enter an item");
+    if (!name.trim()) {
+      alert("❌ Please enter a name");
+      return;
+    }
+    if (subItems.some((sub) => !sub.subName.trim() || sub.subCost <= 0)) {
+      alert("❌ All sub-items must have a name and positive cost");
+      return;
+    }
+    if (totalCost <= 0) {
+      alert("❌ Total cost must be positive");
       return;
     }
 
-    if (isNaN(costNum) || costNum <= 0) {
-      alert("❌ Please enter a valid cost");
-      return;
-    }
-
-    const newSpending: ISpending = { date, item: item.trim(), cost: costNum };
+    const itemObj: { [key: string]: string | number } = { Name: name.trim() };
+    subItems.forEach((sub) => {
+      itemObj[sub.subName.trim()] = sub.subCost;
+    });
+    const newItem = JSON.stringify(itemObj);
+    const newSpending: ISpending = { date, item: newItem, cost: totalCost };
 
     if (spending) {
+      if (spending.date !== date && existingDates.includes(date)) {
+        alert("❌ A spending already exists for this date");
+        return;
+      }
       onUpdate(monthName, spending, newSpending);
     } else {
       if (existingDates.includes(date)) {
@@ -1347,7 +1449,7 @@ function SpendingModal({
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-md">
       <div
-        className={`p-8 rounded-2xl w-full max-w-md ${
+        className={`p-8 rounded-2xl w-full h-[80%] overflow-auto max-w-md ${
           theme ? "bg-black" : "bg-white"
         }`}
       >
@@ -1370,9 +1472,7 @@ function SpendingModal({
         <div className="space-y-4 mb-6">
           <div>
             <label
-              className={`block text-sm mb-2 ${
-                theme ? "text-[#cccccc]" : "text-[#444444]"
-              }`}
+              className={`block text-sm mb-2 ${theme ? "text-[#cccccc]" : "text-[#444444]"}`}
             >
               Date (1-31)
             </label>
@@ -1382,12 +1482,19 @@ function SpendingModal({
               max="31"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className={`w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:border-none focus:ring-indigo-500 ${
+              className={`w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                 theme
                   ? "bg-[#111111] border-[1px] border-[#555555] text-[#eeeeee]"
                   : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#111111]"
               }`}
             />
+            {isAddingNew && date && (
+              <p
+                className={`text-xs mt-1.5 ${theme ? "text-green-400" : "text-green-600"}`}
+              >
+                Auto-selected: next available date
+              </p>
+            )}
           </div>
 
           <div>
@@ -1396,12 +1503,12 @@ function SpendingModal({
                 theme ? "text-[#cccccc]" : "text-[#444444]"
               }`}
             >
-              Item
+              Display Name (shown on card)
             </label>
             <input
               type="text"
-              value={item}
-              onChange={(e) => setItem(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className={`w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:border-none focus:ring-indigo-500 ${
                 theme
                   ? "bg-[#111111] border-[1px] border-[#555555] text-[#eeeeee]"
@@ -1416,18 +1523,66 @@ function SpendingModal({
                 theme ? "text-[#cccccc]" : "text-[#444444]"
               }`}
             >
-              Cost (৳)
+              Items
             </label>
-            <input
-              type="number"
-              value={cost}
-              onChange={(e) => setCost(e.target.value)}
-              className={`w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:border-none focus:ring-indigo-500 ${
-                theme
-                  ? "bg-[#111111] border-[1px] border-[#555555] text-[#eeeeee]"
-                  : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#111111]"
-              }`}
-            />
+            {subItems.map((sub, index) => (
+              <div key={index} className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={sub.subName}
+                  onChange={(e) =>
+                    handleUpdateSubItem(index, "subName", e.target.value)
+                  }
+                  placeholder="Item name"
+                  className={`flex-1 p-2 rounded-lg focus:outline-none focus:ring-2 focus:border-none focus:ring-indigo-500 ${
+                    theme
+                      ? "bg-[#111111] border-[1px] border-[#555555] text-[#eeeeee]"
+                      : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#111111]"
+                  }`}
+                />
+                <input
+                  type="text" // ← change from type="number" to "text"
+                  inputMode="numeric" // mobile keyboard shows numbers
+                  pattern="[0-9]*" // only numbers
+                  value={
+                    sub.subCost === 0
+                      ? ""
+                      : sub.subCost.toString().replace(/^0+/, "")
+                  }
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9]/g, ""); // only digits
+                    handleUpdateSubItem(index, "subCost", raw || "0");
+                  }}
+                  placeholder="Cost"
+                  className={`w-24 p-2 rounded-lg focus:outline-none focus:ring-2 focus:border-none focus:ring-indigo-500 ${
+                    theme
+                      ? "bg-[#111111] border-[1px] border-[#555555] text-[#eeeeee]"
+                      : "bg-[#eeeeee] border-[1px] border-[#888888] text-[#111111]"
+                  }`}
+                />
+                <button
+                  onClick={() => handleDeleteSubItem(index)}
+                  className="bg-red-600 text-white p-2 rounded-md"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={handleAddSubItem}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold transition-colors mt-2"
+            >
+              <Plus size={16} className="inline mr-1" /> Add Items{" "}
+            </button>
+          </div>
+
+          <div
+            className={`p-3 rounded-lg ${theme ? "bg-white text-black" : "bg-black text-white"}`}
+          >
+            <div className="flex justify-between">
+              <span className="font-semibold">Total Cost:</span>
+              <span>৳ {totalCost.toLocaleString()}</span>
+            </div>
           </div>
         </div>
 
@@ -1593,6 +1748,159 @@ function AddMonthModal({
           </button>
         </div>
         {content}
+      </div>
+    </div>
+  );
+}
+
+// Sub-Item Search Modal
+function SubItemSearchModal({
+  isOpen,
+  onClose,
+  spendings, // pass all spendings of the selected month
+  theme,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  spendings: ISpending[];
+  theme: boolean;
+}) {
+  const [search, setSearch] = useState("");
+
+  if (!isOpen) return null;
+
+  const lowerSearch = search.toLowerCase().trim();
+
+  // Flatten all sub-items + match search
+  const matchingSubItems = spendings
+    .flatMap((sp) => {
+      const parsed = parseItem(sp.item);
+      const mainName = parsed.Name as string;
+
+      return Object.entries(parsed)
+        .filter(([key]) => key !== "Name")
+        .map(([subName, subCost]) => ({
+          date: sp.date,
+          mainName,
+          subName,
+          subCost: Number(subCost),
+        }));
+    })
+    .filter((entry) =>
+      lowerSearch === ""
+        ? true
+        : entry.subName.toLowerCase().includes(lowerSearch),
+    )
+    .sort((a, b) => parseInt(a.date) - parseInt(b.date)); // sort by date
+
+  const searchedTotal = matchingSubItems.reduce(
+    (sum, item) => sum + item.subCost,
+    0,
+  );
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-md">
+      <div
+        className={`p-6 sm:p-8 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col ${
+          theme
+            ? "bg-black border border-gray-700"
+            : "bg-white border border-gray-300"
+        }`}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h3
+            className={`text-2xl font-bold ${theme ? "text-white" : "text-black"}`}
+          >
+            Sub-Items Breakdown
+          </h3>
+          <button
+            onClick={onClose}
+            className="bg-red-600 text-white hover:bg-red-700 p-2 rounded-md"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* Search input */}
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search sub-item name (e.g. Coffee, Milk, Petrol...)"
+          className={`w-full p-3 mb-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+            theme
+              ? "bg-[#111111] border border-[#555555] text-[#eeeeee] placeholder:text-[#888]"
+              : "bg-[#f5f5f5] border border-[#ccc] text-black placeholder:text-[#888]"
+          }`}
+          autoFocus
+        />
+
+        {/* Stats bar */}
+        <div
+          className={`p-4 rounded-xl mb-6 flex justify-between items-center ${
+            theme ? "bg-gray-900" : "bg-gray-100"
+          }`}
+        >
+          <div>
+            <div
+              className={`text-sm ${theme ? "text-gray-400" : "text-gray-600"}`}
+            >
+              {search.trim() ? "Matching sub-items" : "All sub-items"}
+            </div>
+            <div
+              className={`text-2xl font-bold ${theme ? "text-white" : "text-black"}`}
+            >
+              ৳ {searchedTotal.toLocaleString()}
+            </div>
+          </div>
+          <div
+            className={`text-sm ${theme ? "text-gray-400" : "text-gray-600"}`}
+          >
+            {matchingSubItems.length} item
+            {matchingSubItems.length !== 1 ? "s" : ""}
+          </div>
+        </div>
+
+        {/* List */}
+        <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin">
+          {matchingSubItems.length === 0 ? (
+            <div
+              className={`text-center py-12 ${theme ? "text-gray-400" : "text-gray-500"}`}
+            >
+              {search.trim()
+                ? "No matching sub-items found"
+                : "No sub-items in this month yet"}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {matchingSubItems.map((entry, idx) => (
+                <div
+                  key={idx}
+                  className={`p-4 rounded-lg border ${
+                    theme
+                      ? "bg-[#1a1a1a] border-gray-700 text-white"
+                      : "bg-white border-gray-200 text-black"
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="text-sm opacity-70">
+                        Date: {entry.date}
+                      </div>
+                      <div className="font-medium">{entry.mainName}</div>
+                      <div className="text-lg font-semibold mt-1">
+                        {entry.subName}
+                      </div>
+                    </div>
+                    <div className="text-red-500 font-bold text-xl">
+                      ৳ {entry.subCost.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
