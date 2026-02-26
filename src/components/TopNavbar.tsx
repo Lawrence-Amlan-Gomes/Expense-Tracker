@@ -34,8 +34,8 @@ const NavItem = ({ href, label, active, onClick, theme }: NavItemProps) => (
               ? colors.keyText
               : "text-[#555555] hover:text-[#000000]"
             : active
-            ? colors.keyText
-            : "text-[#cccccc] hover:text-[#ffffff]"
+              ? colors.keyText
+              : "text-[#cccccc] hover:text-[#ffffff]"
         } `}
       >
         {label}
@@ -57,6 +57,7 @@ const TopNavbar = () => {
     { href: "/home", label: "Home", activeKey: "home" },
     // { href: "/pricing", label: "Pricing", activeKey: "pricing" },
     { href: "/dashBoard", label: "DashBoard", activeKey: "dashBoard" },
+    { href: "/calculator", label: "Calculator", activeKey: "calculator" },
   ];
 
   // Conditionally add Admin route if user is admin
