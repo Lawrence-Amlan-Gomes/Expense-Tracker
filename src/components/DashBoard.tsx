@@ -54,6 +54,7 @@ export default function DashBoard() {
   const [originalMoney, setOriginalMoney] = useState<IMoney | null>(null);
   const [selectedBanks, setSelectedBanks] = useState<string[]>([]);
   const [subItemSearchModalOpen, setSubItemSearchModalOpen] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [subItemSearchQuery, setSubItemSearchQuery] = useState("");
 
   // Modal states
