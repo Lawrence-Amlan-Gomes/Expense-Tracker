@@ -54,6 +54,9 @@ export default function DashBoard() {
   const [originalMoney, setOriginalMoney] = useState<IMoney | null>(null);
   const [selectedBanks, setSelectedBanks] = useState<string[]>([]);
   const [subItemSearchModalOpen, setSubItemSearchModalOpen] = useState(false);
+  const [selectedSpendingDates, setSelectedSpendingDates] = useState<
+    Set<string>
+  >(new Set());
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [subItemSearchQuery, setSubItemSearchQuery] = useState("");
 
@@ -70,6 +73,20 @@ export default function DashBoard() {
     spending: ISpending | null;
     monthName: string;
   }>({ show: false, spending: null, monthName: "" });
+  const selectedMonthData = months.find((m) => m.name === selectedMonth);
+  const totalSpending =
+    selectedMonthData?.spendings
+      .filter((s) => selectedSpendingDates.has(`${s.date}-${s.item}`))
+      .reduce((sum, s) => sum + s.cost, 0) || 0;
+
+  useEffect(() => {
+    if (selectedMonthData) {
+      setSelectedSpendingDates(
+        new Set(selectedMonthData.spendings.map((s) => `${s.date}-${s.item}`)),
+      );
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMonth, selectedMonthData?.spendings.length]);
 
   useEffect(() => {
     setHasMounted(true);
@@ -325,10 +342,6 @@ export default function DashBoard() {
     // If the renamed bank was selected in transfer or other modals, it should still work
     // because we update by reference — but UI will reflect new name after re-render
   };
-
-  const selectedMonthData = months.find((m) => m.name === selectedMonth);
-  const totalSpending =
-    selectedMonthData?.spendings.reduce((sum, s) => sum + s.cost, 0) || 0;
 
   if (!hasMounted) return null;
 
@@ -672,35 +685,62 @@ export default function DashBoard() {
             <div className="space-y-3 mb-6">
               {[...selectedMonthData.spendings]
                 .sort((a, b) => parseInt(a.date) - parseInt(b.date))
-                .map((spending) => (
-                  <div
-                    key={`${spending.date}-${spending.item}`} // Better key than index
-                    onClick={() =>
-                      setSpendingModal({
-                        show: true,
-                        spending,
-                        monthName: selectedMonth!,
-                      })
-                    }
-                    className={`p-4 rounded-lg cursor-pointer transition-colors ${
-                      theme
-                        ? "bg-[#f5f5f5] hover:bg-[#e0e0e0] text-black border-[1px] border-[#cccccc]"
-                        : "bg-[#111111] hover:bg-[#222222] text-white border-[1px] border-[#333333]"
-                    }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="text-sm">Date: {spending.date}</div>
-                        <div className="font-semibold text-lg mt-1">
-                          {parseItem(spending.item).Name}
+                .map((spending) => {
+                  const key = `${spending.date}-${spending.item}`;
+                  const isChecked = selectedSpendingDates.has(key);
+                  return (
+                    <div
+                      key={key}
+                      className={`p-4 rounded-lg transition-colors border-[1px] ${
+                        isChecked
+                          ? theme
+                            ? "bg-[#f5f5f5] border-[#cccccc]"
+                            : "bg-[#111111] border-[#333333]"
+                          : theme
+                            ? "bg-[#fafafa] border-[#e0e0e0] opacity-50"
+                            : "bg-[#0a0a0a] border-[#222222] opacity-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Checkbox */}
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            const newSet = new Set(selectedSpendingDates);
+                            if (newSet.has(key)) newSet.delete(key);
+                            else newSet.add(key);
+                            setSelectedSpendingDates(newSet);
+                          }}
+                          className="w-4 h-4 accent-indigo-600 cursor-pointer flex-shrink-0"
+                        />
+                        {/* Card content */}
+                        <div
+                          className={`flex-1 flex justify-between items-start cursor-pointer ${
+                            theme ? "text-black" : "text-white"
+                          }`}
+                          onClick={() =>
+                            setSpendingModal({
+                              show: true,
+                              spending,
+                              monthName: selectedMonth!,
+                            })
+                          }
+                        >
+                          <div>
+                            <div className="text-sm">Date: {spending.date}</div>
+                            <div className="font-semibold text-lg mt-1">
+                              {parseItem(spending.item).Name}
+                            </div>
+                          </div>
+                          <div className="text-red-600 font-bold text-lg">
+                            ৳ {spending.cost.toLocaleString()}
+                          </div>
                         </div>
                       </div>
-                      <div className="text-red-600 font-bold text-lg">
-                        ৳ {spending.cost.toLocaleString()}
-                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
 
             <div
@@ -1361,7 +1401,7 @@ function SpendingModal({
     return ""; // all days are already used
   };
 
-    const isAddingNew = spending === null;
+  const isAddingNew = spending === null;
 
   const [date, setDate] = useState<string>(
     isAddingNew ? getNextMissingDate() : spending?.date || "",
