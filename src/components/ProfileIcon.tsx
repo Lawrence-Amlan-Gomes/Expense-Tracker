@@ -6,13 +6,9 @@ import { useTheme } from "@/app/hooks/useTheme";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 
-// ──────────────────────────────────────────────────────────────
-//  ONLY ADDED: Props interface + type annotation
-// ──────────────────────────────────────────────────────────────
 interface ProfileIconProps {
-  active?: string; // matches your usage: active === "profile"
+  active?: string; // e.g. "profile" when on profile page
 }
 
 const ProfileIcon = ({ active }: ProfileIconProps) => {
@@ -20,29 +16,49 @@ const ProfileIcon = ({ active }: ProfileIconProps) => {
   const { theme } = useTheme();
   const { user: auth } = useAuth();
 
-  // local fallback handling
-  const [imgError, setImgError] = useState(false);
-
-  // Choose the correct border & background color
-  const baseStyle = `border-[1px] lg:h-[40px] lg:w-[40px] sm:w-[35px] sm:h-[35px] h-[30px] w-[30px] rounded-lg relative overflow-hidden`;
+  // Choose border & background style based on active state and theme
+  const baseStyle = `border-[1px] lg:h-[40px] lg:w-[40px] sm:w-[35px] sm:h-[35px] h-[30px] w-[30px] rounded-lg relative overflow-hidden flex items-center justify-center font-medium text-lg`;
 
   const lightMode =
     active === "profile"
-      ? `bg-transparent hover:bg-[#eeeeee] text-black ${colors.keyBorder}`
-      : `bg-transparent hover:bg-[#eeeeee] text-black border-[#333333]`;
+      ? `bg-transparent hover:bg-[#f8f8f8] text-black ${colors.keyBorder} border-[1px]`
+      : `bg-transparent hover:bg-[#f8f8f8] text-black border-gray-400 hover:border-gray-400 border-[1px]`;
 
   const darkMode =
     active === "profile"
-      ? `bg-[#000000] hover:bg-[#222222] text-white ${colors.keyBorder}`
-      : `bg-[#000000] hover:bg-[#222222] text-white border-[#999999]`;
+      ? `bg-transparent hover:bg-[#111111] text-white ${colors.keyBorder} border-[1px]`
+      : `bg-transparent hover:bg-[#111111] text-white border-gray-800 hover:border-gray-700 border-[1px]`;
 
   const profileStyle = `${baseStyle} ${theme ? lightMode : darkMode}`;
 
-  // Determine which image to display
-  const defaultIcon = theme ? "/profileIconLight.png" : "/profileIconDark.png";
-  const userPhoto = !imgError && auth?.photo ? auth.photo : defaultIcon;
+  // ───────────────────────────────────────────────
+  // Decide what to show inside the circle
+  // ───────────────────────────────────────────────
+  let content;
 
-  // Build the href link
+  if (auth && auth.name && auth.name.trim()) {
+    // Show first letter of name (uppercase)
+    const firstLetter = auth.name.trim()[0].toUpperCase();
+    content = <span>{firstLetter}</span>;
+  } else if (!auth) {
+    // Not logged in → show default icon
+    const defaultIcon = theme ? "/profileIconLight.png" : "/profileIconDark.png";
+    content = (
+      <Image
+        priority
+        src={defaultIcon}
+        alt="Profile Icon"
+        fill
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 30vw"
+        className="object-cover"
+      />
+    );
+  } else {
+    // Edge case: logged in but no name → show "?"
+    content = <span>?</span>;
+  }
+
+  // Where to redirect
   const linkHref = auth
     ? "/profile"
     : pathname === "/login"
@@ -54,19 +70,7 @@ const ProfileIcon = ({ active }: ProfileIconProps) => {
       <Link href={linkHref}>
         <div className="flex justify-center items-center h-full">
           <div className={profileStyle}>
-            <Image
-              priority
-              src={userPhoto}
-              alt={
-                auth
-                  ? `${auth.name || "User"}'s profile picture`
-                  : "Profile Icon"
-              }
-              fill // ← Use `fill` instead of fixed width/height
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 30vw"
-              className="object-cover"
-              onError={() => setImgError(true)}
-            />
+            {content}
           </div>
         </div>
       </Link>

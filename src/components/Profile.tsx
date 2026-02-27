@@ -2,7 +2,6 @@
 "use client";
 
 import { updateUser } from "@/app/actions";
-import colors from "@/app/color/color";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useTheme } from "@/app/hooks/useTheme";
 import { logout } from "@/store/features/auth/authSlice";
@@ -11,12 +10,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import ProfilePic from "./ProfilePic";
 
 const Profile = () => {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { theme } = useTheme();
+  const { theme } = useTheme(); // true = light, false = dark
   const { user: auth, googleUser, setAuth } = useAuth();
   const [name, setName] = useState("");
   const [isEditing, setIsEditing] = useState(false);
@@ -24,7 +22,7 @@ const Profile = () => {
   useEffect(() => {
     if (auth) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setName(auth.name);
+      setName(auth.name || "");
     }
   }, [auth]);
 
@@ -35,10 +33,10 @@ const Profile = () => {
     try {
       await updateUser(auth.email, { name, firstTimeLogin: false });
       setAuth({ ...auth, name });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
-      alert("Failed to update name. Try again.");
-      setName(auth.name);
+      alert("Failed to update name. Please try again.");
+      setName(auth.name || "");
     }
   };
 
@@ -58,185 +56,165 @@ const Profile = () => {
     router.push("/login");
   };
 
-  return auth ? (
-    <div className="w-full overflow-y-auto lg:overflow-hidden lg:flex lg:justify-center lg:items-center pt-[15%] sm:pt-[12%]">
+  if (!auth) {
+    return (
       <div
-        className={`p-5 sm:p-10 overflow-hidden rounded-lg w-[80%] mx-[10%] mt-5 xl:w-[700px] lg:w-[600px] 2xl:w-[900px] lg:my-0 text-center ${
-          theme ? `${colors.cardLight}` : `${colors.cardDark}`
+        className={`min-h-screen flex items-center justify-center px-4 ${
+          theme ? "bg-white text-black" : "bg-black text-white"
         }`}
       >
-        <div className="w-full sm:hidden block">
-          <ProfilePic />
-          {auth ? (
-            <>
-              <div className="w-full sm:mt-5 sm:mb-5 mt-5 text-[14px] flex items-center justify-center font-bold">
-                {isEditing ? (
-                  <input
-                    className={`bg-transparent border-[2px] ${colors.keyBorder} focus:border-green-700 focus:outline-none text-center rounded-lg w-[70%] sm:w-full p-1 sm:p-3`}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                ) : (
-                  <div>{name}</div>
-                )}
-              </div>
-              <div className="w-full sm:mt-5 sm:mb-5 my-2 text-[12px] sm:text-[20px] flex items-center justify-center">
-                {auth.email}
-              </div>
-              <div className="w-full sm:mt-5 sm:mb-5 my-2 text-[12px] sm:text-[20px] flex items-center justify-center">
-                {`Subscription: ${auth.paymentType}`}
-              </div>
-              <div className="w-full sm:mt-5 sm:mb-5 my-2 text-[12px] sm:text-[20px] flex items-center justify-center">
-                {`Expired At: ${auth.expiredAt.split("T")[0]}`}
-              </div>
-              <div className="w-full mt-5 mb-5 flex text-[12px] sm:text-[18px] items-center justify-center">
-                <button
-                  onClick={toggleEdit}
-                  className={`${
-                    isEditing
-                      ? "bg-green-700 hover:bg-green-800"
-                      : `${colors.keyBg} ${colors.keyHoverBg}`
-                  } bg-[#161616] sm:p-3 py-2 px-5 w-[70%] sm:w-full rounded-lg hover:bg-[#202020] tracking-wider text-white`}
-                >
-                  {isEditing ? "Update" : "Edit"}
-                </button>
-              </div>
+        <div className="text-center">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3">
+            Please log in
+          </h1>
+          <p
+            className={
+              theme
+                ? "text-gray-600 text-sm sm:text-base"
+                : "text-gray-400 text-sm sm:text-base"
+            }
+          >
+            You need to be signed in to view this page
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-              {/* CHANGE PASSWORD BUTTON – ONLY FOR EMAIL LOGIN */}
-              {!googleUser && (
-                <div className="w-full mt-5 mb-5 flex items-center justify-center">
-                  <Link href="/changePassword" className="w-full">
-                    <button
-                      className={`sm:p-3 p-1 w-[70%] text-[12px] sm:text-[18px] sm:w-full tracking-wider py-2 px-5 shadow-lg rounded-lg ${
-                        theme
-                          ? "text-white bg-black border-[1px] border-black hover:bg-white hover:text-black hover:border-white"
-                          : "text-black bg-white border-[1px] border-white hover:bg-black hover:text-white hover:border-black"
-                      }`}
-                    >
-                      Change Password
-                    </button>
-                  </Link>
-                </div>
-              )}
-
-              <div className="w-full mt-5 mb-5 flex items-center justify-center">
-                <button
-                  onClick={handleLogout}
-                  className={`sm:p-3 p-1 w-[70%] text-[12px] sm:text-[18px] sm:w-full text-white tracking-wider py-2 px-5 shadow-lg rounded-lg ${
-                    theme
-                      ? "bg-red-700 hover:bg-red-800"
-                      : "bg-red-800 hover:bg-red-900"
-                  }`}
-                >
-                  Log Out
-                </button>
-              </div>
-            </>
+  return (
+    <div className={`h-full w-full px-5 ${theme ? "bg-white" : "bg-black"}`}>
+      <div
+        className={`
+          w-full max-w-md sm:max-w-lg md:max-w-xl mx-auto mt-[80px] sm:mt-[100px]
+          ${
+            theme
+              ? "bg-gray-50/95 border-gray-200"
+              : "bg-gray-950/80 border-gray-900"
+          }
+          backdrop-blur-md border rounded-2xl overflow-hidden
+        `}
+      >
+        {/* Header */}
+        <div
+          className={`px-5 sm:px-6 pt-6 sm:pt-8 pb-5 sm:pb-6 border-b ${
+            theme ? "border-gray-200" : "border-gray-900"
+          } text-center`}
+        >
+          {isEditing ? (
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={`
+                w-full max-w-xs mx-auto
+                bg-transparent border-b-2 
+                ${
+                  theme
+                    ? "border-gray-400 focus:border-blue-600 text-black"
+                    : "border-gray-600 focus:border-blue-500 text-white"
+                }
+                focus:outline-none text-xl sm:text-2xl font-bold text-center pb-1 transition-colors
+              `}
+              placeholder="Your name"
+            />
           ) : (
-            <></>
+            <h1
+              className={`text-xl sm:text-2xl md:text-3xl font-bold tracking-tight ${
+                theme ? "text-gray-900" : "text-white"
+              }`}
+            >
+              {name || "User"}
+            </h1>
           )}
+
+          <p
+            className={`mt-1.5 sm:mt-2 text-xs sm:text-sm md:text-base break-all ${
+              theme ? "text-gray-600" : "text-gray-400"
+            }`}
+          >
+            {auth.email}
+          </p>
         </div>
 
-        <div className={`w-full float-left sm:block hidden mb-5`}>
-          <div
-            className={`w-[50%] float-left h-[200px] flex justify-center items-center pb-5`}
-          >
-            <ProfilePic />
-          </div>
-          <div
-            className={`w-[50%] float-left h-[200px] flex justify-center items-center`}
-          >
-            {auth ? (
-              <div>
-                <div className="w-full mt-5 mb-5 flex items-center justify-center font-bold text-[20px]">
-                  {isEditing ? (
-                    <input
-                      className={`bg-transparent border-[2px] ${colors.keyBorder} focus:border-green-700 focus:outline-none text-center rounded-lg w-full p-3`}
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                    />
-                  ) : (
-                    <div>{name}</div>
-                  )}
-                </div>
-                <div className="w-full mt-5 mb-5 flex items-center justify-center">
-                  {auth.email}
-                </div>
-                <div className="w-full mt-5 mb-5 flex items-center justify-center">
-                  {`Subscription: ${auth.paymentType}`}
-                </div>
-                <div className="w-full mt-5 mb-5 flex items-center justify-center">
-                  {`Expired At: ${auth.expiredAt.split("T")[0]}`}
-                </div>
-              </div>
-            ) : (
-              <></>
-            )}
-          </div>
-        </div>
+        {/* Info */}
+        <div className="px-5 sm:px-6 py-6 sm:py-8 space-y-5 sm:space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 text-xs sm:text-sm md:text-base">
+            <div className="space-y-0.5 sm:space-y-1">
+              <p className={theme ? "text-gray-600" : "text-gray-400"}>
+                Subscription
+              </p>
+              <p
+                className={`font-medium ${theme ? "text-gray-900" : "text-white"}`}
+              >
+                {auth.paymentType || "—"}
+              </p>
+            </div>
 
-        <div className={`w-full float-left h-[50px] sm:block hidden`}>
-          <div
-            className={`${
-              googleUser ? "w-[47.5%]" : "w-[25%]"
-            } mr-[5%] h-full float-left flex items-center justify-center`}
-          >
+            <div className="space-y-0.5 sm:space-y-1">
+              <p className={theme ? "text-gray-600" : "text-gray-400"}>
+                Expires
+              </p>
+              <p
+                className={`font-medium ${theme ? "text-gray-900" : "text-white"}`}
+              >
+                {auth.expiredAt ? auth.expiredAt.split("T")[0] : "—"}
+              </p>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="pt-3 sm:pt-4 space-y-3 sm:space-y-4">
             <button
               onClick={toggleEdit}
-              className={`${
-                isEditing
-                  ? "bg-green-700 hover:bg-green-800"
-                  : `${colors.keyBg} ${colors.keyHoverBg}`
-              } text-[16px] py-2 px-5 w-[70%] sm:w-full rounded-lg hover:bg-[#202020] text-white`}
+              className={`
+                w-full py-2.5 sm:py-3.5 px-5 sm:px-6 rounded-lg font-medium text-sm sm:text-base
+                transition-all duration-200
+                ${
+                  isEditing
+                    ? "bg-green-600 hover:bg-green-700 text-white shadow-sm shadow-green-900/30"
+                    : theme
+                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-900/30"
+                      : "bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-900/30"
+                }
+              `}
             >
-              {isEditing ? "Update" : "Edit"}
+              {isEditing ? "Save Changes" : "Edit Profile"}
             </button>
-          </div>
 
-          {/* CHANGE PASSWORD – DESKTOP */}
-          {!googleUser && (
-            <div className="w-[40%] mr-[5%] h-full float-left flex items-center justify-center">
-              <Link href="/changePassword" className="w-full">
+            {!googleUser && (
+              <Link href="/changePassword" className="block">
                 <button
-                  className={`p-3 w-full text-[16px] py-2 px-5 rounded-lg ${
-                    theme
-                      ? "text-white bg-black border-[1px] border-black hover:bg-white hover:text-black hover:border-black"
-                      : "text-black bg-white border-[1px] border-white hover:bg-black hover:text-white hover:border-white"
-                  }`}
+                  className={`
+                    w-full py-2.5 sm:py-3.5 px-5 sm:px-6 rounded-lg font-medium text-sm sm:text-base
+                    transition-all duration-200
+                    ${
+                      theme
+                        ? "bg-gray-200 hover:bg-gray-300 text-gray-800 border border-gray-300 hover:border-gray-400"
+                        : "bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 hover:border-gray-600"
+                    }
+                  `}
                 >
                   Change Password
                 </button>
               </Link>
-            </div>
-          )}
+            )}
 
-          <div
-            className={`${
-              googleUser ? "w-[47.5%]" : "w-[25%]"
-            } h-full float-left flex items-center justify-center`}
-          >
             <button
               onClick={handleLogout}
-              className={`p-3 w-full text-white text-[16px] py-2 px-5 shadow-lg rounded-lg ${
-                theme
-                  ? "bg-red-700 hover:bg-red-800"
-                  : "bg-red-800 hover:bg-red-900"
-              }`}
+              className={`
+                w-full py-2.5 sm:py-3.5 px-5 sm:px-6 rounded-lg font-medium text-sm sm:text-base
+                transition-all duration-200
+                ${
+                  theme
+                    ? "bg-red-600 hover:bg-red-700 text-white shadow-sm shadow-red-900/30"
+                    : "bg-red-900/80 hover:bg-red-800/90 text-red-100 border border-red-800/50 hover:border-red-700/70"
+                }
+              `}
             >
-              Log Out
+              Sign Out
             </button>
           </div>
         </div>
-      </div>
-    </div>
-  ) : (
-    <div
-      className={`w-full h-full flex justify-center items-center ${
-        theme ? "bg-[#ffffff] text-[#0a0a0a]" : "bg-[#000000] text-[#ebebeb]"
-      }`}
-    >
-      <div className="p-[100px] text-[18px] sm:text-[20px] md:text-[25px] lg:text-[30px] xl:text-[35px] 2xl:text-[40px]">
-        You have to login first
       </div>
     </div>
   );

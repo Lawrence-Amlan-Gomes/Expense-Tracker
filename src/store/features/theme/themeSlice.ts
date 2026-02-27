@@ -1,4 +1,3 @@
-// src/store/features/theme/themeSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface ThemeState {
@@ -6,7 +5,7 @@ interface ThemeState {
 }
 
 const initialState: ThemeState = {
-  theme: false,           // default: light mode
+  theme: false,           // default fallback (will be overridden on client)
 };
 
 const themeSlice = createSlice({
@@ -16,10 +15,12 @@ const themeSlice = createSlice({
     toggleTheme: (state) => {
       state.theme = !state.theme;
     },
+    setTheme: (state, action: PayloadAction<boolean>) => {
+      state.theme = action.payload;
+    },
   },
 });
 
-export const { toggleTheme } =
-  themeSlice.actions;
+export const { toggleTheme, setTheme } = themeSlice.actions;
 
 export default themeSlice.reducer;

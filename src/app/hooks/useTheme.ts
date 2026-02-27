@@ -1,10 +1,10 @@
-// src/app/hooks/useTheme.ts
 'use client';
 
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '@/store/store';
 import {
   toggleTheme,
+  setTheme,
 } from '@/store/features/theme/themeSlice';
 
 export const useTheme = () => {
@@ -14,5 +14,6 @@ export const useTheme = () => {
   return {
     theme,
     toggleTheme: () => dispatch(toggleTheme()),
+    setTheme: (value: boolean) => dispatch(setTheme(value)),
   };
 };

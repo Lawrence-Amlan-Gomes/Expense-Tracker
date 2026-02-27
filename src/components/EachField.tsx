@@ -47,11 +47,11 @@ const EachField = ({
             {value !== "" ? label : ""}
           </div>
           <input
-            className={`p-3 border-[2px] text-[12px] lg:text-[16px] box-border w-[96%] mx-[2%] rounded-md focus:outline-none focus:outline-[1px] focus:shadow-none bg-transparent placeholder:text-neutral-500 ${
+            className={`p-3 border-[1px] text-[12px] lg:text-[16px] box-border w-[96%] mx-[2%] rounded-md focus:outline-none focus:outline-[1px] focus:shadow-none bg-transparent placeholder:text-gray-500 ${
               firstTime
                 ? theme
-                  ? "border-black"
-                  : "border-[#eeeeee]"
+                  ? "border-gray-400"
+                  : "border-gray-700"
                 : !iserror
                 ? "border-green-700 text-green-600 focus:outline-green-600"
                 : "border-red-600 text-red-600 focus:outline-red-600"

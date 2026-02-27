@@ -1,16 +1,38 @@
 "use client";
 import { useTheme } from "@/app/hooks/useTheme";
 import Image from "next/image";
+import { useEffect } from "react";
 
 function ToogleTheme() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, setTheme } = useTheme();
+
+  useEffect(() => {
+    // Runs once on client-side mount
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ).matches;
+    console.log(
+      "Dark matches:",
+      window.matchMedia("(prefers-color-scheme: dark)").matches,
+    );
+    console.log(
+      "Light matches:",
+      window.matchMedia("(prefers-color-scheme: light)").matches,
+    );
+    console.log(
+      "No preference:",
+      window.matchMedia("(prefers-color-scheme: no-preference)").matches,
+    );
+    setTheme(!prefersDark); // true = light, false = dark
+  }, [setTheme]);
+
   return (
     <div className="flex justify-center items-center h-full mr-3">
       <div
-        className={`rounded-lg border-[1px] lg:h-[40px] lg:w-[40px] sm:w-[35px] sm:h-[35px] h-[30px] w-[30px] relative ${
+        className={`rounded-lg border-[1px] bg-transparent lg:h-[40px] lg:w-[40px] sm:w-[35px] sm:h-[35px] h-[30px] w-[30px] relative ${
           theme
-            ? "border-[#555555] hover:border-[#000000] hover:bg-[#f0f0f0]"
-            : "border-[#aaaaaa] hover:border-[#bbbbbb] hover:bg-[#111111]"
+            ? "border-gray-400 hover:border-gray-400 hover:bg-[#eeeeee]/50"
+            : "border-gray-800 hover:border-gray-700 hover:bg-[#111111]/50"
         }`}
         style={{ cursor: "pointer" }}
         onClick={toggleTheme}

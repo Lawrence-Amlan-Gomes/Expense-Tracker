@@ -17,7 +17,6 @@ const RegistrationForm = () => {
   const router = useRouter();
   const { setGoogleAuth } = useAuth();
   const { data: session } = useSession();
-
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   const [isGoogleClicked, setIsGoogleClicked] = useState(false);
@@ -58,7 +57,7 @@ const RegistrationForm = () => {
     setNameError(
       name
         ? { iserror: false, error: "" }
-        : { iserror: true, error: "Name is required" }
+        : { iserror: true, error: "Name is required" },
     );
   }, [name]);
 
@@ -82,13 +81,13 @@ const RegistrationForm = () => {
         : {
             iserror: true,
             error: "Your password must be at least 8 characters",
-          }
+          },
     );
   }, [password]);
 
   useEffect(() => {
     setNoError(
-      !nameError.iserror && !emailError.iserror && !passwordError.iserror
+      !nameError.iserror && !emailError.iserror && !passwordError.iserror,
     );
   }, [nameError.iserror, emailError.iserror, passwordError.iserror]);
 
@@ -96,7 +95,7 @@ const RegistrationForm = () => {
     if (googleError.isError) {
       const t = setTimeout(
         () => setGoogleError({ isError: false, error: "" }),
-        5000
+        5000,
       );
       return () => clearTimeout(t);
     }
@@ -116,8 +115,9 @@ const RegistrationForm = () => {
     try {
       await createUser({ name, email, password, photo: "" });
       setSuccessMessage(`${email} successfully registered`);
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message === "EMAIL_ALREADY_EXISTS") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      if (err.message === "EMAIL_ALREADY_EXISTS") {
         setEmailError({
           iserror: true,
           error: "This email is already registered",
@@ -167,11 +167,12 @@ const RegistrationForm = () => {
             name: user.name ?? userEmail.split("@")[0],
             email: userEmail,
             password: "",
-            photo: user.image ?? "",
+            photo: "",
           });
           setSuccessMessage(`${userEmail} successfully registered`);
-        } catch (err: unknown) {
-          if (err instanceof Error && err.message === "EMAIL_ALREADY_EXISTS") {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (err: any) {
+          if (err.message === "EMAIL_ALREADY_EXISTS") {
             setGoogleError({
               isError: true,
               error: `${userEmail} is already registered. Please log in.`,
@@ -197,9 +198,7 @@ const RegistrationForm = () => {
     <div
       onKeyDown={(e) => e.key === "Enter" && submitForm()}
       className={`h-screen w-full sm:pt-[5%] pt-[30%] sm:px-0 px-[10%] overflow-y-auto lg:overflow-hidden lg:flex lg:justify-center lg:items-center ${
-        theme
-          ? `${colors.bgLight} ${colors.bgLight}`
-          : `${colors.bgDark} ${colors.bgDark}`
+        theme ? `bg-white ${colors.bgLight}` : `bg-black ${colors.bgDark}`
       }`}
     >
       <div
@@ -274,13 +273,22 @@ const RegistrationForm = () => {
           />
           <button
             onClick={submitForm}
-            className={`text-[12px] cursor-pointer rounded-md mt-5 py-2 px-4 ${
-              noError
-                ? "bg-green-800 hover:bg-green-700 text-white"
-                : theme
-                ? "bg-[#dbdbdb] text-[#808080]"
-                : "bg-[#1a1a1a] text-[#696969]"
-            }`}
+            className={`
+    text-[12px] lg:text-[16px] 2xl:text-[25px]
+    ${noError ? "cursor-pointer" : "cursor-not-allowed"} rounded-lg mt-6 sm:mt-12 py-2 sm:py-2.5 md:py-3 px-5 sm:px-6 md:px-8
+    font-medium transition-all duration-300 ease-out
+    shadow-sm hover:shadow-md active:scale-[0.98]
+    border border-transparent
+    ${
+      noError
+        ? theme
+          ? "bg-green-600 hover:bg-green-700 text-white"
+          : "bg-green-700 hover:bg-green-800 text-white"
+        : theme
+          ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+          : "bg-gray-800 text-gray-500 cursor-not-allowed"
+    }
+  `}
           >
             {isLoading ? `Registering...` : `Register`}
           </button>
@@ -326,13 +334,22 @@ const RegistrationForm = () => {
           />
           <button
             onClick={submitForm}
-            className={`text-[12px] lg:text-[16px] 2xl:text-[25px] cursor-pointer rounded-md sm:mt-10 py-2 px-6 ${
-              noError
-                ? "bg-green-800 hover:bg-green-700 text-white"
-                : theme
-                ? "bg-[#dbdbdb] text-[#808080]"
-                : "bg-[#1a1a1a] text-[#696969]"
-            }`}
+            className={`
+    text-[12px] lg:text-[16px] 2xl:text-[25px]
+    ${noError ? "cursor-pointer" : "cursor-not-allowed"} rounded-lg ${password ? "lg:mt-[45px] mt-[35px]" : "mt-[15px] lg:mt-[15px]"} py-2 sm:py-2.5 md:py-3 px-5 sm:px-6 md:px-8
+    font-medium transition-all duration-300 ease-out
+    shadow-sm hover:shadow-md active:scale-[0.98]
+    border border-transparent
+    ${
+      noError
+        ? theme
+          ? "bg-green-600 hover:bg-green-700 text-white"
+          : "bg-green-700 hover:bg-green-800 text-white"
+        : theme
+          ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+          : "bg-gray-800 text-gray-500 cursor-not-allowed"
+    }
+  `}
           >
             {isLoading ? `Registering...` : `Register`}
           </button>
@@ -361,7 +378,11 @@ const RegistrationForm = () => {
             </div>
             <div className="h-full text-center flex justify-center items-center">
               <div>
-                {isLoadingGoogle ? `Registering...` : `Register in with Google`}
+                {isLoadingGoogle
+                  ? `Registering...`
+                  : session
+                    ? `${session.user?.email}`
+                    : `Register with Google`}
               </div>
             </div>
           </button>

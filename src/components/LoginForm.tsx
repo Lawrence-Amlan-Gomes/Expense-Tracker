@@ -1,8 +1,7 @@
-// src/app/(auth)/login/LoginForm.tsx
+// src/components/LoginForm.tsx
 "use client";
 
 import {
-  changePhoto,
   findUserByEmail,
   generateJwtForGoogle,
   performLogin,
@@ -24,7 +23,7 @@ const LoginForm = () => {
   const { data: session } = useSession();
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   const { theme } = useTheme();
-  const { setAuth, setGoogleAuth } = useAuth();
+  const { user: auth, setAuth, setGoogleAuth } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -45,12 +44,12 @@ const LoginForm = () => {
     setEmailError(
       email
         ? { iserror: false, error: "" }
-        : { iserror: true, error: "Email is required" }
+        : { iserror: true, error: "Email is required" },
     );
     setPasswordError(
       password
         ? { iserror: false, error: "" }
-        : { iserror: true, error: "Password is required" }
+        : { iserror: true, error: "Password is required" },
     );
     setMainError({ isError: false, error: "" });
     setGoogleError({ isError: false, error: "" });
@@ -60,11 +59,17 @@ const LoginForm = () => {
     if (googleError.isError) {
       const t = setTimeout(
         () => setGoogleError({ isError: false, error: "" }),
-        3000
+        3000,
       );
       return () => clearTimeout(t);
     }
   }, [googleError.isError]);
+
+  useEffect(() => {
+    if (auth) {
+      router.push("/");
+    }
+  }, [auth, router]);
 
   const submitForm = async () => {
     if (emailError.iserror || passwordError.iserror) return;
@@ -117,7 +122,6 @@ const LoginForm = () => {
         // Update photo and firstTimeLogin if needed
         if (user.firstTimeLogin && session.user.image) {
           user.photo = session.user.image;
-          await changePhoto(userEmail, session.user.image);
           await updateUser(userEmail, { firstTimeLogin: false });
         }
 
@@ -149,18 +153,12 @@ const LoginForm = () => {
           error: `Your email ${userEmail} hasn't registered yet`,
         });
       }
-    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
       console.error("Google login error:", err);
-
-      let errorMessage = "Google login failed. Try again.";
-
-      if (err instanceof Error) {
-        errorMessage = err.message;
-      }
-
       setGoogleError({
         isError: true,
-        error: errorMessage,
+        error: err.message || "Google login failed. Try again.",
       });
     } finally {
       setIsLoadingGoogle(false);
@@ -174,9 +172,7 @@ const LoginForm = () => {
         }
       }}
       className={`h-screen w-full sm:pt-[5%] pt-[30%] sm:px-0 px-[10%] overflow-y-auto lg:overflow-hidden lg:flex lg:justify-center lg:items-center ${
-        theme
-          ? `${colors.bgLight} ${colors.bgLight}`
-          : `${colors.bgDark} ${colors.bgDark}`
+        theme ? `bg-white ${colors.bgLight}` : `bg-black ${colors.bgDark}`
       }`}
     >
       <div
@@ -244,15 +240,25 @@ const LoginForm = () => {
 
         <button
           onClick={submitForm}
-          className={`text-[12px] lg:text-[16px] 2xl:text-[25px] cursor-pointer rounded-lg mt-6 sm:mt-12 py-2 sm:px-6 px-4 ${
-            !emailError.iserror && !passwordError.iserror
-              ? "bg-green-800 hover:bg-green-700 text-white"
-              : theme
-              ? "bg-[#dddddd] text-[#888888]"
-              : "bg-[#222222] text-[#888888]"
-          }`}
+          disabled={emailError.iserror || passwordError.iserror || isLoading}
+          className={`
+    text-[12px] lg:text-[16px] 2xl:text-[25px]
+    ${!emailError.iserror && !passwordError.iserror ? "cursor-pointer" : "cursor-not-allowed"} rounded-lg mt-6 sm:mt-12 py-2 sm:py-2.5 md:py-3 px-5 sm:px-6 md:px-8
+    font-medium transition-all duration-300 ease-out
+    shadow-sm hover:shadow-md active:scale-[0.98]
+    border border-transparent
+    ${
+      !emailError.iserror && !passwordError.iserror
+        ? theme
+          ? "bg-green-600 hover:bg-green-700 text-white"
+          : "bg-green-700 hover:bg-green-800 text-white"
+        : theme
+          ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+          : "bg-gray-800 text-gray-500 cursor-not-allowed"
+    }
+  `}
         >
-          {isLoading ? `Logging...` : `Login`}
+          {isLoading ? "Logging in..." : "Login"}
         </button>
 
         <div className="w-full flex flex-col items-center justify-center">
@@ -277,7 +283,13 @@ const LoginForm = () => {
               </div>
             </div>
             <div className="h-full text-center flex justify-center items-center">
-              <div>{isLoadingGoogle ? `Logging...` : `Log in with Google`}</div>
+              <div>
+                {isLoadingGoogle
+                  ? `Logging...`
+                  : session
+                    ? `${session.user?.email}`
+                    : `Login with Google`}
+              </div>
             </div>
           </button>
           {googleError.isError && (
