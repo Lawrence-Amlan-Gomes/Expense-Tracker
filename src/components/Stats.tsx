@@ -475,7 +475,7 @@ export default function Stats() {
                       <XAxis dataKey="label" tick={{ fill: t.muted, fontSize: 9 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                       <YAxis tick={{ fill: t.muted, fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={(v) => `৳${(v / 1000).toFixed(0)}k`} width={34} />
                       <Tooltip content={<CustomTooltip theme={theme} />} />
-                      <Bar dataKey="total" radius={[5, 5, 0, 0]} cursor={{ fill: t.muted + "22" } as React.SVGProps<SVGRectElement>}>
+                      <Bar dataKey="total" radius={[5, 5, 0, 0]} cursor={false}>
                         {weeklyData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} fillOpacity={0.85} />)}
                       </Bar>
                     </BarChart>
@@ -492,7 +492,7 @@ export default function Stats() {
                       <XAxis dataKey="day" tick={{ fill: t.muted, fontSize: 9 }} axisLine={false} tickLine={false} interval={4} />
                       <YAxis tick={{ fill: t.muted, fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={(v) => `৳${(v / 1000).toFixed(0)}k`} width={34} />
                       <Tooltip content={<CustomTooltip theme={theme} />} />
-                      <Bar dataKey="avg" fill="#10b981" radius={[3, 3, 0, 0]} fillOpacity={0.8} cursor={{ fill: t.muted + "22" } as React.SVGProps<SVGRectElement>} />
+                      <Bar dataKey="avg" fill="#10b981" radius={[3, 3, 0, 0]} fillOpacity={0.8} cursor={false} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : <EmptyState theme={theme} />}
@@ -514,7 +514,7 @@ export default function Stats() {
                     <XAxis dataKey="name" tick={{ fill: t.muted, fontSize: 10 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fill: t.muted, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `৳${(v / 1000).toFixed(0)}k`} width={38} />
                     <Tooltip content={<CustomTooltip theme={theme} />} />
-                    <Bar dataKey="total" name="Spending" radius={[7, 7, 0, 0]} cursor={{ fill: t.muted + "22" } as React.SVGProps<SVGRectElement>}>
+                    <Bar dataKey="total" name="Spending" radius={[7, 7, 0, 0]} cursor={false}>
                       {monthlyTotals.map((m, i) => <Cell key={i} fill={m.total === maxMonth.total ? "#f43f5e" : "#6366f1"} fillOpacity={0.85} />)}
                     </Bar>
                   </BarChart>
