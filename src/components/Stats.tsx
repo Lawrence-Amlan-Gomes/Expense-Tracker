@@ -457,7 +457,7 @@ export default function Stats() {
                     <CartesianGrid strokeDasharray="3 3" stroke={t.border} />
                     <XAxis dataKey="name" tick={{ fill: t.muted, fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                     <YAxis tick={{ fill: t.muted, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `৳${(v / 1000).toFixed(0)}k`} width={38} />
-                    <Tooltip content={<CustomTooltip theme={theme} />} />
+                    <Tooltip content={<CustomTooltip theme={theme} />} cursor={{ fill: "transparent" }} />
                     <Area type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={2} fill="url(#areaGrad)" dot={{ fill: "#6366f1", r: 2 }} activeDot={{ r: 5 }} />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -474,8 +474,8 @@ export default function Stats() {
                       <CartesianGrid strokeDasharray="3 3" stroke={t.border} />
                       <XAxis dataKey="label" tick={{ fill: t.muted, fontSize: 9 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                       <YAxis tick={{ fill: t.muted, fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={(v) => `৳${(v / 1000).toFixed(0)}k`} width={34} />
-                      <Tooltip content={<CustomTooltip theme={theme} />} />
-                      <Bar dataKey="total" radius={[5, 5, 0, 0]} cursor={false}>
+                      <Tooltip content={<CustomTooltip theme={theme} />} cursor={{ fill: "transparent" }} />
+                      <Bar dataKey="total" radius={[5, 5, 0, 0]}>
                         {weeklyData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} fillOpacity={0.85} />)}
                       </Bar>
                     </BarChart>
@@ -491,8 +491,8 @@ export default function Stats() {
                       <CartesianGrid strokeDasharray="3 3" stroke={t.border} />
                       <XAxis dataKey="day" tick={{ fill: t.muted, fontSize: 9 }} axisLine={false} tickLine={false} interval={4} />
                       <YAxis tick={{ fill: t.muted, fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={(v) => `৳${(v / 1000).toFixed(0)}k`} width={34} />
-                      <Tooltip content={<CustomTooltip theme={theme} />} />
-                      <Bar dataKey="avg" fill="#10b981" radius={[3, 3, 0, 0]} fillOpacity={0.8} cursor={false} />
+                      <Tooltip content={<CustomTooltip theme={theme} />} cursor={{ fill: "transparent" }} />
+                      <Bar dataKey="avg" fill="#10b981" radius={[3, 3, 0, 0]} fillOpacity={0.8} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : <EmptyState theme={theme} />}
@@ -513,8 +513,8 @@ export default function Stats() {
                     <CartesianGrid strokeDasharray="3 3" stroke={t.border} />
                     <XAxis dataKey="name" tick={{ fill: t.muted, fontSize: 10 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fill: t.muted, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `৳${(v / 1000).toFixed(0)}k`} width={38} />
-                    <Tooltip content={<CustomTooltip theme={theme} />} />
-                    <Bar dataKey="total" name="Spending" radius={[7, 7, 0, 0]} cursor={false}>
+                    <Tooltip content={<CustomTooltip theme={theme} />} cursor={{ fill: "transparent" }} />
+                    <Bar dataKey="total" name="Spending" radius={[7, 7, 0, 0]}>
                       {monthlyTotals.map((m, i) => <Cell key={i} fill={m.total === maxMonth.total ? "#f43f5e" : "#6366f1"} fillOpacity={0.85} />)}
                     </Bar>
                   </BarChart>
@@ -530,7 +530,7 @@ export default function Stats() {
                     <CartesianGrid strokeDasharray="3 3" stroke={t.border} />
                     <XAxis dataKey="name" tick={{ fill: t.muted, fontSize: 10 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fill: t.muted, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `৳${(v / 1000).toFixed(0)}k`} width={38} />
-                    <Tooltip content={<CustomTooltip theme={theme} />} />
+                    <Tooltip content={<CustomTooltip theme={theme} />} cursor={{ fill: "transparent" }} />
                     <Line type="monotone" dataKey="total" name="Spending" stroke="#6366f1" strokeWidth={2} dot={{ fill: "#6366f1", r: 3 }} activeDot={{ r: 6 }} />
                     {avgPerMonth > 0 && <Line type="monotone" dataKey={() => avgPerMonth} name="Average" stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="5 5" dot={false} />}
                     <Legend wrapperStyle={{ fontSize: 11, color: t.muted }} />
@@ -640,7 +640,7 @@ export default function Stats() {
                       <Pie data={categoryData} cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={3} dataKey="value" nameKey="name">
                         {categoryData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                       </Pie>
-                      <Tooltip formatter={(val: number) => [`৳ ${val.toLocaleString()}`, "Spent"]} />
+                      <Tooltip formatter={(val) => [`৳ ${(val as number ?? 0).toLocaleString()}`, "Spent"]} />
                       <Legend wrapperStyle={{ fontSize: 11, color: t.muted }} />
                     </RechartsPieChart>
                   </ResponsiveContainer>
