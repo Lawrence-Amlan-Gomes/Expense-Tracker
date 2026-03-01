@@ -1832,6 +1832,7 @@ export default function Stats() {
                           <Cell
                             key={index}
                             fill={PIE_COLORS[index % PIE_COLORS.length]}
+                            stroke="transparent"
                           />
                         ))}
                       </Pie>
