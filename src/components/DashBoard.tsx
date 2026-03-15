@@ -11,6 +11,7 @@ import {
   IMonth,
   ISpending,
   IMoney,
+  IIncome,
 } from "@/store/features/auth/authSlice";
 import {
   X,
@@ -88,6 +89,7 @@ export default function DashBoard() {
   const [banks, setBanks] = useState<IBank[]>([]);
   const [inCash, setInCash] = useState<number>(0);
   const [months, setMonths] = useState<IMonth[]>([]);
+  const [income, setIncome] = useState<IIncome[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [bankSearch, setBankSearch] = useState("");
@@ -134,16 +136,22 @@ export default function DashBoard() {
     setHasMounted(true);
   }, []);
 
+  // Runs ONCE when auth first loads — never again
+  const [initialized, setInitialized] = useState(false);
+
   useEffect(() => {
     if (auth === null && hasMounted) {
       router.push("/login");
-    } else if (auth?.money) {
+    } else if (auth?.money && !initialized) {
       setBanks(auth.money.banks || []);
       setInCash(auth.money.inCash || 0);
       setMonths(auth.money.Months || []);
       setOriginalMoney(auth.money);
+      setSelectedBanks(auth.money.banks?.map((b) => b.name) || []);
+      setIncome(auth.income || []);
+      setInitialized(true);
     }
-  }, [auth, hasMounted, router]);
+  }, [auth, hasMounted, router, initialized]);
 
   useEffect(() => {
     if (months.length > 0 && selectedMonth === null) {
@@ -168,23 +176,30 @@ export default function DashBoard() {
     }
   }, [months, selectedMonth]);
 
-  useEffect(() => {
-    if (auth?.money) {
-      setBanks(auth.money.banks || []);
-      setInCash(auth.money.inCash || 0);
-      setMonths(auth.money.Months || []);
-      setOriginalMoney(auth.money);
-      setSelectedBanks(auth.money.banks?.map((b) => b.name) || []);
-    }
-  }, [auth, hasMounted, router]);
+const handleIncomeUpdate = (amount: number) => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.toLocaleString("default", { month: "long" });
+    setIncome((prev) => {
+      const existing = prev.find((i) => i.year === year && i.month === month);
+      if (existing) {
+        return prev.map((i) =>
+          i.year === year && i.month === month
+            ? { ...i, amount: i.amount + amount }
+            : i
+        );
+      }
+      return [...prev, { year, month, amount }];
+    });
+  };
 
-  const handleSave = async () => {
+const handleSave = async () => {
     if (!auth?.email) return;
     setIsSaving(true);
     try {
       const updatedMoney: IMoney = { banks, inCash, Months: months };
-      await updateMoney(auth.email, updatedMoney);
-      setAuth({ ...auth, money: updatedMoney });
+      await updateMoney(auth.email, updatedMoney, income);
+      setAuth({ ...auth, money: updatedMoney, income });
       setOriginalMoney(updatedMoney);
       alert("✅ Changes saved successfully!");
     } catch (error) {
@@ -195,12 +210,12 @@ export default function DashBoard() {
     }
   };
 
-  const handleBankDeposit = (bankName: string, amount: number) =>
-    setBanks(
-      banks.map((b) =>
-        b.name === bankName ? { ...b, amount: b.amount + amount } : b,
-      ),
-    );
+  const handleBankDeposit = (bankName: string, amount: number) => {
+    setBanks(banks.map((b) =>
+      b.name === bankName ? { ...b, amount: b.amount + amount } : b
+    ));
+    handleIncomeUpdate(amount);
+  };
 
   const handleBankWithdraw = (bankName: string, amount: number) => {
     const bank = banks.find((b) => b.name === bankName);
@@ -240,12 +255,15 @@ export default function DashBoard() {
       alert("❌ Insufficient cash");
       return;
     }
-    setBanks(
-      banks.map((b) =>
-        b.name === bankName ? { ...b, amount: b.amount + amount } : b,
-      ),
-    );
+    setBanks(banks.map((b) =>
+      b.name === bankName ? { ...b, amount: b.amount + amount } : b
+    ));
     setInCash(inCash - amount);
+  };
+
+  const handleEarnCash = (amount: number) => {
+    setInCash(inCash + amount);
+    handleIncomeUpdate(amount);
   };
 
   const handleAddMonth = (monthName: string) => {
@@ -330,10 +348,12 @@ export default function DashBoard() {
 
   const hasUnsavedChanges = () => {
     if (!originalMoney) return false;
-    return (
+    const moneyChanged =
       JSON.stringify({ banks, inCash, Months: months }) !==
-      JSON.stringify(originalMoney)
-    );
+      JSON.stringify(originalMoney);
+    const incomeChanged =
+      JSON.stringify(income) !== JSON.stringify(auth?.income || []);
+    return moneyChanged || incomeChanged;
   };
 
   const handleRenameBank = (oldName: string, newName: string) => {
@@ -1587,6 +1607,7 @@ export default function DashBoard() {
           onClose={() => setCashModal(false)}
           onDeposit={handleCashDeposit}
           onUpdateCash={setInCash}
+          onEarnCash={handleEarnCash}
         />
       )}
 
@@ -2112,12 +2133,14 @@ function CashModal({
   onClose,
   onDeposit,
   onUpdateCash,
+  onEarnCash,
 }: {
   inCash: number;
   banks: IBank[];
   onClose: () => void;
   onDeposit: (bank: string, amount: number) => void;
   onUpdateCash: (amount: number) => void;
+  onEarnCash: (amount: number) => void;
 }) {
   const { theme } = useTheme();
   const t = tk(theme);
@@ -2139,6 +2162,7 @@ function CashModal({
       onDeposit(targetBank, amt);
     } else {
       onUpdateCash(inCash + amt);
+      onEarnCash(amt);
     }
     onClose();
   };

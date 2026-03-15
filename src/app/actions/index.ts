@@ -3,7 +3,7 @@
 
 import { signOut } from "@/app/auth";
 import { cleanUserForClient } from "@/lib/data-util";
-import { CleanUser, IMoney } from "@/store/features/auth/authSlice";
+import { CleanUser, IMoney, IIncome } from "@/store/features/auth/authSlice";
 import { dbConnect } from "@/lib/mongo";
 import {
   sendVerificationEmail,
@@ -16,7 +16,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 type LeanUser = {
-  _id: { toString(): string }
+  _id: { toString(): string };
   name: string;
   email: string;
   password?: string;
@@ -32,8 +32,16 @@ type LeanUser = {
     inCash: number;
     Months: { name: string; spendings: { date: string; item: string; cost: number }[] }[];
   };
+  income?: { year: number; month: string; amount: number }[];
   __v?: number;
 };
+
+function mapIncome(
+  raw?: { year: number; month: string; amount: number }[]
+): IIncome[] {
+  if (!raw) return [];
+  return raw.map((i) => ({ year: i.year, month: i.month, amount: i.amount }));
+}
 
 // ==================== AUTH ACTIONS ====================
 
@@ -88,11 +96,8 @@ export async function performLogin({
             })
           ),
         }
-      : {
-          banks: [],
-          inCash: 0,
-          Months: [],
-        },
+      : { banks: [], inCash: 0, Months: [] },
+    income: mapIncome(user.income),
   };
 
   const token = await generateToken(cleanUser);
@@ -126,13 +131,9 @@ export async function createUser(data: {
     ...data,
     expiredAt,
     password: hashed,
-    isEmailVerified: isGoogleAuth, // ← true for Google, false for manual
-    // money will use schema default, but explicitly setting is safer
-    money: {
-      banks: [],
-      inCash: 0,
-      Months: [],
-    },
+    isEmailVerified: isGoogleAuth,
+    money: { banks: [], inCash: 0, Months: [] },
+    income: [],
   });
 
   await user.save();
@@ -253,7 +254,7 @@ export async function findUserByEmail(email: string) {
     createdAt: user.createdAt?.toISOString() || new Date().toISOString(),
     expiredAt: user.expiredAt?.toISOString() || expiredAt.toISOString(),
     paymentType: user.paymentType,
-    isEmailVerified: user.isEmailVerified || false, // ← NEW
+    isEmailVerified: user.isEmailVerified || false,
     money: user.money
       ? {
           banks: user.money.banks.map(
@@ -276,11 +277,8 @@ export async function findUserByEmail(email: string) {
             })
           ),
         }
-      : {
-          banks: [],
-          inCash: 0,
-          Months: [],
-        },
+      : { banks: [], inCash: 0, Months: [] },
+    income: mapIncome(user.income),
   };
 }
 
@@ -304,11 +302,14 @@ export async function verifyAndChangePassword(
 }
 
 // Add to src/app/actions.ts
-export async function updateMoney(email: string, money: IMoney) {
+export async function updateMoney(email: string, money: IMoney, income?: IIncome[]) {
   await dbConnect();
-  await User.updateOne({ email }, { money });
-  revalidatePath("/dashBoard"); // or wherever your money page is
+  const update = income !== undefined ? { money, income } : { money };
+  await User.updateOne({ email }, update);
+  revalidatePath("/dashBoard");
 }
+
+
 
 // ==================== GOOGLE + JWT ====================
 

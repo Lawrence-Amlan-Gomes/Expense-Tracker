@@ -23,6 +23,12 @@ export interface IMoney {
   Months: IMonth[];
 }
 
+export interface IIncome {
+  year: number;
+  month: string;
+  amount: number;
+}
+
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
   name: string;
@@ -36,6 +42,7 @@ export interface IUser extends Document {
   paymentType: string;
   isEmailVerified: boolean;
   money: IMoney;
+  income: IIncome[];
 }
 
 const UserSchema = new mongoose.Schema<IUser>(
@@ -91,6 +98,17 @@ const UserSchema = new mongoose.Schema<IUser>(
         },
       },
       default: {},
+      _id: false,
+    },
+  income: {
+      type: [
+        {
+          year: { type: Number, required: true },
+          month: { type: String, required: true, trim: true },
+          amount: { type: Number, required: true, default: 0 },
+        },
+      ],
+      default: [],
       _id: false,
     },
   },

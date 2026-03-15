@@ -1,12 +1,26 @@
 // src/lib/server/jwt.ts
 import { SignJWT, jwtVerify } from "jose";
-import { CleanUser, IMoney } from "@/store/features/auth/authSlice"; // ← ADD IMoney HERE
+import { CleanUser, IMoney, IIncome } from "@/store/features/auth/authSlice";
 
 if (!process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET is missing in environment");
 }
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+
+const cleanIncome = (income: unknown): IIncome[] => {
+  if (!isArray(income)) return [];
+  return income
+    .map((item: unknown) => {
+      if (!isObject(item)) return null;
+      const year = Number(item.year);
+      const month = toSafeString(item.month);
+      const amount = Number(item.amount) || 0;
+      if (!year || !month) return null;
+      return { year, month, amount };
+    })
+    .filter((i): i is IIncome => i !== null);
+};
 
 // Helper to create a plain default money
 const defaultMoney: IMoney = {
@@ -67,6 +81,7 @@ const cleanMoney = (money: unknown): IMoney => {
 
 export async function generateToken(user: CleanUser): Promise<string> {
   const plainMoney = cleanMoney(user.money);
+  const plainIncome = cleanIncome(user.income ?? []);
   return await new SignJWT({
     id: user.id,
     name: user.name,
@@ -77,8 +92,9 @@ export async function generateToken(user: CleanUser): Promise<string> {
     createdAt: user.createdAt,
     expiredAt: user.expiredAt,
     paymentType: user.paymentType ?? "Free One Week",
-    isEmailVerified: user.isEmailVerified ?? false, // ← NEW
-    money: plainMoney, // ← Fully plain, serializable object
+    isEmailVerified: user.isEmailVerified ?? false,
+    money: plainMoney,
+    income: plainIncome,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()

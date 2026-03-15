@@ -23,6 +23,12 @@ export interface IMoney {
   Months: IMonth[];
 }
 
+export interface IIncome {
+  year: number;
+  month: string;
+  amount: number;
+}
+
 export interface CleanUser {
   id: string;
   name: string;
@@ -35,6 +41,7 @@ export interface CleanUser {
   paymentType: string;
   isEmailVerified: boolean;
   money: IMoney;
+  income: IIncome[];
 }
 
 export interface CleanGoogleUser {

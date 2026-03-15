@@ -22,6 +22,12 @@ interface Money {
   Months: MoneyMonth[];
 }
 
+interface IncomeEntry {
+  year: number;
+  month: string;
+  amount: number;
+}
+
 interface ClientUser {
   id: string;
   name: string;
@@ -34,6 +40,7 @@ interface ClientUser {
   paymentType: string;
   isEmailVerified: boolean;
   money: Money;
+  income: IncomeEntry[];
 }
 
 // Type guard helpers
@@ -138,6 +145,19 @@ export const cleanUserForClient = (user: unknown): ClientUser | null => {
     ? String(user._id)
     : getString(user, 'id', '');
 
+  const cleanIncome = (income: unknown): IncomeEntry[] => {
+    if (!isArray(income)) return [];
+    const result: IncomeEntry[] = [];
+    for (const item of income) {
+      if (!isRecord(item)) continue;
+      const year = getNumber(item, 'year');
+      const month = getString(item, 'month');
+      const amount = getNumber(item, 'amount');
+      if (year > 0 && month) result.push({ year, month, amount });
+    }
+    return result;
+  };
+
   return {
     id,
     name: getString(user, 'name', 'User'),
@@ -154,6 +174,7 @@ export const cleanUserForClient = (user: unknown): ClientUser | null => {
     paymentType: getString(user, 'paymentType', 'Free One Week'),
     isEmailVerified: getBoolean(user, 'isEmailVerified', false),
     money: cleanMoney(user.money),
+    income: cleanIncome(user.income),
   };
 };
 
