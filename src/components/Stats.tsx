@@ -1129,6 +1129,13 @@ export default function Stats() {
     }
   }, [availableYears, selectedYear]);
 
+  /** Re-select year after sync brings in fresh data. */
+  useEffect(() => {
+    if (availableYears.length > 0 && selectedYear === null) {
+      setSelectedYear(availableYears[0]);
+    }
+  }, [allMonths.length, allIncome.length]);  // eslint-disable-line react-hooks/exhaustive-deps
+
   /** Months filtered to the selected year, sorted chronologically. */
   const monthsForYear = useMemo(
     () => (selectedYear !== null ? getMonthsForYear(allMonths, selectedYear) : []),
@@ -1282,10 +1289,11 @@ export default function Stats() {
     completedIncomeMonths.length > 0
       ? Math.round(completedIncomeMonths.reduce((s, i) => s + i.income, 0) / completedIncomeMonths.length)
       : 0;
-  const highestIncomeMonth = monthlyIncome.reduce(
-    (best, cur) => (cur.income > best.income ? cur : best),
-    { shortLabel: "-", income: 0, fullName: "-", monthName: "" }
-  );
+  const highestIncomeMonth = monthlyIncome.length > 0
+    ? monthlyIncome.reduce(
+        (best, cur) => (cur.income > best.income ? cur : best)
+      )
+    : { shortLabel: "-", income: 0, fullName: "-", monthName: "" };
   const netBalanceThisYear = totalIncomeThisYear - totalThisYear;
   const savingsRateThisYear =
     totalIncomeThisYear > 0 ? Math.round((netBalanceThisYear / totalIncomeThisYear) * 100) : 0;
