@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
+import { findUserByEmail } from "@/app/actions";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useTheme } from "@/app/hooks/useTheme";
 import { useRouter } from "next/navigation";
@@ -1067,6 +1068,10 @@ export default function Stats() {
   // ── Theme tokens ──────────────────────────────────────────────────────────
   const themeTokens = getThemeTokens(theme);
 
+  // ── Raw data from auth state ──────────────────────────────────────────────
+  const allMonths: IMonth[] = authUser?.money?.Months || [];
+  const allIncome: IIncome[] = authUser?.income || [];
+
   // ── Mount & auth guard ────────────────────────────────────────────────────
   useEffect(() => {
     setHasMounted(true);
@@ -1080,10 +1085,10 @@ export default function Stats() {
 
   // ── Sync fresh data from DB on Stats page mount (fixes mobile production) ─
   useEffect(() => {
-    if (!hasMounted || !authUser?.email) return;
+    if (!authUser?.email) return;
+    if (allMonths.length > 0) return;
     const syncData = async () => {
       try {
-        const { findUserByEmail } = await import("@/app/actions");
         const freshUser = await findUserByEmail(authUser.email);
         if (freshUser && freshUser.money) {
           setAuth({
@@ -1097,13 +1102,7 @@ export default function Stats() {
     };
     syncData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasMounted]);
-
-  // ── Raw data from auth state ──────────────────────────────────────────────
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const allMonths: IMonth[] = authUser?.money?.Months || [];
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const allIncome: IIncome[] = authUser?.income || [];
+  }, [authUser?.email, allMonths.length]);
 
   // ── Derived / computed data ───────────────────────────────────────────────
   // Each `useMemo` caches its result and only recalculates when its
@@ -1112,12 +1111,14 @@ export default function Stats() {
   /** Flat array of all spending entries across all months. */
   const flatSpendings = useMemo(
     () => buildFlatSpendings(allMonths),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [allMonths]
   );
 
   /** List of unique years found in the data, newest first. */
   const availableYears = useMemo(
     () => extractAvailableYears(allMonths, allIncome),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [allMonths, allIncome]
   );
 
@@ -1131,6 +1132,7 @@ export default function Stats() {
   /** Months filtered to the selected year, sorted chronologically. */
   const monthsForYear = useMemo(
     () => (selectedYear !== null ? getMonthsForYear(allMonths, selectedYear) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [allMonths, selectedYear]
   );
 
@@ -1168,6 +1170,7 @@ export default function Stats() {
   /** All-time monthly totals across all years (for the overview area chart). */
   const allTimeMonthlyTotals = useMemo(
     () => calculateAllTimeMonthlyTotals(allMonths),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [allMonths]
   );
 
@@ -1191,9 +1194,11 @@ export default function Stats() {
 
   const monthlyIncome = useMemo(
     () => (selectedYear !== null ? calculateMonthlyIncome(allIncome, selectedYear) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [allIncome, selectedYear]
   );
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const allTimeIncome = useMemo(() => calculateAllTimeIncome(allIncome), [allIncome]);
 
   const balanceData = useMemo(
