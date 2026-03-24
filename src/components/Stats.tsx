@@ -1055,7 +1055,7 @@ function generateInsights(
 
 export default function Stats() {
   // ── External hooks ────────────────────────────────────────────────────────
-  const { theme } = useTheme();      // true = LIGHT mode, false = DARK mode
+  const { theme } = useTheme();
   const { user: authUser, setAuth } = useAuth();
   const router = useRouter();
 
@@ -1064,53 +1064,73 @@ export default function Stats() {
   const [activeTab, setActiveTab] = useState<ViewTab>("overview");
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
+  const [allMonths, setAllMonths] = useState<IMonth[]>([]);
+  const [allIncome, setAllIncome] = useState<IIncome[]>([]);
+  const [isFetching, setIsFetching] = useState(false);
 
   // ── Theme tokens ──────────────────────────────────────────────────────────
   const themeTokens = getThemeTokens(theme);
 
-  // ── Raw data from auth state ──────────────────────────────────────────────
-  const allMonths: IMonth[] = useMemo(
-    () => authUser?.money?.Months || [],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [authUser?.money?.Months]
-  );
-  const allIncome: IIncome[] = useMemo(
-    () => authUser?.income || [],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [authUser?.income]
-  );
-
-  // ── Mount & auth guard ────────────────────────────────────────────────────
+  // ── Mount ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
+  // ── Auth guard ────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (hasMounted && authUser === null) {
-      router.push("/login");
+    if (!hasMounted) return;
+    if (authUser === null) {
+      // check localStorage directly before redirecting
+      const stored = localStorage.getItem("authUser");
+      if (!stored) {
+        router.push("/login");
+      }
     }
   }, [authUser, hasMounted, router]);
 
-  // ── Sync fresh data from DB on Stats page mount (fixes mobile production) ─
+  // ── Always fetch fresh data from DB directly ──────────────────────────────
   useEffect(() => {
-    if (!authUser?.email) return;
-    if (allMonths.length > 0) return;
-    const syncData = async () => {
+    if (!hasMounted) return;
+
+    const fetchData = async () => {
+      if (typeof window !== "undefined") setIsFetching(true);
       try {
-        const freshUser = await findUserByEmail(authUser.email);
+        // get email from Redux or localStorage
+        let email = authUser?.email;
+        if (!email) {
+          const stored = localStorage.getItem("authUser");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            email = parsed.email;
+          }
+        }
+        if (!email) {
+          setIsFetching(false);
+          return;
+        }
+
+        const freshUser = await findUserByEmail(email);
         if (freshUser && freshUser.money) {
+          setAllMonths(freshUser.money.Months || []);
+          setAllIncome(freshUser.income || []);
           setAuth({
             ...freshUser,
             paymentType: freshUser.paymentType ?? "Free One Week",
           });
         }
       } catch (err) {
-        console.error("Stats: failed to sync user data:", err);
+        console.error("Stats fetch error:", err);
+        // fallback to whatever is in Redux
+        setAllMonths(authUser?.money?.Months || []);
+        setAllIncome(authUser?.income || []);
+      } finally {
+        setIsFetching(false);
       }
     };
-    syncData();
+
+    fetchData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authUser?.email, allMonths.length]);
+  }, [hasMounted]);
 
   // ── Derived / computed data ───────────────────────────────────────────────
   // Each `useMemo` caches its result and only recalculates when its
@@ -1328,6 +1348,20 @@ export default function Stats() {
   // ── Don't render until client-side hydration is complete ──────────────────
   if (!hasMounted) {
     return null;
+  }
+
+  if (isFetching) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: themeTokens.background }}
+      >
+        <div
+          className="w-8 h-8 rounded-full border-2 animate-spin"
+          style={{ borderColor: "#6366f1", borderTopColor: "transparent" }}
+        />
+      </div>
+    );
   }
 
   // ── Wait for auth user data to be available ───────────────────────────────

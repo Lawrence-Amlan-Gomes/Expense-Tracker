@@ -1,5 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
-import authReducer, { loadFromLocalStorage } from "./features/auth/authSlice";
+import authReducer from "./features/auth/authSlice";
 import themeReducer from "./features/theme/themeSlice";
 import priceReducer from "./features/price/priceSlice";
 import responseReducer from "./features/response/responseSlice";
@@ -11,9 +11,7 @@ export const store = configureStore({
     price: priceReducer,
     response: responseReducer,
   },
-  preloadedState: {
-    auth: loadFromLocalStorage(),
-  },
+  
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {

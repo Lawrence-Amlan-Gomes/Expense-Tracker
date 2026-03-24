@@ -55,7 +55,7 @@ interface AuthState {
   googleUser: CleanGoogleUser | null;
 }
 
-export function loadFromLocalStorage(): AuthState {
+function loadFromLocalStorage(): AuthState {
   if (typeof window === "undefined") {
     return { user: null, googleUser: null };
   }
@@ -71,10 +71,7 @@ export function loadFromLocalStorage(): AuthState {
   }
 }
 
-const initialState: AuthState = {
-  user: null,
-  googleUser: null,
-};
+const initialState: AuthState = loadFromLocalStorage();
 
 const authSlice = createSlice({
   name: "auth",
