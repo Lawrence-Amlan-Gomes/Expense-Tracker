@@ -1,9 +1,8 @@
-// src/store/store.ts
 import { configureStore } from "@reduxjs/toolkit";
-import authReducer from "./features/auth/authSlice";
+import authReducer, { loadFromLocalStorage } from "./features/auth/authSlice";
 import themeReducer from "./features/theme/themeSlice";
-import priceReducer from "./features/price/priceSlice"
-import responseReducer from "./features/response/responseSlice"
+import priceReducer from "./features/price/priceSlice";
+import responseReducer from "./features/response/responseSlice";
 
 export const store = configureStore({
   reducer: {
@@ -11,6 +10,9 @@ export const store = configureStore({
     theme: themeReducer,
     price: priceReducer,
     response: responseReducer,
+  },
+  preloadedState: {
+    auth: loadFromLocalStorage(),
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
