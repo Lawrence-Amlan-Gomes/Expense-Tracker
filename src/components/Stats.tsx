@@ -1055,7 +1055,7 @@ function generateInsights(
 export default function Stats() {
   // ── External hooks ────────────────────────────────────────────────────────
   const { theme } = useTheme();      // true = LIGHT mode, false = DARK mode
-  const { user: authUser } = useAuth();
+  const { user: authUser, setAuth } = useAuth();
   const router = useRouter();
 
   // ── Local state ───────────────────────────────────────────────────────────
@@ -1077,6 +1077,27 @@ export default function Stats() {
       router.push("/login");
     }
   }, [authUser, hasMounted, router]);
+
+  // ── Sync fresh data from DB on Stats page mount (fixes mobile production) ─
+  useEffect(() => {
+    if (!hasMounted || !authUser?.email) return;
+    const syncData = async () => {
+      try {
+        const { findUserByEmail } = await import("@/app/actions");
+        const freshUser = await findUserByEmail(authUser.email);
+        if (freshUser && freshUser.money) {
+          setAuth({
+            ...freshUser,
+            paymentType: freshUser.paymentType ?? "Free One Week",
+          });
+        }
+      } catch (err) {
+        console.error("Stats: failed to sync user data:", err);
+      }
+    };
+    syncData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMounted]);
 
   // ── Raw data from auth state ──────────────────────────────────────────────
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1292,6 +1313,11 @@ export default function Stats() {
 
   // ── Don't render until client-side hydration is complete ──────────────────
   if (!hasMounted) {
+    return null;
+  }
+
+  // ── Wait for auth user data to be available ───────────────────────────────
+  if (!authUser) {
     return null;
   }
 

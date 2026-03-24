@@ -236,7 +236,7 @@ const TopNavbar = () => {
       {/* Mobile Menu */}
       {isMenuOpen && (
         <div
-          className={`fixed z-40 w-full top-14 bg-opacity-65 backdrop-blur-xl border-b-[1px] ${
+          className={`fixed z-[60] w-full top-[56px] bg-opacity-65 backdrop-blur-xl border-b-[1px] ${
             theme
               ? "bg-[#ffffff] border-[#dddddd]"
               : "bg-[#000000] border-[#222222]"
