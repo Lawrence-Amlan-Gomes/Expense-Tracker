@@ -1069,8 +1069,16 @@ export default function Stats() {
   const themeTokens = getThemeTokens(theme);
 
   // ── Raw data from auth state ──────────────────────────────────────────────
-  const allMonths: IMonth[] = authUser?.money?.Months || [];
-  const allIncome: IIncome[] = authUser?.income || [];
+  const allMonths: IMonth[] = useMemo(
+    () => authUser?.money?.Months || [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [authUser?.money?.Months]
+  );
+  const allIncome: IIncome[] = useMemo(
+    () => authUser?.income || [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [authUser?.income]
+  );
 
   // ── Mount & auth guard ────────────────────────────────────────────────────
   useEffect(() => {
@@ -1122,19 +1130,12 @@ export default function Stats() {
     [allMonths, allIncome]
   );
 
-  /** Auto-select the most recent year when data first loads. */
+  /** Auto-select the most recent year when data first loads or after sync. */
   useEffect(() => {
     if (availableYears.length > 0 && selectedYear === null) {
       setSelectedYear(availableYears[0]);
     }
   }, [availableYears, selectedYear]);
-
-  /** Re-select year after sync brings in fresh data. */
-  useEffect(() => {
-    if (availableYears.length > 0 && selectedYear === null) {
-      setSelectedYear(availableYears[0]);
-    }
-  }, [allMonths.length, allIncome.length]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Months filtered to the selected year, sorted chronologically. */
   const monthsForYear = useMemo(
@@ -1293,7 +1294,7 @@ export default function Stats() {
     ? monthlyIncome.reduce(
         (best, cur) => (cur.income > best.income ? cur : best)
       )
-    : { shortLabel: "-", income: 0, fullName: "-", monthName: "" };
+    : { shortLabel: "—", income: 0, fullName: "—", monthName: "" };
   const netBalanceThisYear = totalIncomeThisYear - totalThisYear;
   const savingsRateThisYear =
     totalIncomeThisYear > 0 ? Math.round((netBalanceThisYear / totalIncomeThisYear) * 100) : 0;
