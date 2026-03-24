@@ -55,10 +55,23 @@ interface AuthState {
   googleUser: CleanGoogleUser | null;
 }
 
-const initialState: AuthState = {
-  user: null,
-  googleUser: null,
-};
+function loadFromLocalStorage(): AuthState {
+  if (typeof window === "undefined") {
+    return { user: null, googleUser: null };
+  }
+  try {
+    const user = localStorage.getItem("authUser");
+    const googleUser = localStorage.getItem("authGoogleUser");
+    return {
+      user: user ? (JSON.parse(user) as CleanUser) : null,
+      googleUser: googleUser ? (JSON.parse(googleUser) as CleanGoogleUser) : null,
+    };
+  } catch {
+    return { user: null, googleUser: null };
+  }
+}
+
+const initialState: AuthState = loadFromLocalStorage();
 
 const authSlice = createSlice({
   name: "auth",
