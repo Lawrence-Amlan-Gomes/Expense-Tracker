@@ -12,7 +12,7 @@ import EachField from "./EachField";
 const ChangePassword = () => {
   const router = useRouter();
   const { theme } = useTheme();
-  const { user: auth } = useAuth(); // never touch auth.password
+  const { user: auth, hydrated } = useAuth(); // never touch auth.password
 
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -39,8 +39,9 @@ const ChangePassword = () => {
   /* Redirect if not logged in                                            */
   /* --------------------------------------------------------------------- */
   useEffect(() => {
+    if (!hydrated) return;
     if (!auth) router.push("/login");
-  }, [auth, router]);
+  }, [auth, hydrated, router]);
 
   /* --------------------------------------------------------------------- */
   /* Validation – old password                                            */

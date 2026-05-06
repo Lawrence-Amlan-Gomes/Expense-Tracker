@@ -11,16 +11,17 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function Billing() {
-  const { user: auth, setAuth } = useAuth();
+  const { user: auth, setAuth, hydrated } = useAuth();
   const { theme } = useTheme();
   const { wantToPaymentType, wantToPaymentDuration } = usePrice();
   const router = useRouter();
 
   useEffect(() => {
+    if (!hydrated) return;
     if (!auth) {
       router.push("/login");
     }
-  }, [auth, router]);
+  }, [auth, hydrated, router]);
 
   const paymentString = `${wantToPaymentType} ${
     wantToPaymentDuration == "monthly" ? "Monthly" : "Annually"

@@ -83,7 +83,7 @@ export default function DashBoard() {
   const { theme } = useTheme();
   const t = tk(theme);
   const [hasMounted, setHasMounted] = useState(false);
-  const { user: auth, setAuth } = useAuth();
+  const { user: auth, setAuth, hydrated } = useAuth();
   const router = useRouter();
 
   const [banks, setBanks] = useState<IBank[]>([]);
@@ -140,7 +140,8 @@ export default function DashBoard() {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    if (auth === null && hasMounted) {
+    if (!hasMounted || !hydrated) return;
+    if (auth === null) {
       router.push("/login");
     } else if (auth?.money && !initialized) {
       setBanks(auth.money.banks || []);
@@ -151,7 +152,7 @@ export default function DashBoard() {
       setIncome(auth.income || []);
       setInitialized(true);
     }
-  }, [auth, hasMounted, router, initialized]);
+  }, [auth, hasMounted, hydrated, router, initialized]);
 
   useEffect(() => {
     if (months.length > 0 && selectedMonth === null) {
@@ -2262,9 +2263,16 @@ function SpendingModal({
   };
 
   const isAddingNew = spending === null;
+  const todayDate = new Date().getDate().toString();
+  const [dateMode, setDateMode] = useState<"next" | "today">("next");
   const [date, setDate] = useState<string>(
     isAddingNew ? getNextMissingDate() : spending?.date || "",
   );
+
+  const handleDateModeChange = (mode: "next" | "today") => {
+    setDateMode(mode);
+    setDate(mode === "today" ? todayDate : getNextMissingDate());
+  };
 
   useEffect(() => {
     if (spending) {
@@ -2332,6 +2340,29 @@ function SpendingModal({
       onClose={onClose}
     >
       <div className="space-y-4">
+        {isAddingNew && (
+          <div className="flex gap-2">
+            {(["next", "today"] as const).map((mode) => {
+              const active = dateMode === mode;
+              const label = mode === "next" ? "Next available date" : "Today";
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => handleDateModeChange(mode)}
+                  className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+                  style={{
+                    background: active ? t.accentSoft : "transparent",
+                    color: active ? t.accent : t.textMuted,
+                    border: `1px solid ${active ? t.accent : t.border}`,
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <StyledInput
@@ -2344,7 +2375,7 @@ function SpendingModal({
             />
             {isAddingNew && date && (
               <p className="text-xs mt-1" style={{ color: t.success }}>
-                ✓ Next available date
+                ✓ {dateMode === "today" ? "Today" : "Next available date"}
               </p>
             )}
           </div>
@@ -2365,15 +2396,24 @@ function SpendingModal({
             >
               Items
             </label>
-            <button
-              onClick={() =>
-                setSubItems([...subItems, { subName: "", subCost: 0 }])
-              }
-              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg transition-all"
-              style={{ background: t.accentSoft, color: t.accent }}
-            >
-              <Plus size={11} /> Add Item
-            </button>
+            {(() => {
+              const lastEmpty =
+                subItems.length > 0 &&
+                (!subItems[subItems.length - 1].subName.trim() ||
+                  subItems[subItems.length - 1].subCost <= 0);
+              return (
+                <button
+                  onClick={() =>
+                    setSubItems([...subItems, { subName: "", subCost: 0 }])
+                  }
+                  disabled={lastEmpty}
+                  className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg transition-all disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ background: t.accentSoft, color: t.accent }}
+                >
+                  <Plus size={11} /> Add Item
+                </button>
+              );
+            })()}
           </div>
 
           <div className="space-y-2 max-h-[35vh] overflow-y-auto">

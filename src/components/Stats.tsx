@@ -1056,7 +1056,7 @@ function generateInsights(
 export default function Stats() {
   // ── External hooks ────────────────────────────────────────────────────────
   const { theme } = useTheme();
-  const { user: authUser, setAuth } = useAuth();
+  const { user: authUser, setAuth, hydrated } = useAuth();
   const router = useRouter();
 
   // ── Local state ───────────────────────────────────────────────────────────
@@ -1078,15 +1078,11 @@ export default function Stats() {
 
   // ── Auth guard ────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!hasMounted) return;
+    if (!hasMounted || !hydrated) return;
     if (authUser === null) {
-      // check localStorage directly before redirecting
-      const stored = localStorage.getItem("authUser");
-      if (!stored) {
-        router.push("/login");
-      }
+      router.push("/login");
     }
-  }, [authUser, hasMounted, router]);
+  }, [authUser, hasMounted, hydrated, router]);
 
   // ── Always fetch fresh data from DB directly ──────────────────────────────
   useEffect(() => {

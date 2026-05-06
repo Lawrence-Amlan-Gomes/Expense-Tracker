@@ -23,36 +23,26 @@ const LoginForm = () => {
   const { data: session } = useSession();
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   const { theme } = useTheme();
-  const { user: auth, setAuth, setGoogleAuth } = useAuth();
+  const { user: auth, setAuth, setGoogleAuth, hydrated } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [emailError, setEmailError] = useState({
-    iserror: true,
-    error: "Email is required",
-  });
-  const [passwordError, setPasswordError] = useState({
-    iserror: true,
-    error: "Password is required",
-  });
+  const emailError = email
+    ? { iserror: false, error: "" }
+    : { iserror: true, error: "Email is required" };
+  const passwordError = password
+    ? { iserror: false, error: "" }
+    : { iserror: true, error: "Password is required" };
+
   const [mainError, setMainError] = useState({ isError: false, error: "" });
   const [googleError, setGoogleError] = useState({ isError: false, error: "" });
 
   useEffect(() => {
-    setEmailError(
-      email
-        ? { iserror: false, error: "" }
-        : { iserror: true, error: "Email is required" },
-    );
-    setPasswordError(
-      password
-        ? { iserror: false, error: "" }
-        : { iserror: true, error: "Password is required" },
-    );
-    setMainError({ isError: false, error: "" });
-    setGoogleError({ isError: false, error: "" });
+    if (mainError.isError) setMainError({ isError: false, error: "" });
+    if (googleError.isError) setGoogleError({ isError: false, error: "" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email, password]);
 
   useEffect(() => {
@@ -66,10 +56,11 @@ const LoginForm = () => {
   }, [googleError.isError]);
 
   useEffect(() => {
+    if (!hydrated) return;
     if (auth) {
-      router.push("/");
+      router.replace("/");
     }
-  }, [auth, router]);
+  }, [auth, hydrated, router]);
 
   const submitForm = async () => {
     if (emailError.iserror || passwordError.iserror) return;
@@ -89,7 +80,7 @@ const LoginForm = () => {
         }
 
         setAuth(user);
-        router.push("/");
+        router.replace("/");
       } else {
         setMainError({
           isError: true,
@@ -146,7 +137,7 @@ const LoginForm = () => {
           email: session.user.email!,
           image: session.user.image!,
         });
-        router.push("/");
+        router.replace("/");
       } else {
         setGoogleError({
           isError: true,

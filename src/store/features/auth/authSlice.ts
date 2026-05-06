@@ -53,30 +53,18 @@ export interface CleanGoogleUser {
 interface AuthState {
   user: CleanUser | null;
   googleUser: CleanGoogleUser | null;
+  hydrated: boolean;
 }
 
-function loadFromLocalStorage(): AuthState {
-  if (typeof window === "undefined") {
-    return { user: null, googleUser: null };
-  }
-  try {
-    const user = localStorage.getItem("authUser");
-    const googleUser = localStorage.getItem("authGoogleUser");
-    return {
-      user: user ? (JSON.parse(user) as CleanUser) : null,
-      googleUser: googleUser ? (JSON.parse(googleUser) as CleanGoogleUser) : null,
-    };
-  } catch {
-    return { user: null, googleUser: null };
-  }
-}
-
-const initialState: AuthState = loadFromLocalStorage();
+const initialState: AuthState = { user: null, googleUser: null, hydrated: false };
 
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
+    setHydrated: (state, action: PayloadAction<boolean>) => {
+      state.hydrated = action.payload;
+    },
     setAuth: (state, action: PayloadAction<CleanUser | null>) => {
       state.user = action.payload;
       if (typeof window !== "undefined") {
@@ -109,5 +97,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setAuth, setGoogleAuth, logout } = authSlice.actions;
+export const { setAuth, setGoogleAuth, logout, setHydrated } = authSlice.actions;
 export default authSlice.reducer;

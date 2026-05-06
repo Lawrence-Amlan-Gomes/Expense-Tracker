@@ -13,13 +13,16 @@ export const useAuth = () => {
     state.auth.user
   ) as CleanUser | null;
 
-  const googleUser = useSelector((state: RootState) => 
+  const googleUser = useSelector((state: RootState) =>
     state.auth.googleUser
   ) as CleanGoogleUser | null;
+
+  const hydrated = useSelector((state: RootState) => state.auth.hydrated);
 
   return {
     user,
     googleUser,
+    hydrated,
 
     setAuth: (payload: CleanUser | null) => 
       dispatch(setAuth(payload)),

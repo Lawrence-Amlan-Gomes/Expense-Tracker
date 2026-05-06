@@ -10,16 +10,17 @@ import { useRouter } from "next/navigation";
 
 export default function EmailNotVerified() {
   const { theme } = useTheme();
-  const { user: auth, setAuth } = useAuth();
+  const { user: auth, setAuth, hydrated } = useAuth();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const router = useRouter();
 
   useEffect(() => {
-    if(!auth){
+    if (!hydrated) return;
+    if (!auth) {
       router.push("/login");
     }
-  }, [auth, router]);
+  }, [auth, hydrated, router]);
 
   // Poll for verification status every 5 seconds
   useEffect(() => {
