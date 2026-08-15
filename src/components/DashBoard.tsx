@@ -5,7 +5,7 @@ import { useTheme } from "@/app/hooks/useTheme";
 import { updateMoney } from "@/app/actions";
 import EmailNotVerified from "./EmailNotVerified";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   IBank,
   IMonth,
@@ -516,6 +516,8 @@ export default function DashBoard() {
   const [selectedBanks, setSelectedBanks] = useState<string[]>([]);
   const [subItemSearchModalOpen, setSubItemSearchModalOpen] = useState(false);
   const [addSpendingOpen, setAddSpendingOpen] = useState(false);
+  const desktopSpendingsScrollRef = useRef<HTMLDivElement>(null);
+  const mobileSpendingsScrollRef = useRef<HTMLDivElement>(null);
   const [selectedItemKeys, setSelectedItemKeys] = useState<Set<string>>(
     new Set(),
   );
@@ -570,6 +572,19 @@ export default function DashBoard() {
   useEffect(() => {
     setAddSpendingOpen(false);
   }, [selectedMonth]);
+
+  useEffect(() => {
+    if (addSpendingOpen) {
+      desktopSpendingsScrollRef.current?.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+      mobileSpendingsScrollRef.current?.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }
+  }, [addSpendingOpen]);
 
   useEffect(() => {
     setHasMounted(true);
@@ -1170,7 +1185,10 @@ const handleSave = async () => {
 
       {/* Spending list */}
       {selectedMonthData ? (
-        <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div
+          ref={mobileSpendingsScrollRef}
+          className="flex-1 overflow-y-auto px-4 py-4"
+        >
           {addSpendingOpen && (
             <AddSpendingPanel
               spendings={selectedMonthData.spendings}
@@ -1644,6 +1662,7 @@ const handleSave = async () => {
           </div>
           {selectedMonthData ? (
             <div
+              ref={desktopSpendingsScrollRef}
               className="flex-1 overflow-y-auto px-6 py-5 scrollbar-thin"
               style={{ scrollbarColor: `${t.borderStrong} transparent` }}
             >

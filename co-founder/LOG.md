@@ -45,3 +45,15 @@ Format per entry:
     committing or restoring it without asking.
   - `ISpending.item`'s shape (no more `"Name"` key) is now documented in
     CLAUDE.md — read that before touching spending-parsing code again.
+
+## 2026-08-15 (follow-up)
+- What shipped / changed: fixed "Add Spending" not scrolling into view —
+  clicking it now smooth-scrolls the spendings panel to the top on both
+  desktop and mobile, so the newly-opened `AddSpendingPanel` is always
+  visible even if the table was scrolled down.
+- Why: user reported the panel opening off-screen below the scroll
+  position.
+- What's left / next step: none open. Still pending: a real browser
+  click-through of the whole spendings rework (never done yet, only
+  build/lint/typecheck verified).
+- Notes / gotchas discovered: none new.
