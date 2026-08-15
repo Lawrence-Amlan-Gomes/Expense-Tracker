@@ -24,6 +24,7 @@ import {
   BarChart2,
   CheckCircle2,
   Circle,
+  MinusCircle,
   Pencil,
   Wallet,
   Calendar,
@@ -32,18 +33,19 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function parseItem(item: string): {
-  Name: string;
-  [key: string]: number | string;
-} {
+function parseItem(item: string): Record<string, number> {
   try {
     const parsed = JSON.parse(item);
-    if (typeof parsed === "object" && parsed !== null && "Name" in parsed)
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed))
       return parsed;
     throw new Error("Invalid format");
   } catch {
-    return { Name: item };
+    return { [item]: 0 };
   }
+}
+
+function itemKey(spending: ISpending, subName: string): string {
+  return `${spending.date}-${spending.item}-${subName}`;
 }
 
 // ─── Theme tokens ─────────────────────────────────────────────────────────────
@@ -77,6 +79,422 @@ function tk(theme: boolean) {
 // ─── Mobile Tab Type ──────────────────────────────────────────────────────────
 type MobileTab = "accounts" | "timeline" | "spendings";
 
+// ─── Spendings Table (spreadsheet-style) ──────────────────────────────────────
+
+function SpendingsTable({
+  spendings,
+  selectedItemKeys,
+  toggleItem,
+  toggleDate,
+  onRowClick,
+  totalSpending,
+  t,
+}: {
+  spendings: ISpending[];
+  selectedItemKeys: Set<string>;
+  toggleItem: (key: string) => void;
+  toggleDate: (spending: ISpending, entries: [string, number][]) => void;
+  onRowClick: (spending: ISpending) => void;
+  totalSpending: number;
+  t: ReturnType<typeof tk>;
+}) {
+  const sorted = [...spendings].sort(
+    (a, b) => parseInt(a.date) - parseInt(b.date),
+  );
+
+  const headerCell: React.CSSProperties = {
+    color: t.textMuted,
+    borderBottom: `1px solid ${t.border}`,
+  };
+  const cell: React.CSSProperties = {
+    borderTop: `1px solid ${t.border}`,
+  };
+
+  return (
+    <div
+      className="rounded-xl border overflow-hidden"
+      style={{ borderColor: t.border, background: t.surface }}
+    >
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr style={{ background: t.surfaceAlt }}>
+              <th className="w-10 px-3 py-2.5" style={headerCell} />
+              <th
+                className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide whitespace-nowrap"
+                style={headerCell}
+              >
+                Date
+              </th>
+              <th className="w-10 px-3 py-2.5" style={headerCell} />
+              <th
+                className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide"
+                style={headerCell}
+              >
+                Item
+              </th>
+              <th
+                className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide whitespace-nowrap"
+                style={headerCell}
+              >
+                Cost
+              </th>
+              <th
+                className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide whitespace-nowrap"
+                style={headerCell}
+              >
+                Total
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((spending, idx) => {
+              const parsed = parseItem(spending.item);
+              const entries = Object.entries(parsed);
+              const rowCount = Math.max(entries.length, 1);
+              const selectedCount = entries.filter(([subName]) =>
+                selectedItemKeys.has(itemKey(spending, subName)),
+              ).length;
+              const allSelected =
+                entries.length > 0 && selectedCount === entries.length;
+              const noneSelected = selectedCount === 0;
+              const rowBg = idx % 2 === 0 ? t.surface : t.surfaceAlt;
+              const selectedTotal = entries
+                .filter(([subName]) =>
+                  selectedItemKeys.has(itemKey(spending, subName)),
+                )
+                .reduce((sum, [, subCost]) => sum + Number(subCost), 0);
+
+              const rows =
+                entries.length === 0
+                  ? [["—", 0] as [string, number]]
+                  : entries;
+
+              return rows.map(([subName, subCost], j) => {
+                const key = itemKey(spending, subName);
+                const isItemChecked = selectedItemKeys.has(key);
+                return (
+                  <tr
+                    key={`${spending.date}-${spending.item}-${j}`}
+                    className="cursor-pointer transition-colors"
+                    style={{ background: rowBg }}
+                    onClick={() => onRowClick(spending)}
+                  >
+                    {j === 0 && (
+                      <>
+                        <td
+                          rowSpan={rowCount}
+                          className="px-3 py-2.5 align-top"
+                          style={cell}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleDate(spending, entries);
+                          }}
+                        >
+                          {allSelected ? (
+                            <CheckCircle2
+                              size={16}
+                              style={{ color: t.accent }}
+                            />
+                          ) : noneSelected ? (
+                            <Circle size={16} style={{ color: t.textMuted }} />
+                          ) : (
+                            <MinusCircle
+                              size={16}
+                              style={{ color: t.accent }}
+                            />
+                          )}
+                        </td>
+                        <td
+                          rowSpan={rowCount}
+                          className="px-3 py-2.5 align-top font-bold whitespace-nowrap"
+                          style={{ ...cell, color: t.accent }}
+                        >
+                          {spending.date}
+                        </td>
+                      </>
+                    )}
+                    <td
+                      className="px-3 py-2.5"
+                      style={{
+                        ...cell,
+                        opacity: isItemChecked ? 1 : 0.45,
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleItem(key);
+                      }}
+                    >
+                      {isItemChecked ? (
+                        <CheckCircle2 size={16} style={{ color: t.accent }} />
+                      ) : (
+                        <Circle size={16} style={{ color: t.textMuted }} />
+                      )}
+                    </td>
+                    <td
+                      className="px-3 py-2.5"
+                      style={{
+                        ...cell,
+                        color: t.text,
+                        opacity: isItemChecked ? 1 : 0.45,
+                      }}
+                    >
+                      {subName}
+                    </td>
+                    <td
+                      className="px-3 py-2.5 text-right font-semibold whitespace-nowrap"
+                      style={{
+                        ...cell,
+                        color: t.danger,
+                        opacity: isItemChecked ? 1 : 0.45,
+                      }}
+                    >
+                      ৳ {Number(subCost).toLocaleString()}
+                    </td>
+                    {j === 0 && (
+                      <td
+                        rowSpan={rowCount}
+                        className="px-3 py-2.5 align-top text-right font-bold whitespace-nowrap"
+                        style={{
+                          ...cell,
+                          color: t.danger,
+                          opacity: noneSelected ? 0.45 : 1,
+                        }}
+                      >
+                        ৳ {selectedTotal.toLocaleString()}
+                      </td>
+                    )}
+                  </tr>
+                );
+              });
+            })}
+          </tbody>
+          <tfoot>
+            <tr style={{ background: t.surfaceAlt }}>
+              <td
+                colSpan={5}
+                className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide"
+                style={{ ...cell, color: t.textMuted }}
+              >
+                Total
+              </td>
+              <td
+                className="px-3 py-2.5 text-right font-bold whitespace-nowrap"
+                style={{ ...cell, color: t.danger }}
+              >
+                ৳ {totalSpending.toLocaleString()}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Add Spending Panel (inline, above the spreadsheet) ──────────────────────
+
+function AddSpendingPanel({
+  spendings,
+  onAdd,
+  onUpdate,
+  onClose,
+  t,
+}: {
+  spendings: ISpending[];
+  onAdd: (spending: ISpending) => void;
+  onUpdate: (old: ISpending, updated: ISpending) => void;
+  onClose: () => void;
+  t: ReturnType<typeof tk>;
+}) {
+  const existingDates = spendings.map((s) => s.date);
+
+  const getNextMissingDate = (): string => {
+    const used = new Set(
+      existingDates
+        .map((d) => parseInt(d, 10))
+        .filter((n) => !isNaN(n) && n >= 1 && n <= 31),
+    );
+    for (let d = 1; d <= 31; d++) if (!used.has(d)) return d.toString();
+    return "";
+  };
+
+  const todayDate = new Date().getDate().toString();
+  const [dateMode, setDateMode] = useState<"next" | "today">("next");
+  const [date, setDate] = useState<string>(getNextMissingDate());
+  const [itemName, setItemName] = useState("");
+  const [itemCost, setItemCost] = useState("");
+  const [error, setError] = useState("");
+
+  const handleDateModeChange = (mode: "next" | "today") => {
+    setDateMode(mode);
+    setDate(mode === "today" ? todayDate : getNextMissingDate());
+    setError("");
+  };
+
+  const handleSubmit = () => {
+    const dateNum = parseInt(date);
+    if (!date || dateNum < 1 || dateNum > 31) {
+      setError("Date must be between 1 and 31");
+      return;
+    }
+    if (!itemName.trim()) {
+      setError("Please enter an item name");
+      return;
+    }
+    const cost = parseFloat(itemCost);
+    if (isNaN(cost) || cost <= 0) {
+      setError("Please enter a valid cost");
+      return;
+    }
+
+    const existing = spendings.find((s) => s.date === date);
+    if (existing) {
+      const parsed = parseItem(existing.item);
+      if (itemName.trim() in parsed) {
+        setError("An item with this name already exists for this date");
+        return;
+      }
+      const updatedItemObj = { ...parsed, [itemName.trim()]: cost };
+      const newTotal = Object.values(updatedItemObj).reduce(
+        (s, c) => s + Number(c),
+        0,
+      );
+      onUpdate(existing, {
+        date,
+        item: JSON.stringify(updatedItemObj),
+        cost: newTotal,
+      });
+    } else {
+      onAdd({
+        date,
+        item: JSON.stringify({ [itemName.trim()]: cost }),
+        cost,
+      });
+    }
+
+    setItemName("");
+    setItemCost("");
+    setError("");
+  };
+
+  return (
+    <div
+      className="rounded-xl border p-4 mb-4"
+      style={{ borderColor: t.border, background: t.surface, boxShadow: t.shadow }}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-bold" style={{ color: t.text }}>
+          New Spending
+        </h3>
+        <button
+          onClick={onClose}
+          className="p-1 rounded-lg transition-colors"
+          style={{ color: t.textMuted }}
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      <div className="flex gap-2 mb-3">
+        {(["next", "today"] as const).map((mode) => {
+          const active = dateMode === mode;
+          const label = mode === "next" ? "Next available date" : "Today";
+          return (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => handleDateModeChange(mode)}
+              className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-all"
+              style={{
+                background: active ? t.accentSoft : "transparent",
+                color: active ? t.accent : t.textMuted,
+                border: `1px solid ${active ? t.accent : t.border}`,
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mb-4">
+        <StyledInput
+          label="Day (1–31)"
+          type="number"
+          min="1"
+          max="31"
+          value={date}
+          onChange={(e) => {
+            setDate(e.target.value);
+            setError("");
+          }}
+        />
+        {date && (
+          <p className="text-xs mt-1" style={{ color: t.success }}>
+            ✓ {dateMode === "today" ? "Today" : "Next available date"}
+          </p>
+        )}
+      </div>
+
+      <p
+        className="text-xs font-semibold uppercase tracking-wide mb-2"
+        style={{ color: t.textMuted }}
+      >
+        Add your first item
+      </p>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={itemName}
+          onChange={(e) => {
+            setItemName(e.target.value);
+            setError("");
+          }}
+          placeholder="Item name"
+          className="flex-1 px-3 py-2.5 rounded-lg text-sm outline-none"
+          style={{
+            background: t.inputBg,
+            border: `1px solid ${t.border}`,
+            color: t.text,
+          }}
+        />
+        <input
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          value={itemCost}
+          onChange={(e) => {
+            setItemCost(e.target.value.replace(/[^0-9.]/g, ""));
+            setError("");
+          }}
+          placeholder="Cost"
+          className="w-24 px-3 py-2.5 rounded-lg text-sm outline-none"
+          style={{
+            background: t.inputBg,
+            border: `1px solid ${t.border}`,
+            color: t.text,
+          }}
+        />
+      </div>
+
+      {error && (
+        <p className="text-xs mt-2" style={{ color: t.danger }}>
+          {error}
+        </p>
+      )}
+
+      <button
+        onClick={handleSubmit}
+        className="w-full mt-3 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
+        style={{ background: t.accent, boxShadow: `0 2px 8px ${t.accent}44` }}
+      >
+        Add Spending
+      </button>
+    </div>
+  );
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function DashBoard() {
@@ -97,9 +515,10 @@ export default function DashBoard() {
   const [originalMoney, setOriginalMoney] = useState<IMoney | null>(null);
   const [selectedBanks, setSelectedBanks] = useState<string[]>([]);
   const [subItemSearchModalOpen, setSubItemSearchModalOpen] = useState(false);
-  const [selectedSpendingDates, setSelectedSpendingDates] = useState<
-    Set<string>
-  >(new Set());
+  const [addSpendingOpen, setAddSpendingOpen] = useState(false);
+  const [selectedItemKeys, setSelectedItemKeys] = useState<Set<string>>(
+    new Set(),
+  );
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [subItemSearchQuery, setSubItemSearchQuery] = useState("");
   const [mobileTab, setMobileTab] = useState<MobileTab>("accounts");
@@ -119,18 +538,38 @@ export default function DashBoard() {
 
   const selectedMonthData = months.find((m) => m.name === selectedMonth);
   const totalSpending =
-    selectedMonthData?.spendings
-      .filter((s) => selectedSpendingDates.has(`${s.date}-${s.item}`))
-      .reduce((sum, s) => sum + s.cost, 0) || 0;
+    selectedMonthData?.spendings.reduce((sum, s) => {
+      const parsed = parseItem(s.item);
+      return (
+        sum +
+        Object.entries(parsed).reduce(
+          (subSum, [subName, subCost]) =>
+            selectedItemKeys.has(itemKey(s, subName))
+              ? subSum + Number(subCost)
+              : subSum,
+          0,
+        )
+      );
+    }, 0) || 0;
 
   useEffect(() => {
     if (selectedMonthData) {
-      setSelectedSpendingDates(
-        new Set(selectedMonthData.spendings.map((s) => `${s.date}-${s.item}`)),
+      setSelectedItemKeys(
+        new Set(
+          selectedMonthData.spendings.flatMap((s) =>
+            Object.keys(parseItem(s.item)).map((subName) =>
+              itemKey(s, subName),
+            ),
+          ),
+        ),
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMonth, selectedMonthData?.spendings.length]);
+
+  useEffect(() => {
+    setAddSpendingOpen(false);
+  }, [selectedMonth]);
 
   useEffect(() => {
     setHasMounted(true);
@@ -716,13 +1155,7 @@ const handleSave = async () => {
             </div>
 
             <button
-              onClick={() =>
-                setSpendingModal({
-                  show: true,
-                  spending: null,
-                  monthName: selectedMonth!,
-                })
-              }
+              onClick={() => setAddSpendingOpen((v) => !v)}
               className="flex items-center justify-center w-9 h-9 rounded-xl text-white transition-all active:scale-[0.98]"
               style={{
                 background: t.accent,
@@ -738,136 +1171,63 @@ const handleSave = async () => {
       {/* Spending list */}
       {selectedMonthData ? (
         <div className="flex-1 overflow-y-auto px-4 py-4">
+          {addSpendingOpen && (
+            <AddSpendingPanel
+              spendings={selectedMonthData.spendings}
+              onAdd={(spending) => handleAddSpending(selectedMonth!, spending)}
+              onUpdate={(old, updated) =>
+                handleUpdateSpending(selectedMonth!, old, updated)
+              }
+              onClose={() => setAddSpendingOpen(false)}
+              t={t}
+            />
+          )}
           {selectedMonthData.spendings.length === 0 ? (
-            <div
-              className="flex flex-col items-center justify-center h-full gap-3"
-              style={{ color: t.textMuted }}
-            >
+            !addSpendingOpen && (
               <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center"
-                style={{ background: t.surfaceAlt }}
+                className="flex flex-col items-center justify-center h-full gap-3"
+                style={{ color: t.textMuted }}
               >
-                <Plus size={28} style={{ color: t.textMuted }} />
+                <div
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                  style={{ background: t.surfaceAlt }}
+                >
+                  <Plus size={28} style={{ color: t.textMuted }} />
+                </div>
+                <p className="text-sm font-medium">No spendings yet</p>
+                <p className="text-xs">Tap &quot;+&quot; to add a spending</p>
               </div>
-              <p className="text-sm font-medium">No spendings yet</p>
-              <p className="text-xs">Tap &quot;+&quot; to add a spending</p>
-            </div>
+            )
           ) : (
-            <div className="space-y-2">
-              {[...selectedMonthData.spendings]
-                .sort((a, b) => parseInt(a.date) - parseInt(b.date))
-                .map((spending) => {
-                  const key = `${spending.date}-${spending.item}`;
-                  const isChecked = selectedSpendingDates.has(key);
-                  const parsed = parseItem(spending.item);
-                  const subCount = Object.keys(parsed).filter(
-                    (k) => k !== "Name",
-                  ).length;
-
-                  return (
-                    <div
-                      key={key}
-                      className="group flex items-center gap-3 rounded-xl px-3 py-3 transition-all border"
-                      style={{
-                        background: isChecked ? t.surface : t.surfaceAlt,
-                        borderColor: isChecked ? t.border : "transparent",
-                        opacity: isChecked ? 1 : 0.45,
-                        boxShadow: isChecked ? t.shadow : "none",
-                      }}
-                    >
-                      {/* Checkbox */}
-                      <button
-                        onClick={() => {
-                          const newSet = new Set(selectedSpendingDates);
-                          if (newSet.has(key)) newSet.delete(key);
-                          else newSet.add(key);
-                          setSelectedSpendingDates(newSet);
-                        }}
-                        className="flex-shrink-0 transition-all"
-                      >
-                        {isChecked ? (
-                          <CheckCircle2 size={18} style={{ color: t.accent }} />
-                        ) : (
-                          <Circle size={18} style={{ color: t.textMuted }} />
-                        )}
-                      </button>
-
-                      {/* Date badge */}
-                      <div
-                        className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
-                        style={{ background: t.accentSoft, color: t.accent }}
-                      >
-                        {spending.date}
-                      </div>
-
-                      {/* Content */}
-                      <div
-                        className="flex-1 min-w-0 cursor-pointer"
-                        onClick={() =>
-                          setSpendingModal({
-                            show: true,
-                            spending,
-                            monthName: selectedMonth!,
-                          })
-                        }
-                      >
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span
-                            className="text-sm font-semibold truncate"
-                            style={{ color: t.text }}
-                          >
-                            {parsed.Name as string}
-                          </span>
-                          {subCount > 0 && (
-                            <span
-                              className="text-xs px-1.5 py-0.5 rounded-md font-medium flex-shrink-0"
-                              style={{
-                                background: t.surfaceAlt,
-                                color: t.textSub,
-                              }}
-                            >
-                              {subCount} items
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Amount */}
-                      <div
-                        className="flex-shrink-0 text-right cursor-pointer"
-                        onClick={() =>
-                          setSpendingModal({
-                            show: true,
-                            spending,
-                            monthName: selectedMonth!,
-                          })
-                        }
-                      >
-                        <div
-                          className="text-sm font-bold"
-                          style={{ color: t.danger }}
-                        >
-                          ৳ {spending.cost.toLocaleString()}
-                        </div>
-                      </div>
-
-                      {/* Edit hint - hidden on mobile touch */}
-                      <Pencil
-                        size={13}
-                        className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hidden sm:block"
-                        style={{ color: t.textMuted }}
-                        onClick={() =>
-                          setSpendingModal({
-                            show: true,
-                            spending,
-                            monthName: selectedMonth!,
-                          })
-                        }
-                      />
-                    </div>
-                  );
-                })}
-            </div>
+            <SpendingsTable
+              spendings={selectedMonthData.spendings}
+              selectedItemKeys={selectedItemKeys}
+              toggleItem={(key) => {
+                const newSet = new Set(selectedItemKeys);
+                if (newSet.has(key)) newSet.delete(key);
+                else newSet.add(key);
+                setSelectedItemKeys(newSet);
+              }}
+              toggleDate={(spending, entries) => {
+                const keys = entries.map(([subName]) =>
+                  itemKey(spending, subName),
+                );
+                const allSelected = keys.every((k) => selectedItemKeys.has(k));
+                const newSet = new Set(selectedItemKeys);
+                if (allSelected) keys.forEach((k) => newSet.delete(k));
+                else keys.forEach((k) => newSet.add(k));
+                setSelectedItemKeys(newSet);
+              }}
+              onRowClick={(spending) =>
+                setSpendingModal({
+                  show: true,
+                  spending,
+                  monthName: selectedMonth!,
+                })
+              }
+              totalSpending={totalSpending}
+              t={t}
+            />
           )}
         </div>
       ) : (
@@ -1269,13 +1629,7 @@ const handleSave = async () => {
                   </div>
                 </div>
                 <button
-                  onClick={() =>
-                    setSpendingModal({
-                      show: true,
-                      spending: null,
-                      monthName: selectedMonth!,
-                    })
-                  }
+                  onClick={() => setAddSpendingOpen((v) => !v)}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[1.02]"
                   style={{
                     background: t.accent,
@@ -1293,135 +1647,69 @@ const handleSave = async () => {
               className="flex-1 overflow-y-auto px-6 py-5 scrollbar-thin"
               style={{ scrollbarColor: `${t.borderStrong} transparent` }}
             >
+              {addSpendingOpen && (
+                <AddSpendingPanel
+                  spendings={selectedMonthData.spendings}
+                  onAdd={(spending) =>
+                    handleAddSpending(selectedMonth!, spending)
+                  }
+                  onUpdate={(old, updated) =>
+                    handleUpdateSpending(selectedMonth!, old, updated)
+                  }
+                  onClose={() => setAddSpendingOpen(false)}
+                  t={t}
+                />
+              )}
               {selectedMonthData.spendings.length === 0 ? (
-                <div
-                  className="flex flex-col items-center justify-center h-full gap-3"
-                  style={{ color: t.textMuted }}
-                >
+                !addSpendingOpen && (
                   <div
-                    className="w-16 h-16 rounded-2xl flex items-center justify-center"
-                    style={{ background: t.surfaceAlt }}
+                    className="flex flex-col items-center justify-center h-full gap-3"
+                    style={{ color: t.textMuted }}
                   >
-                    <Plus size={28} style={{ color: t.textMuted }} />
+                    <div
+                      className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                      style={{ background: t.surfaceAlt }}
+                    >
+                      <Plus size={28} style={{ color: t.textMuted }} />
+                    </div>
+                    <p className="text-sm font-medium">No spendings yet</p>
+                    <p className="text-xs">
+                      Click &quot;Add Spending&quot; to get started
+                    </p>
                   </div>
-                  <p className="text-sm font-medium">No spendings yet</p>
-                  <p className="text-xs">Click &quot;Add Spending&quot; to get started</p>
-                </div>
+                )
               ) : (
-                <div className="space-y-2">
-                  {[...selectedMonthData.spendings]
-                    .sort((a, b) => parseInt(a.date) - parseInt(b.date))
-                    .map((spending) => {
-                      const key = `${spending.date}-${spending.item}`;
-                      const isChecked = selectedSpendingDates.has(key);
-                      const parsed = parseItem(spending.item);
-                      const subCount = Object.keys(parsed).filter(
-                        (k) => k !== "Name",
-                      ).length;
-                      return (
-                        <div
-                          key={key}
-                          className="group flex items-center gap-3 rounded-xl px-4 py-3.5 transition-all border"
-                          style={{
-                            background: isChecked ? t.surface : t.surfaceAlt,
-                            borderColor: isChecked ? t.border : "transparent",
-                            opacity: isChecked ? 1 : 0.45,
-                            boxShadow: isChecked ? t.shadow : "none",
-                          }}
-                        >
-                          <button
-                            onClick={() => {
-                              const newSet = new Set(selectedSpendingDates);
-                              if (newSet.has(key)) newSet.delete(key);
-                              else newSet.add(key);
-                              setSelectedSpendingDates(newSet);
-                            }}
-                            className="flex-shrink-0 transition-all"
-                          >
-                            {isChecked ? (
-                              <CheckCircle2
-                                size={18}
-                                style={{ color: t.accent }}
-                              />
-                            ) : (
-                              <Circle
-                                size={18}
-                                style={{ color: t.textMuted }}
-                              />
-                            )}
-                          </button>
-                          <div
-                            className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold"
-                            style={{
-                              background: t.accentSoft,
-                              color: t.accent,
-                            }}
-                          >
-                            {spending.date}
-                          </div>
-                          <div
-                            className="flex-1 min-w-0 cursor-pointer"
-                            onClick={() =>
-                              setSpendingModal({
-                                show: true,
-                                spending,
-                                monthName: selectedMonth!,
-                              })
-                            }
-                          >
-                            <div className="flex items-center gap-2">
-                              <span
-                                className="text-sm font-semibold truncate"
-                                style={{ color: t.text }}
-                              >
-                                {parsed.Name as string}
-                              </span>
-                              {subCount > 0 && (
-                                <span
-                                  className="text-xs px-1.5 py-0.5 rounded-md font-medium flex-shrink-0"
-                                  style={{
-                                    background: t.surfaceAlt,
-                                    color: t.textSub,
-                                  }}
-                                >
-                                  {subCount} items
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div
-                            className="flex-shrink-0 text-right cursor-pointer"
-                            onClick={() =>
-                              setSpendingModal({
-                                show: true,
-                                spending,
-                                monthName: selectedMonth!,
-                              })
-                            }
-                          >
-                            <div
-                              className="text-sm font-bold"
-                              style={{ color: t.danger }}
-                            >
-                              ৳ {spending.cost.toLocaleString()}
-                            </div>
-                          </div>
-                          <Pencil
-                            size={13}
-                            className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                            style={{ color: t.textMuted }}
-                            onClick={() =>
-                              setSpendingModal({
-                                show: true,
-                                spending,
-                                monthName: selectedMonth!,
-                              })
-                            }
-                          />
-                        </div>
-                      );
-                    })}
-                </div>
+                <SpendingsTable
+                  spendings={selectedMonthData.spendings}
+                  selectedItemKeys={selectedItemKeys}
+                  toggleItem={(key) => {
+                    const newSet = new Set(selectedItemKeys);
+                    if (newSet.has(key)) newSet.delete(key);
+                    else newSet.add(key);
+                    setSelectedItemKeys(newSet);
+                  }}
+                  toggleDate={(spending, entries) => {
+                    const keys = entries.map(([subName]) =>
+                      itemKey(spending, subName),
+                    );
+                    const allSelected = keys.every((k) =>
+                      selectedItemKeys.has(k),
+                    );
+                    const newSet = new Set(selectedItemKeys);
+                    if (allSelected) keys.forEach((k) => newSet.delete(k));
+                    else keys.forEach((k) => newSet.add(k));
+                    setSelectedItemKeys(newSet);
+                  }}
+                  onRowClick={(spending) =>
+                    setSpendingModal({
+                      show: true,
+                      spending,
+                      monthName: selectedMonth!,
+                    })
+                  }
+                  totalSpending={totalSpending}
+                  t={t}
+                />
               )}
             </div>
           ) : (
@@ -1612,7 +1900,7 @@ const handleSave = async () => {
         />
       )}
 
-      {spendingModal.show && (
+      {spendingModal.show && spendingModal.spending && (
         <SpendingModal
           spending={spendingModal.spending}
           monthName={spendingModal.monthName}
@@ -1620,7 +1908,6 @@ const handleSave = async () => {
           onClose={() =>
             setSpendingModal({ show: false, spending: null, monthName: "" })
           }
-          onAdd={handleAddSpending}
           onUpdate={handleUpdateSpending}
           onDelete={handleDeleteSpending}
         />
@@ -2232,59 +2519,33 @@ function SpendingModal({
   monthName,
   existingDates,
   onClose,
-  onAdd,
   onUpdate,
   onDelete,
 }: {
-  spending: ISpending | null;
+  spending: ISpending;
   monthName: string;
   existingDates: string[];
   onClose: () => void;
-  onAdd: (month: string, spending: ISpending) => void;
   onUpdate: (month: string, old: ISpending, updated: ISpending) => void;
   onDelete: (month: string, spending: ISpending) => void;
 }) {
   const { theme } = useTheme();
   const t = tk(theme);
-  const [name, setName] = useState("Multiple Spendings");
   const [subItems, setSubItems] = useState<
     { subName: string; subCost: number }[]
   >([]);
-
-  const getNextMissingDate = (): string => {
-    if (!existingDates || existingDates.length === 0) return "1";
-    const used = new Set(
-      existingDates
-        .map((d) => parseInt(d, 10))
-        .filter((n) => !isNaN(n) && n >= 1 && n <= 31),
-    );
-    for (let d = 1; d <= 31; d++) if (!used.has(d)) return d.toString();
-    return "";
-  };
-
-  const isAddingNew = spending === null;
-  const todayDate = new Date().getDate().toString();
-  const [dateMode, setDateMode] = useState<"next" | "today">("next");
-  const [date, setDate] = useState<string>(
-    isAddingNew ? getNextMissingDate() : spending?.date || "",
-  );
-
-  const handleDateModeChange = (mode: "next" | "today") => {
-    setDateMode(mode);
-    setDate(mode === "today" ? todayDate : getNextMissingDate());
-  };
+  const [date, setDate] = useState<string>(spending.date);
 
   useEffect(() => {
-    if (spending) {
-      const parsed = parseItem(spending.item);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setName(parsed.Name as string);
-      setSubItems(
-        Object.entries(parsed)
-          .filter(([k]) => k !== "Name")
-          .map(([n, c]) => ({ subName: n, subCost: Number(c) })),
-      );
-    }
+    const parsed = parseItem(spending.item);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSubItems(
+      Object.entries(parsed).map(([n, c]) => ({
+        subName: n,
+        subCost: Number(c),
+      })),
+    );
+    setDate(spending.date);
   }, [spending]);
 
   const totalCost = subItems.reduce((s, x) => s + x.subCost, 0);
@@ -2295,10 +2556,6 @@ function SpendingModal({
       alert("❌ Date must be between 1 and 31");
       return;
     }
-    if (!name.trim()) {
-      alert("❌ Please enter a name");
-      return;
-    }
     if (subItems.some((s) => !s.subName.trim() || s.subCost <= 0)) {
       alert("❌ All items must have a name and positive cost");
       return;
@@ -2307,8 +2564,12 @@ function SpendingModal({
       alert("❌ Total cost must be positive");
       return;
     }
+    if (spending.date !== date && existingDates.includes(date)) {
+      alert("❌ A spending already exists for this date");
+      return;
+    }
 
-    const itemObj: { [key: string]: string | number } = { Name: name.trim() };
+    const itemObj: { [key: string]: number } = {};
     subItems.forEach((s) => {
       itemObj[s.subName.trim()] = s.subCost;
     });
@@ -2318,74 +2579,21 @@ function SpendingModal({
       cost: totalCost,
     };
 
-    if (spending) {
-      if (spending.date !== date && existingDates.includes(date)) {
-        alert("❌ A spending already exists for this date");
-        return;
-      }
-      onUpdate(monthName, spending, newSpending);
-    } else {
-      if (existingDates.includes(date)) {
-        alert("❌ A spending already exists for this date");
-        return;
-      }
-      onAdd(monthName, newSpending);
-    }
+    onUpdate(monthName, spending, newSpending);
     onClose();
   };
 
   return (
-    <ModalShell
-      title={spending ? "Edit Spending" : "New Spending"}
-      onClose={onClose}
-    >
+    <ModalShell title="Edit Spending" onClose={onClose}>
       <div className="space-y-4">
-        {isAddingNew && (
-          <div className="flex gap-2">
-            {(["next", "today"] as const).map((mode) => {
-              const active = dateMode === mode;
-              const label = mode === "next" ? "Next available date" : "Today";
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => handleDateModeChange(mode)}
-                  className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-all"
-                  style={{
-                    background: active ? t.accentSoft : "transparent",
-                    color: active ? t.accent : t.textMuted,
-                    border: `1px solid ${active ? t.accent : t.border}`,
-                  }}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <StyledInput
-              label="Day (1–31)"
-              type="number"
-              min="1"
-              max="31"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-            {isAddingNew && date && (
-              <p className="text-xs mt-1" style={{ color: t.success }}>
-                ✓ {dateMode === "today" ? "Today" : "Next available date"}
-              </p>
-            )}
-          </div>
-          <StyledInput
-            label="Display Name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
+        <StyledInput
+          label="Day (1–31)"
+          type="number"
+          min="1"
+          max="31"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+        />
 
         {/* Sub-items */}
         <div>
@@ -2498,26 +2706,24 @@ function SpendingModal({
       </div>
 
       <div className="flex gap-3 mt-5">
-        {spending && (
-          <button
-            onClick={() => {
-              if (confirm("Delete this spending?")) {
-                onDelete(monthName, spending);
-                onClose();
-              }
-            }}
-            className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
-            style={{ background: t.danger }}
-          >
-            Delete
-          </button>
-        )}
+        <button
+          onClick={() => {
+            if (confirm("Delete this spending?")) {
+              onDelete(monthName, spending);
+              onClose();
+            }
+          }}
+          className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
+          style={{ background: t.danger }}
+        >
+          Delete
+        </button>
         <button
           onClick={handleSubmit}
           className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
           style={{ background: t.accent, boxShadow: `0 2px 8px ${t.accent}44` }}
         >
-          {spending ? "Update" : "Add Spending"}
+          Update
         </button>
       </div>
     </ModalShell>
@@ -2649,14 +2855,11 @@ function SubItemSearchModal({
   const items = spendings
     .flatMap((sp) => {
       const parsed = parseItem(sp.item);
-      return Object.entries(parsed)
-        .filter(([k]) => k !== "Name")
-        .map(([subName, subCost]) => ({
-          date: sp.date,
-          mainName: parsed.Name as string,
-          subName,
-          subCost: Number(subCost),
-        }));
+      return Object.entries(parsed).map(([subName, subCost]) => ({
+        date: sp.date,
+        subName,
+        subCost: Number(subCost),
+      }));
     })
     .filter((e) => lower === "" || e.subName.toLowerCase().includes(lower))
     .sort((a, b) => parseInt(a.date) - parseInt(b.date));
@@ -2787,9 +2990,6 @@ function SubItemSearchModal({
                   {entry.date}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs" style={{ color: t.textMuted }}>
-                    {entry.mainName}
-                  </div>
                   <div
                     className="text-sm font-semibold truncate"
                     style={{ color: t.text }}

@@ -71,7 +71,6 @@ interface SubItem {
 interface FlatSpending {
   monthName: string;    // e.g. "January 2025"
   date: string;         // day of month, e.g. "15"
-  displayName: string;  // the item's display name
   subItems: SubItem[];  // breakdown of sub-costs inside the item
   totalCost: number;    // total cost of this spending entry
 }
@@ -191,27 +190,26 @@ function getThemeTokens(isLightTheme: boolean): ThemeTokens {
 }
 
 /**
- * Parse a spending item string into a structured object.
+ * Parse a spending item string into a map of sub-item name → cost.
  *
  * Spending items can be stored as either:
  *   - A plain string like "Rice"
- *   - A JSON string like '{"Name":"Groceries","Rice":200,"Oil":150}'
+ *   - A JSON string like '{"Rice":200,"Oil":150}'
  *
  * This function tries to parse it as JSON first. If that fails (or it's not
- * an object with a "Name" key), it falls back to treating it as a plain string.
+ * a plain object), it falls back to treating it as a single unnamed item.
  *
  * @param itemString - The raw item string from the database
- * @returns A parsed object with at least a `Name` property
+ * @returns A map of sub-item name to cost
  */
-function parseSpendingItem(itemString: string): { Name: string; [key: string]: number | string } {
+function parseSpendingItem(itemString: string): Record<string, number> {
   try {
     const parsed = JSON.parse(itemString);
 
-    // Only accept it if it's a real object with a "Name" field
     const isValidObject =
       typeof parsed === "object" &&
       parsed !== null &&
-      "Name" in parsed;
+      !Array.isArray(parsed);
 
     if (isValidObject) {
       return parsed;
@@ -220,8 +218,8 @@ function parseSpendingItem(itemString: string): { Name: string; [key: string]: n
     // If parsing succeeded but it's not the shape we expect, fall back
     throw new Error("Not a valid spending item object");
   } catch {
-    // Not valid JSON or not the right shape — treat as a plain name
-    return { Name: itemString };
+    // Not valid JSON — treat as a single unnamed item
+    return { [itemString]: 0 };
   }
 }
 
@@ -579,10 +577,10 @@ function SectionHeader({
  * Flatten the nested months→spendings structure into a flat array.
  *
  * Input shape:
- *   months = [{ name: "January 2025", spendings: [{ item: '{"Name":"Groceries","Rice":200}', cost: 200, date: "5" }] }]
+ *   months = [{ name: "January 2025", spendings: [{ item: '{"Rice":200}', cost: 200, date: "5" }] }]
  *
  * Output shape:
- *   [{ monthName: "January 2025", date: "5", displayName: "Groceries", subItems: [{name:"Rice", cost:200}], totalCost: 200 }]
+ *   [{ monthName: "January 2025", date: "5", subItems: [{name:"Rice", cost:200}], totalCost: 200 }]
  */
 function buildFlatSpendings(months: IMonth[]): FlatSpending[] {
   const results: FlatSpending[] = [];
@@ -591,16 +589,15 @@ function buildFlatSpendings(months: IMonth[]): FlatSpending[] {
     for (const spending of month.spendings) {
       const parsed = parseSpendingItem(spending.item);
 
-      // Extract sub-items: every key except "Name" is a sub-item
-      // e.g. { Name: "Groceries", Rice: 200, Oil: 150 } → [{ name: "Rice", cost: 200 }, { name: "Oil", cost: 150 }]
-      const subItems: SubItem[] = Object.entries(parsed)
-        .filter(([key]) => key !== "Name")
-        .map(([name, cost]) => ({ name, cost: Number(cost) }));
+      // Every key is a sub-item, e.g. { Rice: 200, Oil: 150 } →
+      // [{ name: "Rice", cost: 200 }, { name: "Oil", cost: 150 }]
+      const subItems: SubItem[] = Object.entries(parsed).map(
+        ([name, cost]) => ({ name, cost: Number(cost) }),
+      );
 
       results.push({
         monthName: month.name,
         date: spending.date,
-        displayName: parsed.Name as string,
         subItems,
         totalCost: spending.cost,
       });
@@ -706,9 +703,9 @@ function calculateCategoryTotals(
         categoryMap.set(subItem.name, currentTotal + subItem.cost);
       }
     } else {
-      // No sub-items — use the display name as the category
-      const currentTotal = categoryMap.get(spending.displayName) || 0;
-      categoryMap.set(spending.displayName, currentTotal + spending.totalCost);
+      // No sub-items — bucket under "Uncategorized"
+      const currentTotal = categoryMap.get("Uncategorized") || 0;
+      categoryMap.set("Uncategorized", currentTotal + spending.totalCost);
     }
   }
 

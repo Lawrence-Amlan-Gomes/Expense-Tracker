@@ -52,6 +52,8 @@ src/
 public/                         # Icons, images, theme assets
 ```
 
+`skillCoFounder.md` (repo root) is an AI-assistant entry point, not app code — invoked via `@skillCoFounder.md`. It reads/writes `co-founder/` (repo root), a private working-memory folder for the assistant (current state, session log, ideas, decisions). Neither directory affects the running app.
+
 ## Getting Started
 1. `npm install`
 2. Create `.env.local` with the variables in the [Environment Variables](#environment-variables) table
@@ -120,4 +122,6 @@ No test framework is currently configured (no `jest`, `vitest`, or `__tests__` d
 - Server actions must return only plain serializable objects to client components; convert ObjectIds and Dates to strings (existing code uses `_id.toString()` and `Date.toISOString()`).
 - React Compiler is on — avoid hand-rolling memoization unless there's a measured reason.
 - Email verification is bypassed for Google sign-ups (`isGoogleAuth = !data.password`); preserve this behavior.
-- The repo has the deleted file `public/video.mp4` showing in `git status` — it's a tracked deletion, not a missing asset to restore unless asked.
+- `ISpending.item` (in `money.Months[].spendings[]`) is a JSON-stringified flat map of `{ itemName: cost }`, e.g. `'{"Rice":200,"Oil":150}'`. There is **no** wrapping `"Name"` field — that concept was removed and migrated out of all users' data on 2026-08-15 (see [src/components/DashBoard.tsx](src/components/DashBoard.tsx) `parseItem`, [src/components/Stats.tsx](src/components/Stats.tsx) `parseSpendingItem`). Each key is one line-item shown as its own row in the dashboard's spreadsheet-style spendings table; a plain non-JSON string is a legacy/malformed fallback, not the normal shape.
+- The dashboard's "Add Spending" flow is inline (an `AddSpendingPanel` card above the spendings table), not a modal — adds one item at a time to a day, merging into that day's existing entry if one exists. `SpendingModal` is edit-only now (opened by clicking a row); it has no "New Spending" / add path.
+- The repo has the deleted file `skills/skill_buildCheck_gitADD_gitCommit_gitPush.md` showing in `git status` — it's a pre-existing tracked deletion from before this note was written, not something to restore unless asked. (Earlier revisions of this file flagged `public/video.mp4` for the same reason; that one has since been resolved.)
