@@ -33,14 +33,41 @@ import {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function parseItem(item: string): Record<string, number> {
+const UNCATEGORIZED = "Uncategorized";
+const CASH_SOURCE = "Cash";
+const DEFAULT_INCOME_SOURCE = "Dad";
+
+type SpendingItemEntry = { cost: number; category: string; source: string };
+
+// Accepts both the legacy `{ itemName: cost }` shape and the current
+// `{ itemName: { cost, category, source } }` shape, normalizing either into
+// the latter. Older entries had no `source` — they were always paid from
+// cash, so that's the normalized default.
+function parseItem(item: string): Record<string, SpendingItemEntry> {
   try {
     const parsed = JSON.parse(item);
-    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed))
-      return parsed;
-    throw new Error("Invalid format");
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed))
+      throw new Error("Invalid format");
+    const result: Record<string, SpendingItemEntry> = {};
+    for (const [name, value] of Object.entries(parsed)) {
+      if (typeof value === "number") {
+        result[name] = { cost: value, category: UNCATEGORIZED, source: CASH_SOURCE };
+      } else if (value && typeof value === "object" && "cost" in value) {
+        const v = value as { cost: unknown; category?: unknown; source?: unknown };
+        result[name] = {
+          cost: Number(v.cost) || 0,
+          category:
+            typeof v.category === "string" && v.category
+              ? v.category
+              : UNCATEGORIZED,
+          source:
+            typeof v.source === "string" && v.source ? v.source : CASH_SOURCE,
+        };
+      }
+    }
+    return result;
   } catch {
-    return { [item]: 0 };
+    return { [item]: { cost: 0, category: UNCATEGORIZED, source: CASH_SOURCE } };
   }
 }
 
@@ -79,25 +106,488 @@ function tk(theme: boolean) {
 // ─── Mobile Tab Type ──────────────────────────────────────────────────────────
 type MobileTab = "accounts" | "timeline" | "spendings";
 
+// ─── Category Pills ────────────────────────────────────────────────────────────
+
+function CategoryPills({
+  categories,
+  spendings,
+  categoriesInUse,
+  selectedItemKeys,
+  onToggle,
+  onAddCategory,
+  onRenameCategory,
+  onDeleteCategory,
+  t,
+}: {
+  categories: string[];
+  spendings: ISpending[];
+  categoriesInUse: Set<string>;
+  selectedItemKeys: Set<string>;
+  onToggle: (category: string) => void;
+  onAddCategory: (name: string) => void;
+  onRenameCategory: (oldName: string, newName: string) => void;
+  onDeleteCategory: (name: string) => void;
+  t: ReturnType<typeof tk>;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [newCat, setNewCat] = useState("");
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+
+  const allEntries = spendings.flatMap((sp) =>
+    Object.entries(parseItem(sp.item)).map(([subName, entry]) => ({
+      key: itemKey(sp, subName),
+      category: entry.category,
+    })),
+  );
+
+  const pillState = (cat: string): "all" | "some" | "none" => {
+    const relevant =
+      cat === "All" ? allEntries : allEntries.filter((e) => e.category === cat);
+    if (relevant.length === 0) return "none";
+    const selectedCount = relevant.filter((e) =>
+      selectedItemKeys.has(e.key),
+    ).length;
+    if (selectedCount === 0) return "none";
+    if (selectedCount === relevant.length) return "all";
+    return "some";
+  };
+
+  const commitNewCategory = () => {
+    if (newCat.trim()) onAddCategory(newCat.trim());
+    setNewCat("");
+    setAdding(false);
+  };
+
+  const commitRename = () => {
+    if (editingCategory && editValue.trim()) {
+      onRenameCategory(editingCategory, editValue.trim());
+    }
+    setEditingCategory(null);
+    setEditValue("");
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 mb-4">
+      {["All", ...categories].map((cat) => {
+        const editable = cat !== "All" && cat !== UNCATEGORIZED;
+
+        if (editingCategory === cat) {
+          return (
+            <input
+              key={cat}
+              autoFocus
+              type="text"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitRename();
+                else if (e.key === "Escape") {
+                  setEditingCategory(null);
+                  setEditValue("");
+                }
+              }}
+              onBlur={commitRename}
+              className="w-32 px-2.5 py-1.5 rounded-sm text-xs outline-none"
+              style={{
+                background: t.inputBg,
+                border: `1px solid ${t.accent}`,
+                color: t.text,
+              }}
+            />
+          );
+        }
+
+        const state = pillState(cat);
+        const usedElsewhere = categoriesInUse.has(cat);
+        return (
+          <div
+            key={cat}
+            className="flex items-center gap-1 pl-3 pr-1.5 py-1.5 rounded-sm text-xs font-semibold transition-all"
+            style={{
+              background: state === "none" ? t.surfaceAlt : t.accentSoft,
+              color: state === "none" ? t.textMuted : t.accent,
+              border: `1px solid ${state === "none" ? t.border : t.accent}`,
+            }}
+          >
+            <button
+              onClick={() => onToggle(cat)}
+              className="flex items-center gap-1.5"
+            >
+              {state === "all" ? (
+                <CheckCircle2 size={12} />
+              ) : state === "some" ? (
+                <MinusCircle size={12} />
+              ) : (
+                <Circle size={12} />
+              )}
+              {cat}
+            </button>
+            {editable && (
+              <>
+                <button
+                  onClick={() => {
+                    setEditingCategory(cat);
+                    setEditValue(cat);
+                  }}
+                  className="p-0.5 rounded transition-colors"
+                  style={{ color: "inherit", opacity: 0.6 }}
+                  title="Rename category"
+                >
+                  <Pencil size={11} />
+                </button>
+                <button
+                  onClick={() => {
+                    if (usedElsewhere) {
+                      alert(
+                        "❌ This category is still assigned to one or more items — reassign or remove them first",
+                      );
+                      return;
+                    }
+                    if (confirm(`Delete category "${cat}"?`))
+                      onDeleteCategory(cat);
+                  }}
+                  className="p-0.5 rounded transition-colors disabled:cursor-not-allowed"
+                  style={{ color: "inherit", opacity: usedElsewhere ? 0.3 : 0.6 }}
+                  title={
+                    usedElsewhere
+                      ? "Can't delete — still used by an item"
+                      : "Delete category"
+                  }
+                >
+                  <X size={11} />
+                </button>
+              </>
+            )}
+          </div>
+        );
+      })}
+      {adding ? (
+        <div className="flex items-center gap-1">
+          <input
+            autoFocus
+            type="text"
+            value={newCat}
+            onChange={(e) => setNewCat(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitNewCategory();
+              else if (e.key === "Escape") {
+                setNewCat("");
+                setAdding(false);
+              }
+            }}
+            onBlur={commitNewCategory}
+            placeholder="Category name"
+            className="w-32 px-2.5 py-1.5 rounded-sm text-xs outline-none"
+            style={{
+              background: t.inputBg,
+              border: `1px solid ${t.border}`,
+              color: t.text,
+            }}
+          />
+        </div>
+      ) : (
+        <button
+          onClick={() => setAdding(true)}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-sm text-xs font-semibold transition-all"
+          style={{
+            background: "transparent",
+            color: t.accent,
+            border: `1px dashed ${t.accent}`,
+          }}
+        >
+          <Plus size={12} /> Category
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ─── Spendings Table (spreadsheet-style) ──────────────────────────────────────
+
+function EditableSpendingRow({
+  spending,
+  existingDates,
+  categories,
+  sources,
+  onSave,
+  onDelete,
+  onCancel,
+  t,
+}: {
+  spending: ISpending;
+  existingDates: string[];
+  categories: string[];
+  sources: string[];
+  onSave: (updated: ISpending) => void;
+  onDelete: () => void;
+  onCancel: () => void;
+  t: ReturnType<typeof tk>;
+}) {
+  const [date, setDate] = useState(spending.date);
+  const [items, setItems] = useState<
+    { subName: string; subCost: number; category: string; source: string }[]
+  >(() =>
+    Object.entries(parseItem(spending.item)).map(([n, e]) => ({
+      subName: n,
+      subCost: e.cost,
+      category: e.category,
+      source: e.source,
+    })),
+  );
+  const [error, setError] = useState("");
+
+  const total = items.reduce((s, x) => s + x.subCost, 0);
+
+  const handleSave = () => {
+    const dateNum = parseInt(date);
+    if (!date || dateNum < 1 || dateNum > 31) {
+      setError("Date must be between 1 and 31");
+      return;
+    }
+    if (date !== spending.date && existingDates.includes(date)) {
+      setError("A spending already exists for this date");
+      return;
+    }
+    if (items.some((s) => !s.subName.trim() || s.subCost <= 0)) {
+      setError("All items must have a name and positive cost");
+      return;
+    }
+    const names = items.map((s) => s.subName.trim());
+    if (new Set(names).size !== names.length) {
+      setError("Item names must be unique");
+      return;
+    }
+    if (total <= 0) {
+      setError("Total cost must be positive");
+      return;
+    }
+    const itemObj: Record<string, SpendingItemEntry> = {};
+    items.forEach((s) => {
+      itemObj[s.subName.trim()] = {
+        cost: s.subCost,
+        category: s.category,
+        source: s.source,
+      };
+    });
+    onSave({ date, item: JSON.stringify(itemObj), cost: total });
+  };
+
+  const inputStyle: React.CSSProperties = {
+    background: t.inputBg,
+    border: `1px solid ${t.border}`,
+    color: t.text,
+  };
+
+  return (
+    <div
+      className="p-4 rounded-xl border"
+      style={{ borderColor: t.accent, background: t.surface }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-24">
+          <input
+            type="number"
+            min="1"
+            max="31"
+            value={date}
+            onChange={(e) => {
+              setDate(e.target.value);
+              setError("");
+            }}
+            className="w-full px-3 py-2 rounded-lg text-sm outline-none font-bold"
+            style={{ ...inputStyle, color: t.accent }}
+          />
+        </div>
+        <span
+          className="text-xs font-semibold uppercase tracking-wide"
+          style={{ color: t.textMuted }}
+        >
+          Day
+        </span>
+      </div>
+
+      <div className="space-y-2 mb-2">
+        {items.map((sub, i) => (
+          <div key={i} className="flex gap-2 items-center">
+            <input
+              type="text"
+              value={sub.subName}
+              onChange={(e) => {
+                const u = [...items];
+                u[i] = { ...u[i], subName: e.target.value };
+                setItems(u);
+                setError("");
+              }}
+              placeholder="Item name"
+              className="flex-1 px-3 py-2 rounded-lg text-sm outline-none"
+              style={inputStyle}
+            />
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={sub.subCost === 0 ? "" : sub.subCost.toString()}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/[^0-9.]/g, "");
+                const u = [...items];
+                u[i] = { ...u[i], subCost: parseFloat(raw) || 0 };
+                setItems(u);
+                setError("");
+              }}
+              placeholder="Cost"
+              className="w-24 px-3 py-2 rounded-lg text-sm outline-none"
+              style={inputStyle}
+            />
+            <select
+              value={sub.category}
+              onChange={(e) => {
+                const u = [...items];
+                u[i] = { ...u[i], category: e.target.value };
+                setItems(u);
+              }}
+              className="w-28 px-2 py-2 rounded-lg text-xs outline-none flex-shrink-0"
+              style={inputStyle}
+            >
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <select
+              value={sub.source}
+              onChange={(e) => {
+                const u = [...items];
+                u[i] = { ...u[i], source: e.target.value };
+                setItems(u);
+              }}
+              className="w-24 px-2 py-2 rounded-lg text-xs outline-none flex-shrink-0"
+              style={inputStyle}
+            >
+              {sources.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => setItems(items.filter((_, j) => j !== i))}
+              className="p-2 rounded-lg transition-colors flex-shrink-0"
+              style={{ background: "#ef444420", color: t.danger }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ))}
+        {items.length === 0 && (
+          <div
+            className="text-center py-3 rounded-xl border border-dashed text-xs"
+            style={{ borderColor: t.border, color: t.textMuted }}
+          >
+            No items — add one below
+          </div>
+        )}
+      </div>
+
+      <button
+        onClick={() =>
+          setItems([
+            ...items,
+            {
+              subName: "",
+              subCost: 0,
+              category: categories[0] || UNCATEGORIZED,
+              source: sources[0] || CASH_SOURCE,
+            },
+          ])
+        }
+        className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all mb-3"
+        style={{ background: t.accentSoft, color: t.accent }}
+      >
+        <Plus size={11} /> Add Item
+      </button>
+
+      <div
+        className="flex items-center justify-between rounded-xl px-4 py-2.5 mb-3"
+        style={{ background: t.accentSoft, border: `1px solid ${t.accent}33` }}
+      >
+        <span className="text-sm font-semibold" style={{ color: t.accent }}>
+          Total
+        </span>
+        <span className="text-base font-bold" style={{ color: t.accent }}>
+          ৳ {total.toLocaleString()}
+        </span>
+      </div>
+
+      {error && (
+        <p className="text-xs mb-3" style={{ color: t.danger }}>
+          {error}
+        </p>
+      )}
+
+      <div className="flex gap-2">
+        <button
+          onClick={() => {
+            if (confirm("Delete this spending?")) onDelete();
+          }}
+          className="px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
+          style={{ background: t.danger }}
+        >
+          Delete
+        </button>
+        <button
+          onClick={onCancel}
+          className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+          style={{
+            background: t.surfaceAlt,
+            color: t.textSub,
+            border: `1px solid ${t.border}`,
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleSave}
+          className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
+          style={{ background: t.accent, boxShadow: `0 2px 8px ${t.accent}44` }}
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function SpendingsTable({
   spendings,
   selectedItemKeys,
+  categories,
+  sources,
   toggleItem,
   toggleDate,
-  onRowClick,
+  onUpdate,
+  onDelete,
   totalSpending,
   t,
 }: {
   spendings: ISpending[];
   selectedItemKeys: Set<string>;
+  categories: string[];
+  sources: string[];
   toggleItem: (key: string) => void;
-  toggleDate: (spending: ISpending, entries: [string, number][]) => void;
-  onRowClick: (spending: ISpending) => void;
+  toggleDate: (
+    spending: ISpending,
+    entries: [string, SpendingItemEntry][],
+  ) => void;
+  onUpdate: (old: ISpending, updated: ISpending) => void;
+  onDelete: (spending: ISpending) => void;
   totalSpending: number;
   t: ReturnType<typeof tk>;
 }) {
+  const [editingDate, setEditingDate] = useState<string | null>(null);
+
   const sorted = [...spendings].sort(
     (a, b) => parseInt(a.date) - parseInt(b.date),
   );
@@ -134,6 +624,12 @@ function SpendingsTable({
                 Item
               </th>
               <th
+                className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide whitespace-nowrap"
+                style={headerCell}
+              >
+                Category
+              </th>
+              <th
                 className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide whitespace-nowrap"
                 style={headerCell}
               >
@@ -149,6 +645,33 @@ function SpendingsTable({
           </thead>
           <tbody>
             {sorted.map((spending, idx) => {
+              if (editingDate === spending.date) {
+                return (
+                  <tr key={`edit-${spending.date}`}>
+                    <td colSpan={7} className="p-3" style={cell}>
+                      <EditableSpendingRow
+                        spending={spending}
+                        existingDates={spendings
+                          .map((s) => s.date)
+                          .filter((d) => d !== spending.date)}
+                        categories={categories}
+                        sources={sources}
+                        onSave={(updated) => {
+                          onUpdate(spending, updated);
+                          setEditingDate(null);
+                        }}
+                        onDelete={() => {
+                          onDelete(spending);
+                          setEditingDate(null);
+                        }}
+                        onCancel={() => setEditingDate(null)}
+                        t={t}
+                      />
+                    </td>
+                  </tr>
+                );
+              }
+
               const parsed = parseItem(spending.item);
               const entries = Object.entries(parsed);
               const rowCount = Math.max(entries.length, 1);
@@ -163,14 +686,19 @@ function SpendingsTable({
                 .filter(([subName]) =>
                   selectedItemKeys.has(itemKey(spending, subName)),
                 )
-                .reduce((sum, [, subCost]) => sum + Number(subCost), 0);
+                .reduce((sum, [, entry]) => sum + entry.cost, 0);
 
               const rows =
                 entries.length === 0
-                  ? [["—", 0] as [string, number]]
+                  ? [
+                      ["—", { cost: 0, category: "" }] as [
+                        string,
+                        SpendingItemEntry,
+                      ],
+                    ]
                   : entries;
 
-              return rows.map(([subName, subCost], j) => {
+              return rows.map(([subName, subEntry], j) => {
                 const key = itemKey(spending, subName);
                 const isItemChecked = selectedItemKeys.has(key);
                 return (
@@ -178,7 +706,7 @@ function SpendingsTable({
                     key={`${spending.date}-${spending.item}-${j}`}
                     className="cursor-pointer transition-colors"
                     style={{ background: rowBg }}
-                    onClick={() => onRowClick(spending)}
+                    onClick={() => setEditingDate(spending.date)}
                   >
                     {j === 0 && (
                       <>
@@ -242,6 +770,16 @@ function SpendingsTable({
                       {subName}
                     </td>
                     <td
+                      className="px-3 py-2.5 whitespace-nowrap"
+                      style={{
+                        ...cell,
+                        color: t.textSub,
+                        opacity: isItemChecked ? 1 : 0.45,
+                      }}
+                    >
+                      {subEntry.category}
+                    </td>
+                    <td
                       className="px-3 py-2.5 text-right font-semibold whitespace-nowrap"
                       style={{
                         ...cell,
@@ -249,7 +787,7 @@ function SpendingsTable({
                         opacity: isItemChecked ? 1 : 0.45,
                       }}
                     >
-                      ৳ {Number(subCost).toLocaleString()}
+                      ৳ {subEntry.cost.toLocaleString()}
                     </td>
                     {j === 0 && (
                       <td
@@ -272,7 +810,7 @@ function SpendingsTable({
           <tfoot>
             <tr style={{ background: t.surfaceAlt }}>
               <td
-                colSpan={5}
+                colSpan={6}
                 className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide"
                 style={{ ...cell, color: t.textMuted }}
               >
@@ -296,12 +834,16 @@ function SpendingsTable({
 
 function AddSpendingPanel({
   spendings,
+  categories,
+  sources,
   onAdd,
   onUpdate,
   onClose,
   t,
 }: {
   spendings: ISpending[];
+  categories: string[];
+  sources: string[];
   onAdd: (spending: ISpending) => void;
   onUpdate: (old: ISpending, updated: ISpending) => void;
   onClose: () => void;
@@ -324,6 +866,10 @@ function AddSpendingPanel({
   const [date, setDate] = useState<string>(getNextMissingDate());
   const [itemName, setItemName] = useState("");
   const [itemCost, setItemCost] = useState("");
+  const [itemCategory, setItemCategory] = useState(
+    categories[0] || UNCATEGORIZED,
+  );
+  const [itemSource, setItemSource] = useState(sources[0] || CASH_SOURCE);
   const [error, setError] = useState("");
 
   const handleDateModeChange = (mode: "next" | "today") => {
@@ -355,9 +901,12 @@ function AddSpendingPanel({
         setError("An item with this name already exists for this date");
         return;
       }
-      const updatedItemObj = { ...parsed, [itemName.trim()]: cost };
+      const updatedItemObj = {
+        ...parsed,
+        [itemName.trim()]: { cost, category: itemCategory, source: itemSource },
+      };
       const newTotal = Object.values(updatedItemObj).reduce(
-        (s, c) => s + Number(c),
+        (s, e) => s + e.cost,
         0,
       );
       onUpdate(existing, {
@@ -368,7 +917,9 @@ function AddSpendingPanel({
     } else {
       onAdd({
         date,
-        item: JSON.stringify({ [itemName.trim()]: cost }),
+        item: JSON.stringify({
+          [itemName.trim()]: { cost, category: itemCategory, source: itemSource },
+        }),
         cost,
       });
     }
@@ -476,6 +1027,38 @@ function AddSpendingPanel({
             color: t.text,
           }}
         />
+        <select
+          value={itemCategory}
+          onChange={(e) => setItemCategory(e.target.value)}
+          className="w-28 px-2 py-2.5 rounded-lg text-xs outline-none flex-shrink-0"
+          style={{
+            background: t.inputBg,
+            border: `1px solid ${t.border}`,
+            color: t.text,
+          }}
+        >
+          {categories.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <select
+          value={itemSource}
+          onChange={(e) => setItemSource(e.target.value)}
+          className="w-24 px-2 py-2.5 rounded-lg text-xs outline-none flex-shrink-0"
+          style={{
+            background: t.inputBg,
+            border: `1px solid ${t.border}`,
+            color: t.text,
+          }}
+        >
+          {sources.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
       </div>
 
       {error && (
@@ -507,22 +1090,21 @@ export default function DashBoard() {
   const [banks, setBanks] = useState<IBank[]>([]);
   const [inCash, setInCash] = useState<number>(0);
   const [months, setMonths] = useState<IMonth[]>([]);
+  const [categories, setCategories] = useState<string[]>([UNCATEGORIZED]);
   const [income, setIncome] = useState<IIncome[]>([]);
+  const [incomeSources, setIncomeSources] = useState<string[]>([DEFAULT_INCOME_SOURCE]);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [bankSearch, setBankSearch] = useState("");
   const [monthSearch, setMonthSearch] = useState("");
   const [originalMoney, setOriginalMoney] = useState<IMoney | null>(null);
   const [selectedBanks, setSelectedBanks] = useState<string[]>([]);
-  const [subItemSearchModalOpen, setSubItemSearchModalOpen] = useState(false);
   const [addSpendingOpen, setAddSpendingOpen] = useState(false);
   const desktopSpendingsScrollRef = useRef<HTMLDivElement>(null);
   const mobileSpendingsScrollRef = useRef<HTMLDivElement>(null);
   const [selectedItemKeys, setSelectedItemKeys] = useState<Set<string>>(
     new Set(),
   );
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [subItemSearchQuery, setSubItemSearchQuery] = useState("");
   const [mobileTab, setMobileTab] = useState<MobileTab>("accounts");
 
   const [bankModal, setBankModal] = useState<{
@@ -532,22 +1114,18 @@ export default function DashBoard() {
   const [cashModal, setCashModal] = useState(false);
   const [addMonthModalOpen, setAddMonthModalOpen] = useState(false);
   const [totalBalanceModalOpen, setTotalBalanceModalOpen] = useState(false);
-  const [spendingModal, setSpendingModal] = useState<{
-    show: boolean;
-    spending: ISpending | null;
-    monthName: string;
-  }>({ show: false, spending: null, monthName: "" });
 
   const selectedMonthData = months.find((m) => m.name === selectedMonth);
+  const sources = [CASH_SOURCE, ...banks.map((b) => b.name)];
   const totalSpending =
     selectedMonthData?.spendings.reduce((sum, s) => {
       const parsed = parseItem(s.item);
       return (
         sum +
         Object.entries(parsed).reduce(
-          (subSum, [subName, subCost]) =>
+          (subSum, [subName, entry]) =>
             selectedItemKeys.has(itemKey(s, subName))
-              ? subSum + Number(subCost)
+              ? subSum + entry.cost
               : subSum,
           0,
         )
@@ -598,12 +1176,22 @@ export default function DashBoard() {
     if (auth === null) {
       router.push("/login");
     } else if (auth?.money && !initialized) {
+      const loadedCategories =
+        auth.money.categories && auth.money.categories.length > 0
+          ? auth.money.categories
+          : [UNCATEGORIZED];
       setBanks(auth.money.banks || []);
       setInCash(auth.money.inCash || 0);
       setMonths(auth.money.Months || []);
-      setOriginalMoney(auth.money);
+      setCategories(loadedCategories);
+      setOriginalMoney({ ...auth.money, categories: loadedCategories });
       setSelectedBanks(auth.money.banks?.map((b) => b.name) || []);
       setIncome(auth.income || []);
+      setIncomeSources(
+        auth.incomeSources && auth.incomeSources.length > 0
+          ? auth.incomeSources
+          : [DEFAULT_INCOME_SOURCE],
+      );
       setInitialized(true);
     }
   }, [auth, hasMounted, hydrated, router, initialized]);
@@ -631,20 +1219,22 @@ export default function DashBoard() {
     }
   }, [months, selectedMonth]);
 
-const handleIncomeUpdate = (amount: number) => {
+const handleIncomeUpdate = (amount: number, source: string) => {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.toLocaleString("default", { month: "long" });
     setIncome((prev) => {
-      const existing = prev.find((i) => i.year === year && i.month === month);
+      const existing = prev.find(
+        (i) => i.year === year && i.month === month && i.source === source,
+      );
       if (existing) {
         return prev.map((i) =>
-          i.year === year && i.month === month
+          i.year === year && i.month === month && i.source === source
             ? { ...i, amount: i.amount + amount }
             : i
         );
       }
-      return [...prev, { year, month, amount }];
+      return [...prev, { year, month, amount, source }];
     });
   };
 
@@ -652,7 +1242,7 @@ const handleSave = async () => {
     if (!auth?.email) return;
     setIsSaving(true);
     try {
-      const updatedMoney: IMoney = { banks, inCash, Months: months };
+      const updatedMoney: IMoney = { banks, inCash, Months: months, categories };
       await updateMoney(auth.email, updatedMoney, income);
       setAuth({ ...auth, money: updatedMoney, income });
       setOriginalMoney(updatedMoney);
@@ -665,11 +1255,11 @@ const handleSave = async () => {
     }
   };
 
-  const handleBankDeposit = (bankName: string, amount: number) => {
+  const handleBankDeposit = (bankName: string, amount: number, source: string) => {
     setBanks(banks.map((b) =>
       b.name === bankName ? { ...b, amount: b.amount + amount } : b
     ));
-    handleIncomeUpdate(amount);
+    handleIncomeUpdate(amount, source);
   };
 
   const handleBankWithdraw = (bankName: string, amount: number) => {
@@ -716,9 +1306,9 @@ const handleSave = async () => {
     setInCash(inCash - amount);
   };
 
-  const handleEarnCash = (amount: number) => {
+  const handleEarnCash = (amount: number, source: string) => {
     setInCash(inCash + amount);
-    handleIncomeUpdate(amount);
+    handleIncomeUpdate(amount, source);
   };
 
   const handleAddMonth = (monthName: string) => {
@@ -729,16 +1319,79 @@ const handleSave = async () => {
     setMonths([...months, { name: monthName, spendings: [] }]);
   };
 
-  const handleAddSpending = (monthName: string, spending: ISpending) => {
-    if (inCash < spending.cost) {
-      alert("❌ Insufficient cash for this spending");
-      return;
+  // Computes, per money source, the net amount that would be spent (positive)
+  // or restored (negative) moving from oldItems to newItems.
+  const computeMoneyDeltas = (
+    oldItems: Record<string, SpendingItemEntry>,
+    newItems: Record<string, SpendingItemEntry>,
+  ): Map<string, number> => {
+    const deltas = new Map<string, number>();
+    const bump = (source: string, amount: number) =>
+      deltas.set(source, (deltas.get(source) || 0) + amount);
+
+    const allNames = new Set([
+      ...Object.keys(oldItems),
+      ...Object.keys(newItems),
+    ]);
+    allNames.forEach((name) => {
+      const oldEntry = oldItems[name];
+      const newEntry = newItems[name];
+      if (oldEntry && newEntry) {
+        if (oldEntry.source === newEntry.source) {
+          bump(newEntry.source, newEntry.cost - oldEntry.cost);
+        } else {
+          bump(oldEntry.source, -oldEntry.cost);
+          bump(newEntry.source, newEntry.cost);
+        }
+      } else if (newEntry) {
+        bump(newEntry.source, newEntry.cost);
+      } else if (oldEntry) {
+        bump(oldEntry.source, -oldEntry.cost);
+      }
+    });
+    return deltas;
+  };
+
+  const getSourceBalance = (source: string): number =>
+    source === CASH_SOURCE
+      ? inCash
+      : banks.find((b) => b.name === source)?.amount ?? 0;
+
+  // Validates every positive delta (money being spent) against its source's
+  // current balance, then applies all deltas at once. Returns false (with an
+  // alert) and applies nothing if any source would go negative.
+  const applyMoneyDeltas = (deltas: Map<string, number>): boolean => {
+    for (const [source, delta] of deltas) {
+      if (delta > 0 && getSourceBalance(source) < delta) {
+        alert(`❌ Insufficient balance in ${source}`);
+        return false;
+      }
     }
+    let nextInCash = inCash;
+    let nextBanks = banks;
+    deltas.forEach((delta, source) => {
+      if (delta === 0) return;
+      if (source === CASH_SOURCE) {
+        nextInCash -= delta;
+      } else {
+        nextBanks = nextBanks.map((b) =>
+          b.name === source ? { ...b, amount: b.amount - delta } : b,
+        );
+      }
+    });
+    setInCash(nextInCash);
+    setBanks(nextBanks);
+    return true;
+  };
+
+  const handleAddSpending = (monthName: string, spending: ISpending) => {
     const month = months.find((m) => m.name === monthName);
     if (month && month.spendings.some((s) => s.date === spending.date)) {
       alert("❌ A spending already exists for this date in this month");
       return;
     }
+    const deltas = computeMoneyDeltas({}, parseItem(spending.item));
+    if (!applyMoneyDeltas(deltas)) return;
     setMonths(
       months.map((m) =>
         m.name === monthName
@@ -746,7 +1399,6 @@ const handleSave = async () => {
           : m,
       ),
     );
-    setInCash(inCash - spending.cost);
   };
 
   const handleUpdateSpending = (
@@ -763,11 +1415,11 @@ const handleSave = async () => {
       alert("❌ A spending already exists for this date");
       return;
     }
-    const costDiff = newSpending.cost - oldSpending.cost;
-    if (inCash < costDiff) {
-      alert("❌ Insufficient cash to increase spending");
-      return;
-    }
+    const deltas = computeMoneyDeltas(
+      parseItem(oldSpending.item),
+      parseItem(newSpending.item),
+    );
+    if (!applyMoneyDeltas(deltas)) return;
     setMonths(
       months.map((m) =>
         m.name === monthName
@@ -782,10 +1434,11 @@ const handleSave = async () => {
           : m,
       ),
     );
-    setInCash(inCash - costDiff);
   };
 
   const handleDeleteSpending = (monthName: string, spending: ISpending) => {
+    const deltas = computeMoneyDeltas(parseItem(spending.item), {});
+    applyMoneyDeltas(deltas);
     setMonths(
       months.map((m) =>
         m.name === monthName
@@ -798,13 +1451,82 @@ const handleSave = async () => {
           : m,
       ),
     );
-    setInCash(inCash + spending.cost);
+  };
+
+  const handleAddCategory = (name: string) => {
+    if (categories.includes(name)) return;
+    setCategories([...categories, name]);
+  };
+
+  const categoriesInUse = new Set(
+    months.flatMap((m) =>
+      m.spendings.flatMap((s) =>
+        Object.values(parseItem(s.item)).map((entry) => entry.category),
+      ),
+    ),
+  );
+
+  const handleRenameCategory = (oldName: string, newName: string) => {
+    if (newName === oldName) return;
+    if (newName === "All" || newName === UNCATEGORIZED) {
+      alert(`❌ "${newName}" is a reserved category name`);
+      return;
+    }
+    if (categories.includes(newName)) {
+      alert("❌ A category with this name already exists");
+      return;
+    }
+    setCategories(categories.map((c) => (c === oldName ? newName : c)));
+    setMonths(
+      months.map((m) => ({
+        ...m,
+        spendings: m.spendings.map((s) => {
+          const parsed = parseItem(s.item);
+          let changed = false;
+          const updated: Record<string, SpendingItemEntry> = {};
+          for (const [name, entry] of Object.entries(parsed)) {
+            if (entry.category === oldName) {
+              updated[name] = { ...entry, category: newName };
+              changed = true;
+            } else {
+              updated[name] = entry;
+            }
+          }
+          return changed ? { ...s, item: JSON.stringify(updated) } : s;
+        }),
+      })),
+    );
+  };
+
+  const handleDeleteCategory = (name: string) => {
+    if (categoriesInUse.has(name)) {
+      alert(
+        "❌ This category is still assigned to one or more items — reassign or remove them first",
+      );
+      return;
+    }
+    setCategories(categories.filter((c) => c !== name));
+  };
+
+  const toggleCategory = (category: string) => {
+    if (!selectedMonthData) return;
+    const keys = selectedMonthData.spendings.flatMap((s) =>
+      Object.entries(parseItem(s.item))
+        .filter(([, entry]) => category === "All" || entry.category === category)
+        .map(([subName]) => itemKey(s, subName)),
+    );
+    if (keys.length === 0) return;
+    const allSelected = keys.every((k) => selectedItemKeys.has(k));
+    const newSet = new Set(selectedItemKeys);
+    if (allSelected) keys.forEach((k) => newSet.delete(k));
+    else keys.forEach((k) => newSet.add(k));
+    setSelectedItemKeys(newSet);
   };
 
   const hasUnsavedChanges = () => {
     if (!originalMoney) return false;
     const moneyChanged =
-      JSON.stringify({ banks, inCash, Months: months }) !==
+      JSON.stringify({ banks, inCash, Months: months, categories }) !==
       JSON.stringify(originalMoney);
     const incomeChanged =
       JSON.stringify(income) !== JSON.stringify(auth?.income || []);
@@ -812,18 +1534,36 @@ const handleSave = async () => {
   };
 
   const handleRenameBank = (oldName: string, newName: string) => {
-    if (!newName.trim()) {
+    const trimmed = newName.trim();
+    if (!trimmed) {
       alert("❌ Bank name cannot be empty");
       return;
     }
-    if (banks.some((b) => b.name === newName.trim() && b.name !== oldName)) {
+    if (banks.some((b) => b.name === trimmed && b.name !== oldName)) {
       alert("❌ A bank with this name already exists");
       return;
     }
     setBanks(
-      banks.map((b) =>
-        b.name === oldName ? { ...b, name: newName.trim() } : b,
-      ),
+      banks.map((b) => (b.name === oldName ? { ...b, name: trimmed } : b)),
+    );
+    setMonths(
+      months.map((m) => ({
+        ...m,
+        spendings: m.spendings.map((s) => {
+          const parsed = parseItem(s.item);
+          let changed = false;
+          const updated: Record<string, SpendingItemEntry> = {};
+          for (const [name, entry] of Object.entries(parsed)) {
+            if (entry.source === oldName) {
+              updated[name] = { ...entry, source: trimmed };
+              changed = true;
+            } else {
+              updated[name] = entry;
+            }
+          }
+          return changed ? { ...s, item: JSON.stringify(updated) } : s;
+        }),
+      })),
     );
   };
 
@@ -1151,11 +1891,7 @@ const handleSave = async () => {
         {selectedMonthData && (
           <div className="flex items-center gap-2 flex-shrink-0 ml-3">
             <div
-              onClick={() => {
-                setSubItemSearchQuery("");
-                setSubItemSearchModalOpen(true);
-              }}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer transition-all active:scale-[0.98]"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl"
               style={{
                 background: "linear-gradient(135deg, #dc2626, #b91c1c)",
                 boxShadow: "0 2px 8px rgba(220,38,38,0.3)",
@@ -1192,6 +1928,8 @@ const handleSave = async () => {
           {addSpendingOpen && (
             <AddSpendingPanel
               spendings={selectedMonthData.spendings}
+              categories={categories}
+              sources={sources}
               onAdd={(spending) => handleAddSpending(selectedMonth!, spending)}
               onUpdate={(old, updated) =>
                 handleUpdateSpending(selectedMonth!, old, updated)
@@ -1200,6 +1938,17 @@ const handleSave = async () => {
               t={t}
             />
           )}
+          <CategoryPills
+            categories={categories}
+            spendings={selectedMonthData.spendings}
+            categoriesInUse={categoriesInUse}
+            selectedItemKeys={selectedItemKeys}
+            onToggle={toggleCategory}
+            onAddCategory={handleAddCategory}
+            onRenameCategory={handleRenameCategory}
+            onDeleteCategory={handleDeleteCategory}
+            t={t}
+          />
           {selectedMonthData.spendings.length === 0 ? (
             !addSpendingOpen && (
               <div
@@ -1220,6 +1969,8 @@ const handleSave = async () => {
             <SpendingsTable
               spendings={selectedMonthData.spendings}
               selectedItemKeys={selectedItemKeys}
+              categories={categories}
+              sources={sources}
               toggleItem={(key) => {
                 const newSet = new Set(selectedItemKeys);
                 if (newSet.has(key)) newSet.delete(key);
@@ -1236,12 +1987,11 @@ const handleSave = async () => {
                 else keys.forEach((k) => newSet.add(k));
                 setSelectedItemKeys(newSet);
               }}
-              onRowClick={(spending) =>
-                setSpendingModal({
-                  show: true,
-                  spending,
-                  monthName: selectedMonth!,
-                })
+              onUpdate={(old, updated) =>
+                handleUpdateSpending(selectedMonth!, old, updated)
+              }
+              onDelete={(spending) =>
+                handleDeleteSpending(selectedMonth!, spending)
               }
               totalSpending={totalSpending}
               t={t}
@@ -1629,11 +2379,7 @@ const handleSave = async () => {
             {selectedMonthData && (
               <div className="flex items-center gap-3">
                 <div
-                  onClick={() => {
-                    setSubItemSearchQuery("");
-                    setSubItemSearchModalOpen(true);
-                  }}
-                  className="flex items-center gap-3 px-4 py-2.5 rounded-xl cursor-pointer transition-all hover:scale-[1.02]"
+                  className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
                   style={{
                     background: "linear-gradient(135deg, #dc2626, #b91c1c)",
                     boxShadow: "0 2px 8px rgba(220,38,38,0.3)",
@@ -1669,6 +2415,8 @@ const handleSave = async () => {
               {addSpendingOpen && (
                 <AddSpendingPanel
                   spendings={selectedMonthData.spendings}
+                  categories={categories}
+                  sources={sources}
                   onAdd={(spending) =>
                     handleAddSpending(selectedMonth!, spending)
                   }
@@ -1679,6 +2427,17 @@ const handleSave = async () => {
                   t={t}
                 />
               )}
+              <CategoryPills
+                categories={categories}
+                spendings={selectedMonthData.spendings}
+                categoriesInUse={categoriesInUse}
+                selectedItemKeys={selectedItemKeys}
+                onToggle={toggleCategory}
+                onAddCategory={handleAddCategory}
+                onRenameCategory={handleRenameCategory}
+                onDeleteCategory={handleDeleteCategory}
+                t={t}
+              />
               {selectedMonthData.spendings.length === 0 ? (
                 !addSpendingOpen && (
                   <div
@@ -1701,6 +2460,8 @@ const handleSave = async () => {
                 <SpendingsTable
                   spendings={selectedMonthData.spendings}
                   selectedItemKeys={selectedItemKeys}
+                  categories={categories}
+                  sources={sources}
                   toggleItem={(key) => {
                     const newSet = new Set(selectedItemKeys);
                     if (newSet.has(key)) newSet.delete(key);
@@ -1719,12 +2480,11 @@ const handleSave = async () => {
                     else keys.forEach((k) => newSet.add(k));
                     setSelectedItemKeys(newSet);
                   }}
-                  onRowClick={(spending) =>
-                    setSpendingModal({
-                      show: true,
-                      spending,
-                      monthName: selectedMonth!,
-                    })
+                  onUpdate={(old, updated) =>
+                    handleUpdateSpending(selectedMonth!, old, updated)
+                  }
+                  onDelete={(spending) =>
+                    handleDeleteSpending(selectedMonth!, spending)
                   }
                   totalSpending={totalSpending}
                   t={t}
@@ -1888,6 +2648,7 @@ const handleSave = async () => {
         <BankModal
           bank={bankModal.bank}
           banks={banks}
+          incomeSources={incomeSources}
           onClose={() => setBankModal({ show: false, bank: null })}
           onDeposit={handleBankDeposit}
           onWithdraw={handleBankWithdraw}
@@ -1912,23 +2673,11 @@ const handleSave = async () => {
         <CashModal
           inCash={inCash}
           banks={banks}
+          incomeSources={incomeSources}
           onClose={() => setCashModal(false)}
           onDeposit={handleCashDeposit}
           onUpdateCash={setInCash}
           onEarnCash={handleEarnCash}
-        />
-      )}
-
-      {spendingModal.show && spendingModal.spending && (
-        <SpendingModal
-          spending={spendingModal.spending}
-          monthName={spendingModal.monthName}
-          existingDates={selectedMonthData?.spendings.map((s) => s.date) || []}
-          onClose={() =>
-            setSpendingModal({ show: false, spending: null, monthName: "" })
-          }
-          onUpdate={handleUpdateSpending}
-          onDelete={handleDeleteSpending}
         />
       )}
 
@@ -1937,13 +2686,6 @@ const handleSave = async () => {
         onClose={() => setAddMonthModalOpen(false)}
         months={months}
         onAddMonth={handleAddMonth}
-      />
-
-      <SubItemSearchModal
-        isOpen={subItemSearchModalOpen}
-        onClose={() => setSubItemSearchModalOpen(false)}
-        spendings={selectedMonthData?.spendings || []}
-        theme={theme}
       />
     </>
   ) : (
@@ -2191,6 +2933,7 @@ function BalanceChip({
 function BankModal({
   bank,
   banks,
+  incomeSources,
   onClose,
   onDeposit,
   onWithdraw,
@@ -2199,8 +2942,9 @@ function BankModal({
 }: {
   bank: IBank;
   banks: IBank[];
+  incomeSources: string[];
   onClose: () => void;
-  onDeposit: (name: string, amount: number) => void;
+  onDeposit: (name: string, amount: number, source: string) => void;
   onWithdraw: (name: string, amount: number) => void;
   onTransfer: (from: string, to: string, amount: number) => void;
   onRename: (oldName: string, newName: string) => void;
@@ -2213,6 +2957,9 @@ function BankModal({
   const [amount, setAmount] = useState("");
   const [targetBank, setTargetBank] = useState("");
   const [newBankName, setNewBankName] = useState(bank.name);
+  const [incomeSource, setIncomeSource] = useState(
+    incomeSources[0] || DEFAULT_INCOME_SOURCE,
+  );
 
   const handleSubmit = () => {
     if (action === "rename") {
@@ -2229,7 +2976,7 @@ function BankModal({
       alert("❌ Please enter a valid amount");
       return;
     }
-    if (action === "deposit") onDeposit(bank.name, amt);
+    if (action === "deposit") onDeposit(bank.name, amt, incomeSource);
     else if (action === "withdraw") onWithdraw(bank.name, amt);
     else if (action === "transfer") {
       if (!targetBank) {
@@ -2319,6 +3066,19 @@ function BankModal({
                       {b.name}
                     </option>
                   ))}
+              </StyledSelect>
+            )}
+            {action === "deposit" && (
+              <StyledSelect
+                label="Income Source"
+                value={incomeSource}
+                onChange={(e) => setIncomeSource(e.target.value)}
+              >
+                {incomeSources.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
               </StyledSelect>
             )}
           </>
@@ -2437,6 +3197,7 @@ function TotalBalanceModal({
 function CashModal({
   inCash,
   banks,
+  incomeSources,
   onClose,
   onDeposit,
   onUpdateCash,
@@ -2444,16 +3205,20 @@ function CashModal({
 }: {
   inCash: number;
   banks: IBank[];
+  incomeSources: string[];
   onClose: () => void;
   onDeposit: (bank: string, amount: number) => void;
   onUpdateCash: (amount: number) => void;
-  onEarnCash: (amount: number) => void;
+  onEarnCash: (amount: number, source: string) => void;
 }) {
   const { theme } = useTheme();
   const t = tk(theme);
   const [action, setAction] = useState<"deposit" | "earn">("deposit");
   const [amount, setAmount] = useState("");
   const [targetBank, setTargetBank] = useState("");
+  const [incomeSource, setIncomeSource] = useState(
+    incomeSources[0] || DEFAULT_INCOME_SOURCE,
+  );
 
   const handleSubmit = () => {
     const amt = parseFloat(amount);
@@ -2469,7 +3234,7 @@ function CashModal({
       onDeposit(targetBank, amt);
     } else {
       onUpdateCash(inCash + amt);
-      onEarnCash(amt);
+      onEarnCash(amt, incomeSource);
     }
     onClose();
   };
@@ -2520,230 +3285,25 @@ function CashModal({
             ))}
           </StyledSelect>
         )}
+        {action === "earn" && (
+          <StyledSelect
+            label="Income Source"
+            value={incomeSource}
+            onChange={(e) => setIncomeSource(e.target.value)}
+          >
+            {incomeSources.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </StyledSelect>
+        )}
         <PrimaryBtn
           onClick={handleSubmit}
           color={action === "deposit" ? "#3b82f6" : t.success}
         >
           Confirm
         </PrimaryBtn>
-      </div>
-    </ModalShell>
-  );
-}
-
-// ─── Spending Modal ───────────────────────────────────────────────────────────
-
-function SpendingModal({
-  spending,
-  monthName,
-  existingDates,
-  onClose,
-  onUpdate,
-  onDelete,
-}: {
-  spending: ISpending;
-  monthName: string;
-  existingDates: string[];
-  onClose: () => void;
-  onUpdate: (month: string, old: ISpending, updated: ISpending) => void;
-  onDelete: (month: string, spending: ISpending) => void;
-}) {
-  const { theme } = useTheme();
-  const t = tk(theme);
-  const [subItems, setSubItems] = useState<
-    { subName: string; subCost: number }[]
-  >([]);
-  const [date, setDate] = useState<string>(spending.date);
-
-  useEffect(() => {
-    const parsed = parseItem(spending.item);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSubItems(
-      Object.entries(parsed).map(([n, c]) => ({
-        subName: n,
-        subCost: Number(c),
-      })),
-    );
-    setDate(spending.date);
-  }, [spending]);
-
-  const totalCost = subItems.reduce((s, x) => s + x.subCost, 0);
-
-  const handleSubmit = () => {
-    const dateNum = parseInt(date);
-    if (!date || dateNum < 1 || dateNum > 31) {
-      alert("❌ Date must be between 1 and 31");
-      return;
-    }
-    if (subItems.some((s) => !s.subName.trim() || s.subCost <= 0)) {
-      alert("❌ All items must have a name and positive cost");
-      return;
-    }
-    if (totalCost <= 0) {
-      alert("❌ Total cost must be positive");
-      return;
-    }
-    if (spending.date !== date && existingDates.includes(date)) {
-      alert("❌ A spending already exists for this date");
-      return;
-    }
-
-    const itemObj: { [key: string]: number } = {};
-    subItems.forEach((s) => {
-      itemObj[s.subName.trim()] = s.subCost;
-    });
-    const newSpending: ISpending = {
-      date,
-      item: JSON.stringify(itemObj),
-      cost: totalCost,
-    };
-
-    onUpdate(monthName, spending, newSpending);
-    onClose();
-  };
-
-  return (
-    <ModalShell title="Edit Spending" onClose={onClose}>
-      <div className="space-y-4">
-        <StyledInput
-          label="Day (1–31)"
-          type="number"
-          min="1"
-          max="31"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-        />
-
-        {/* Sub-items */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label
-              className="text-xs font-semibold uppercase tracking-wide"
-              style={{ color: t.textMuted }}
-            >
-              Items
-            </label>
-            {(() => {
-              const lastEmpty =
-                subItems.length > 0 &&
-                (!subItems[subItems.length - 1].subName.trim() ||
-                  subItems[subItems.length - 1].subCost <= 0);
-              return (
-                <button
-                  onClick={() =>
-                    setSubItems([...subItems, { subName: "", subCost: 0 }])
-                  }
-                  disabled={lastEmpty}
-                  className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg transition-all disabled:cursor-not-allowed disabled:opacity-50"
-                  style={{ background: t.accentSoft, color: t.accent }}
-                >
-                  <Plus size={11} /> Add Item
-                </button>
-              );
-            })()}
-          </div>
-
-          <div className="space-y-2 max-h-[35vh] overflow-y-auto">
-            {subItems.map((sub, i) => (
-              <div key={i} className="flex gap-2 items-center">
-                <input
-                  type="text"
-                  value={sub.subName}
-                  onChange={(e) => {
-                    const u = [...subItems];
-                    u[i].subName = e.target.value;
-                    setSubItems(u);
-                  }}
-                  placeholder="Item name"
-                  className="flex-1 px-3 py-2.5 rounded-lg text-sm outline-none"
-                  style={{
-                    background: t.inputBg,
-                    border: `1px solid ${t.border}`,
-                    color: t.text,
-                  }}
-                />
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={
-                    sub.subCost === 0
-                      ? ""
-                      : sub.subCost.toString().replace(/^0+/, "")
-                  }
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/[^0-9]/g, "");
-                    const u = [...subItems];
-                    u[i].subCost = parseFloat(raw) || 0;
-                    setSubItems(u);
-                  }}
-                  placeholder="Cost"
-                  className="w-20 px-3 py-2.5 rounded-lg text-sm outline-none"
-                  style={{
-                    background: t.inputBg,
-                    border: `1px solid ${t.border}`,
-                    color: t.text,
-                  }}
-                />
-                <button
-                  onClick={() =>
-                    setSubItems(subItems.filter((_, j) => j !== i))
-                  }
-                  className="p-2 rounded-lg transition-colors flex-shrink-0"
-                  style={{ background: "#ef444420", color: t.danger }}
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ))}
-            {subItems.length === 0 && (
-              <div
-                className="text-center py-4 rounded-xl border border-dashed text-xs"
-                style={{ borderColor: t.border, color: t.textMuted }}
-              >
-                No items yet — tap &quot;Add Item&quot; above
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Total */}
-        <div
-          className="flex items-center justify-between rounded-xl px-4 py-3"
-          style={{
-            background: t.accentSoft,
-            border: `1px solid ${t.accent}33`,
-          }}
-        >
-          <span className="text-sm font-semibold" style={{ color: t.accent }}>
-            Total
-          </span>
-          <span className="text-lg font-bold" style={{ color: t.accent }}>
-            ৳ {totalCost.toLocaleString()}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex gap-3 mt-5">
-        <button
-          onClick={() => {
-            if (confirm("Delete this spending?")) {
-              onDelete(monthName, spending);
-              onClose();
-            }
-          }}
-          className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
-          style={{ background: t.danger }}
-        >
-          Delete
-        </button>
-        <button
-          onClick={handleSubmit}
-          className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
-          style={{ background: t.accent, boxShadow: `0 2px 8px ${t.accent}44` }}
-        >
-          Update
-        </button>
       </div>
     </ModalShell>
   );
@@ -2853,180 +3413,3 @@ function AddMonthModal({
   );
 }
 
-// ─── Sub-Item Search Modal ────────────────────────────────────────────────────
-
-function SubItemSearchModal({
-  isOpen,
-  onClose,
-  spendings,
-  theme,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  spendings: ISpending[];
-  theme: boolean;
-}) {
-  const t = tk(theme);
-  const [search, setSearch] = useState("");
-  if (!isOpen) return null;
-
-  const lower = search.toLowerCase().trim();
-  const items = spendings
-    .flatMap((sp) => {
-      const parsed = parseItem(sp.item);
-      return Object.entries(parsed).map(([subName, subCost]) => ({
-        date: sp.date,
-        subName,
-        subCost: Number(subCost),
-      }));
-    })
-    .filter((e) => lower === "" || e.subName.toLowerCase().includes(lower))
-    .sort((a, b) => parseInt(a.date) - parseInt(b.date));
-
-  const total = items.reduce((s, x) => s + x.subCost, 0);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-      style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)" }}
-    >
-      <div
-        className="w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col"
-        style={{
-          background: t.surface,
-          border: `1px solid ${t.border}`,
-          boxShadow: "0 24px 64px rgba(0,0,0,0.35)",
-          maxHeight: "92dvh",
-        }}
-      >
-        {/* Drag handle */}
-        <div className="flex justify-center pt-2 pb-1 sm:hidden">
-          <div
-            className="w-10 h-1 rounded-full"
-            style={{ background: t.borderStrong }}
-          />
-        </div>
-        {/* Header */}
-        <div
-          className="flex items-center justify-between px-5 py-4 border-b flex-shrink-0"
-          style={{ borderColor: t.border }}
-        >
-          <div>
-            <h3 className="text-base font-bold" style={{ color: t.text }}>
-              Sub-Items Breakdown
-            </h3>
-            <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
-              {items.length} items · ৳ {total.toLocaleString()}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg"
-            style={{ color: t.textMuted }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = t.surfaceAlt)
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.background = "transparent")
-            }
-          >
-            <X size={18} />
-          </button>
-        </div>
-        {/* Search */}
-        <div
-          className="px-5 py-3 border-b flex-shrink-0"
-          style={{ borderColor: t.border }}
-        >
-          <div className="relative">
-            <Search
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2"
-              style={{ color: t.textMuted }}
-            />
-            <input
-              autoFocus
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search items… (e.g. Coffee, Petrol)"
-              className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl outline-none"
-              style={{
-                background: t.inputBg,
-                border: `1px solid ${t.border}`,
-                color: t.text,
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = "#6366f1";
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = t.border;
-              }}
-            />
-          </div>
-        </div>
-        {/* Total strip */}
-        <div
-          className="px-5 py-3 flex items-center justify-between border-b flex-shrink-0"
-          style={{ borderColor: t.border, background: t.surfaceAlt }}
-        >
-          <span
-            className="text-xs font-semibold uppercase tracking-wide"
-            style={{ color: t.textMuted }}
-          >
-            {search.trim() ? "Filtered Total" : "Month Total"}
-          </span>
-          <span className="text-lg font-bold" style={{ color: t.danger }}>
-            ৳ {total.toLocaleString()}
-          </span>
-        </div>
-        {/* List */}
-        <div
-          className="flex-1 overflow-y-auto px-5 py-4 space-y-2 scrollbar-thin"
-          style={{ scrollbarColor: `${t.borderStrong} transparent` }}
-        >
-          {items.length === 0 ? (
-            <div
-              className="flex flex-col items-center justify-center py-12 gap-2"
-              style={{ color: t.textMuted }}
-            >
-              <Search size={28} className="opacity-30" />
-              <p className="text-sm">
-                {search.trim() ? "No matching items" : "No sub-items yet"}
-              </p>
-            </div>
-          ) : (
-            items.map((entry, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-4 rounded-xl px-4 py-3 border"
-                style={{ background: t.surface, borderColor: t.border }}
-              >
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-                  style={{ background: t.accentSoft, color: "#6366f1" }}
-                >
-                  {entry.date}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div
-                    className="text-sm font-semibold truncate"
-                    style={{ color: t.text }}
-                  >
-                    {entry.subName}
-                  </div>
-                </div>
-                <div
-                  className="text-sm font-bold flex-shrink-0"
-                  style={{ color: t.danger }}
-                >
-                  ৳ {entry.subCost.toLocaleString()}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}

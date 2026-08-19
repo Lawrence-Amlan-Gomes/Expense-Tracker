@@ -16,10 +16,16 @@ const cleanIncome = (income: unknown): IIncome[] => {
       const year = Number(item.year);
       const month = toSafeString(item.month);
       const amount = Number(item.amount) || 0;
+      const source = toSafeString(item.source);
       if (!year || !month) return null;
-      return { year, month, amount };
+      return { year, month, amount, source };
     })
     .filter((i): i is IIncome => i !== null);
+};
+
+const cleanIncomeSources = (sources: unknown): string[] => {
+  if (!isArray(sources)) return [];
+  return sources.map((s: unknown) => toSafeString(s)).filter((s) => s !== "");
 };
 
 // Helper to create a plain default money
@@ -27,6 +33,7 @@ const defaultMoney: IMoney = {
   banks: [],
   inCash: 0,
   Months: [],
+  categories: [],
 };
 
 // Type narrowing helpers
@@ -76,12 +83,16 @@ const cleanMoney = (money: unknown): IMoney => {
         }),
       };
     }),
+    categories: (isArray(money.categories) ? money.categories : [])
+      .map((c: unknown) => toSafeString(c))
+      .filter((c) => c !== ""),
   };
 };
 
 export async function generateToken(user: CleanUser): Promise<string> {
   const plainMoney = cleanMoney(user.money);
   const plainIncome = cleanIncome(user.income ?? []);
+  const plainIncomeSources = cleanIncomeSources(user.incomeSources ?? []);
   return await new SignJWT({
     id: user.id,
     name: user.name,
@@ -95,6 +106,7 @@ export async function generateToken(user: CleanUser): Promise<string> {
     isEmailVerified: user.isEmailVerified ?? false,
     money: plainMoney,
     income: plainIncome,
+    incomeSources: plainIncomeSources,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()

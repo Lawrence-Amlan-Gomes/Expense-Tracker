@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { findUserByEmail } from "@/app/actions";
+import { findUserByEmail, updateIncomeSources } from "@/app/actions";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useTheme } from "@/app/hooks/useTheme";
 import { useRouter } from "next/navigation";
@@ -23,6 +23,9 @@ import {
   ChevronDown,
   DollarSign,
   PiggyBank,
+  Plus,
+  Pencil,
+  X,
 } from "lucide-react";
 import {
   LineChart,
@@ -56,6 +59,8 @@ import {
 
 /** Which tab is currently active. */
 type ViewTab = "overview" | "monthly" | "categories" | "income" | "balance" | "insights";
+
+const DEFAULT_INCOME_SOURCE = "Dad";
 
 /** A single sub-item inside a spending entry (e.g. "Rice: 200", "Oil: 150"). */
 interface SubItem {
@@ -102,12 +107,6 @@ interface WeeklyTotal {
   total: number;
 }
 
-/** Data shape for the daily average chart. */
-interface DailyAverage {
-  day: string;
-  average: number;
-}
-
 /** A single insight generated from the data. */
 interface Insight {
   type: "warning" | "success" | "info" | "tip";
@@ -145,9 +144,9 @@ const MONTH_ORDER = [
 
 const TAB_DEFINITIONS: { id: ViewTab; label: string; icon: React.ElementType }[] = [
   { id: "overview",   label: "Overview",   icon: Activity   },
+  { id: "income",     label: "Income",     icon: DollarSign },
   { id: "monthly",    label: "Monthly",    icon: BarChart3  },
   { id: "categories", label: "Categories", icon: PieChart   },
-  { id: "income",     label: "Income",     icon: DollarSign },
   { id: "balance",    label: "Balance",    icon: PiggyBank  },
   { id: "insights",   label: "Insights",   icon: Sparkles   },
 ];
@@ -211,12 +210,18 @@ function parseSpendingItem(itemString: string): Record<string, number> {
       parsed !== null &&
       !Array.isArray(parsed);
 
-    if (isValidObject) {
-      return parsed;
-    }
+    if (!isValidObject) throw new Error("Not a valid spending item object");
 
-    // If parsing succeeded but it's not the shape we expect, fall back
-    throw new Error("Not a valid spending item object");
+    // Values are either a plain number (legacy) or `{ cost, category }`
+    // (current) — normalize both into a name → cost map.
+    const result: Record<string, number> = {};
+    for (const [name, value] of Object.entries(parsed)) {
+      result[name] =
+        value && typeof value === "object" && "cost" in (value as object)
+          ? Number((value as { cost: unknown }).cost) || 0
+          : Number(value) || 0;
+    }
+    return result;
   } catch {
     // Not valid JSON — treat as a single unnamed item
     return { [itemString]: 0 };
@@ -566,6 +571,139 @@ function SectionHeader({
   );
 }
 
+/** Add/rename/delete pills for income sources (e.g. "Dad", "Freelance"). */
+function IncomeSourcePills({
+  sources,
+  themeTokens,
+  onAdd,
+  onRename,
+  onDelete,
+}: {
+  sources: string[];
+  themeTokens: ThemeTokens;
+  onAdd: (name: string) => void;
+  onRename: (oldName: string, newName: string) => void;
+  onDelete: (name: string) => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [newSource, setNewSource] = useState("");
+  const [editingSource, setEditingSource] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+
+  const commitNewSource = () => {
+    if (newSource.trim()) onAdd(newSource.trim());
+    setNewSource("");
+    setAdding(false);
+  };
+
+  const commitRename = () => {
+    if (editingSource && editValue.trim()) {
+      onRename(editingSource, editValue.trim());
+    }
+    setEditingSource(null);
+    setEditValue("");
+  };
+
+  const inputStyle: React.CSSProperties = {
+    background: themeTokens.background,
+    border: `1px solid ${themeTokens.border}`,
+    color: themeTokens.text,
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {sources.map((source) => {
+        if (editingSource === source) {
+          return (
+            <input
+              key={source}
+              autoFocus
+              type="text"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitRename();
+                else if (e.key === "Escape") {
+                  setEditingSource(null);
+                  setEditValue("");
+                }
+              }}
+              onBlur={commitRename}
+              className="w-28 px-2.5 py-1.5 rounded-sm text-xs outline-none"
+              style={{ ...inputStyle, borderColor: "#6366f1" }}
+            />
+          );
+        }
+        return (
+          <div
+            key={source}
+            className="flex items-center gap-1 pl-3 pr-1.5 py-1.5 rounded-sm text-xs font-semibold"
+            style={{
+              background: themeTokens.card,
+              color: themeTokens.text,
+              border: `1px solid ${themeTokens.border}`,
+            }}
+          >
+            <span>{source}</span>
+            <button
+              onClick={() => {
+                setEditingSource(source);
+                setEditValue(source);
+              }}
+              className="p-0.5 rounded transition-colors"
+              style={{ color: "inherit", opacity: 0.6 }}
+              title="Rename source"
+            >
+              <Pencil size={11} />
+            </button>
+            <button
+              onClick={() => {
+                if (confirm(`Delete income source "${source}"?`))
+                  onDelete(source);
+              }}
+              className="p-0.5 rounded transition-colors"
+              style={{ color: "inherit", opacity: 0.6 }}
+              title="Delete source"
+            >
+              <X size={11} />
+            </button>
+          </div>
+        );
+      })}
+      {adding ? (
+        <input
+          autoFocus
+          type="text"
+          value={newSource}
+          onChange={(e) => setNewSource(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commitNewSource();
+            else if (e.key === "Escape") {
+              setNewSource("");
+              setAdding(false);
+            }
+          }}
+          onBlur={commitNewSource}
+          placeholder="Source name"
+          className="w-32 px-2.5 py-1.5 rounded-sm text-xs outline-none"
+          style={inputStyle}
+        />
+      ) : (
+        <button
+          onClick={() => setAdding(true)}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-sm text-xs font-semibold transition-all"
+          style={{
+            background: "transparent",
+            color: "#6366f1",
+            border: "1px dashed #6366f1",
+          }}
+        >
+          <Plus size={12} /> Source
+        </button>
+      )}
+    </div>
+  );
+}
 
 // =============================================================================
 // SECTION 5: DATA PROCESSING FUNCTIONS
@@ -662,24 +800,6 @@ function calculateMonthlyTotals(monthsForYear: IMonth[]): MonthlyTotal[] {
 }
 
 /**
- * Calculate total spending per month across ALL months (all years),
- * sorted chronologically. Used for the "All-Time Spending Trend" chart.
- */
-function calculateAllTimeMonthlyTotals(
-  months: IMonth[]
-): { name: string; total: number }[] {
-  // Sort all months by date first
-  const sortedMonths = [...months].sort(
-    (a, b) => monthNameToDate(a.name).getTime() - monthNameToDate(b.name).getTime()
-  );
-
-  return sortedMonths.map((month) => ({
-    name: formatShortMonth(month.name),
-    total: month.spendings.reduce((sum, spending) => sum + spending.cost, 0),
-  }));
-}
-
-/**
  * Group spending by category (sub-item name) for a given year.
  * Returns the top 10 categories sorted by total spend, descending.
  */
@@ -768,49 +888,6 @@ function calculateWeeklyBreakdown(monthsForYear: IMonth[]): WeeklyTotal[] {
   return weeks;
 }
 
-/**
- * Calculate the average spending per day-of-month across all months in the year.
- *
- * For example, if January 5th had ৳500 and February 5th had ৳300,
- * day 5 would have an average of ৳400.
- *
- * Only days that have at least one spending entry are included.
- */
-function calculateDailyAverages(monthsForYear: IMonth[]): DailyAverage[] {
-  // Map each day number (1-31) to an array of all spending amounts on that day
-  const dayToCosts = new Map<number, number[]>();
-
-  for (const month of monthsForYear) {
-    for (const spending of month.spendings) {
-      const dayNumber = parseInt(spending.date);
-
-      if (!isNaN(dayNumber)) {
-        const existingCosts = dayToCosts.get(dayNumber) || [];
-        existingCosts.push(spending.cost);
-        dayToCosts.set(dayNumber, existingCosts);
-      }
-    }
-  }
-
-  // Build an array for days 1–31, calculate average for each
-  const dailyAverages: DailyAverage[] = [];
-
-  for (let day = 1; day <= 31; day++) {
-    const costsForDay = dayToCosts.get(day);
-
-    if (costsForDay && costsForDay.length > 0) {
-      const totalForDay = costsForDay.reduce((sum, cost) => sum + cost, 0);
-      const averageForDay = Math.round(totalForDay / costsForDay.length);
-
-      dailyAverages.push({
-        day: day.toString(),
-        average: averageForDay,
-      });
-    }
-  }
-
-  return dailyAverages;
-}
 
 /**
  * Determine the month-over-month spending trend by comparing
@@ -823,27 +900,71 @@ function calculateDailyAverages(monthsForYear: IMonth[]): DailyAverage[] {
  * Note: We use `completedMonthlyTotals` here (which excludes the current
  * incomplete month) so the trend reflects finished months only.
  */
+// Income entries are per-(year, month, source) — a month can now have
+// several entries (one per source). Both functions below sum by month
+// before returning, so multi-source months don't show as duplicate rows.
 function calculateMonthlyIncome(income: IIncome[], year: number) {
-  return income
-    .filter((i) => i.year === year)
-    .sort((a, b) => MONTH_ORDER.indexOf(a.month) - MONTH_ORDER.indexOf(b.month))
-    .map((i) => ({
-      shortLabel: formatShortMonth(`${i.month} ${year}`),
-      fullName: `${i.month} ${year}`,
-      monthName: i.month,
-      income: i.amount,
-    }));
+  const totals = new Map<string, number>();
+  for (const i of income.filter((i) => i.year === year)) {
+    totals.set(i.month, (totals.get(i.month) || 0) + i.amount);
+  }
+  return MONTH_ORDER.filter((month) => totals.has(month)).map((month) => ({
+    shortLabel: formatShortMonth(`${month} ${year}`),
+    fullName: `${month} ${year}`,
+    monthName: month,
+    income: totals.get(month) || 0,
+  }));
 }
 
 function calculateAllTimeIncome(income: IIncome[]) {
-  return [...income]
+  const totals = new Map<string, { year: number; month: string; total: number }>();
+  for (const i of income) {
+    const key = `${i.year}-${i.month}`;
+    const existing = totals.get(key);
+    if (existing) existing.total += i.amount;
+    else totals.set(key, { year: i.year, month: i.month, total: i.amount });
+  }
+  return [...totals.values()]
     .sort((a, b) => {
       if (a.year !== b.year) return a.year - b.year;
       return MONTH_ORDER.indexOf(a.month) - MONTH_ORDER.indexOf(b.month);
     })
     .map((i) => ({
       name: formatShortMonth(`${i.month} ${i.year}`),
-      total: i.amount,
+      total: i.total,
+    }));
+}
+
+/**
+ * Merge all-time spending and income into one series, keyed by month,
+ * for the Overview "All-Time Trend" combined chart.
+ */
+function calculateAllTimeTrend(
+  months: IMonth[],
+  income: IIncome[]
+): { name: string; fullName: string; spending: number; income: number }[] {
+  const spendingByKey = new Map<string, number>();
+  for (const m of months) {
+    spendingByKey.set(
+      m.name,
+      m.spendings.reduce((sum, s) => sum + s.cost, 0)
+    );
+  }
+  const incomeByKey = new Map<string, number>();
+  for (const i of income) {
+    const key = `${i.month} ${i.year}`;
+    incomeByKey.set(key, (incomeByKey.get(key) || 0) + i.amount);
+  }
+  const allKeys = new Set([...spendingByKey.keys(), ...incomeByKey.keys()]);
+  return [...allKeys]
+    .sort(
+      (a, b) => monthNameToDate(a).getTime() - monthNameToDate(b).getTime()
+    )
+    .map((key) => ({
+      name: formatShortMonth(key),
+      fullName: key,
+      spending: spendingByKey.get(key) || 0,
+      income: incomeByKey.get(key) || 0,
     }));
 }
 
@@ -1060,9 +1181,12 @@ export default function Stats() {
   const [hasMounted, setHasMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<ViewTab>("overview");
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [trendScope, setTrendScope] = useState<"all" | "year">("all");
+  const [isTrendYearDropdownOpen, setIsTrendYearDropdownOpen] = useState(false);
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
   const [allMonths, setAllMonths] = useState<IMonth[]>([]);
   const [allIncome, setAllIncome] = useState<IIncome[]>([]);
+  const [incomeSources, setIncomeSources] = useState<string[]>([]);
   const [isFetching, setIsFetching] = useState(false);
 
   // ── Theme tokens ──────────────────────────────────────────────────────────
@@ -1106,6 +1230,11 @@ export default function Stats() {
         if (freshUser && freshUser.money) {
           setAllMonths(freshUser.money.Months || []);
           setAllIncome(freshUser.income || []);
+          setIncomeSources(
+            freshUser.incomeSources && freshUser.incomeSources.length > 0
+              ? freshUser.incomeSources
+              : [DEFAULT_INCOME_SOURCE],
+          );
           setAuth({
             ...freshUser,
             paymentType: freshUser.paymentType ?? "Free One Week",
@@ -1116,6 +1245,11 @@ export default function Stats() {
         // fallback to whatever is in Redux
         setAllMonths(authUser?.money?.Months || []);
         setAllIncome(authUser?.income || []);
+        setIncomeSources(
+          authUser?.incomeSources && authUser.incomeSources.length > 0
+            ? authUser.incomeSources
+            : [DEFAULT_INCOME_SOURCE],
+        );
       } finally {
         setIsFetching(false);
       }
@@ -1124,6 +1258,55 @@ export default function Stats() {
     fetchData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMounted]);
+
+  // ── Income source pills (persist immediately — this page has no Save
+  // button / draft-state pattern like the dashboard) ───────────────────────
+  const persistIncomeSources = async (
+    newIncome: IIncome[],
+    newSources: string[],
+  ) => {
+    if (!authUser?.email) return;
+    setAllIncome(newIncome);
+    setIncomeSources(newSources);
+    try {
+      await updateIncomeSources(authUser.email, newIncome, newSources);
+      setAuth({ ...authUser, income: newIncome, incomeSources: newSources });
+    } catch (err) {
+      console.error("Failed to update income sources:", err);
+      alert("❌ Failed to save changes");
+    }
+  };
+
+  const handleAddIncomeSource = (name: string) => {
+    if (incomeSources.includes(name)) return;
+    persistIncomeSources(allIncome, [...incomeSources, name]);
+  };
+
+  const handleRenameIncomeSource = (oldName: string, newName: string) => {
+    if (newName === oldName) return;
+    if (incomeSources.includes(newName)) {
+      alert("❌ A source with this name already exists");
+      return;
+    }
+    const newSources = incomeSources.map((s) => (s === oldName ? newName : s));
+    const newIncome = allIncome.map((i) =>
+      i.source === oldName ? { ...i, source: newName } : i,
+    );
+    persistIncomeSources(newIncome, newSources);
+  };
+
+  const handleDeleteIncomeSource = (name: string) => {
+    if (allIncome.some((i) => i.source === name)) {
+      alert(
+        "❌ This income source is still assigned to income entries — reassign or remove them first",
+      );
+      return;
+    }
+    persistIncomeSources(
+      allIncome,
+      incomeSources.filter((s) => s !== name),
+    );
+  };
 
   // ── Derived / computed data ───────────────────────────────────────────────
   // Each `useMemo` caches its result and only recalculates when its
@@ -1188,11 +1371,10 @@ export default function Stats() {
     [monthlyTotals]
   );
 
-  /** All-time monthly totals across all years (for the overview area chart). */
-  const allTimeMonthlyTotals = useMemo(
-    () => calculateAllTimeMonthlyTotals(allMonths),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allMonths]
+  /** All-time spending + income merged by month (Overview's "All-Time Trend"). */
+  const allTimeTrendData = useMemo(
+    () => calculateAllTimeTrend(allMonths, allIncome),
+    [allMonths, allIncome]
   );
 
   /** Top 10 spending categories for the selected year. */
@@ -1201,15 +1383,9 @@ export default function Stats() {
     [flatSpendings, selectedYear]
   );
 
-  /** Weekly breakdown for the selected year. */
+  /** Weekly breakdown for the selected year (used by Insights, e.g. "busiest week"). */
   const weeklyData = useMemo(
     () => calculateWeeklyBreakdown(monthsForYear),
-    [monthsForYear]
-  );
-
-  /** Average spending per day-of-month for the selected year. */
-  const dailyAverages = useMemo(
-    () => calculateDailyAverages(monthsForYear),
     [monthsForYear]
   );
 
@@ -1226,6 +1402,10 @@ export default function Stats() {
     () => calculateBalanceData(monthlyTotals, monthlyIncome),
     [monthlyTotals, monthlyIncome]
   );
+
+  /** Data + x-axis key for the Overview "All-Time Trend" chart, switched by `trendScope`. */
+  const trendChartData = trendScope === "all" ? allTimeTrendData : balanceData;
+  const trendXKey = trendScope === "all" ? "name" : "shortLabel";
 
   // ── Summary statistics ────────────────────────────────────────────────────
 
@@ -1308,6 +1488,21 @@ export default function Stats() {
         (best, cur) => (cur.income > best.income ? cur : best)
       )
     : { shortLabel: "—", income: 0, fullName: "—", monthName: "" };
+  /** Lowest-income month — completed months only, mirrors `lowestMonth`. */
+  const lowestIncomeMonth = completedIncomeMonths.length > 0
+    ? completedIncomeMonths.reduce(
+        (best, cur) => (cur.income < best.income ? cur : best)
+      )
+    : null;
+  /** Income month-over-month trend — "up" (more income) is good, so its
+   *  card is rendered with `trendInverted`. */
+  const incomeMonthOverMonthTrend: "up" | "down" | "neutral" = (() => {
+    if (completedIncomeMonths.length < 2) return "neutral";
+    const [prev, latest] = completedIncomeMonths.slice(-2);
+    if (latest.income > prev.income) return "up";
+    if (latest.income < prev.income) return "down";
+    return "neutral";
+  })();
   const netBalanceThisYear = totalIncomeThisYear - totalThisYear;
   const savingsRateThisYear =
     totalIncomeThisYear > 0 ? Math.round((netBalanceThisYear / totalIncomeThisYear) * 100) : 0;
@@ -1487,14 +1682,14 @@ export default function Stats() {
         {activeTab === "overview" && (
           <div className="space-y-4 sm:space-y-8">
 
-            {/* Stat cards — 2 columns on mobile, 4 on desktop */}
+            {/* Spending stat cards — 2 columns on mobile, 4 on desktop */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <StatCard
                 label="Total This Year"
                 value={`৳ ${totalThisYear.toLocaleString()}`}
                 subtitle={`Across ${monthlyTotals.length} months`}
                 icon={Wallet}
-                accentColor="#6366f1"
+                accentColor="#ef4444"
                 themeTokens={themeTokens}
                 trend="neutral"
               />
@@ -1503,7 +1698,7 @@ export default function Stats() {
                 value={`৳ ${averagePerMonth.toLocaleString()}`}
                 subtitle="Based on completed months"
                 icon={BarChart3}
-                accentColor="#10b981"
+                accentColor="#f43f5e"
                 themeTokens={themeTokens}
                 trend={monthOverMonthTrend}
               />
@@ -1512,7 +1707,7 @@ export default function Stats() {
                 value={highestMonth.total > 0 ? highestMonth.shortLabel : "—"}
                 subtitle={highestMonth.total > 0 ? `৳ ${highestMonth.total.toLocaleString()}` : undefined}
                 icon={Flame}
-                accentColor="#f43f5e"
+                accentColor="#dc2626"
                 themeTokens={themeTokens}
               />
               <StatCard
@@ -1520,12 +1715,51 @@ export default function Stats() {
                 value={lowestMonth ? lowestMonth.shortLabel : "—"}
                 subtitle={lowestMonth ? `৳ ${lowestMonth.total.toLocaleString()}` : undefined}
                 icon={Target}
-                accentColor="#f59e0b"
+                accentColor="#fb7185"
                 themeTokens={themeTokens}
               />
             </div>
 
-            {/* All-time spending area chart */}
+            {/* Income stat cards — same shape as spending's, greenish */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <StatCard
+                label="Total Income"
+                value={`৳ ${totalIncomeThisYear.toLocaleString()}`}
+                subtitle={`Across ${monthlyIncome.length} months`}
+                icon={DollarSign}
+                accentColor="#10b981"
+                themeTokens={themeTokens}
+                trend="neutral"
+              />
+              <StatCard
+                label="Monthly Average"
+                value={`৳ ${averageMonthlyIncome.toLocaleString()}`}
+                subtitle="Based on completed months"
+                icon={BarChart3}
+                accentColor="#22c55e"
+                themeTokens={themeTokens}
+                trend={incomeMonthOverMonthTrend}
+                trendInverted
+              />
+              <StatCard
+                label="Highest Month"
+                value={highestIncomeMonth.income > 0 ? highestIncomeMonth.shortLabel : "—"}
+                subtitle={highestIncomeMonth.income > 0 ? `৳ ${highestIncomeMonth.income.toLocaleString()}` : undefined}
+                icon={Flame}
+                accentColor="#059669"
+                themeTokens={themeTokens}
+              />
+              <StatCard
+                label="Lowest Month"
+                value={lowestIncomeMonth ? lowestIncomeMonth.shortLabel : "—"}
+                subtitle={lowestIncomeMonth ? `৳ ${lowestIncomeMonth.income.toLocaleString()}` : undefined}
+                icon={Target}
+                accentColor="#34d399"
+                themeTokens={themeTokens}
+              />
+            </div>
+
+            {/* All-time trend — income vs. spending, all-time or selected year */}
             <div
               className="rounded-2xl p-4 sm:p-6"
               style={{
@@ -1533,23 +1767,87 @@ export default function Stats() {
                 border: `1px solid ${themeTokens.border}`,
               }}
             >
-              <SectionHeader
-                title="All-Time Spending Trend"
-                subtitle="Total monthly spend across all tracked periods"
-                themeTokens={themeTokens}
-              />
-              {allTimeMonthlyTotals.length > 0 ? (
-                <ResponsiveContainer width="100%" height={220}>
-                  <AreaChart data={allTimeMonthlyTotals}>
-                    <defs>
-                      <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.35} />
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
+              <div className="flex items-start justify-between gap-3 mb-4 sm:mb-6">
+                <div>
+                  <h2
+                    className="text-xs font-black uppercase tracking-widest mb-0.5"
+                    style={{ color: themeTokens.muted }}
+                  >
+                    All-Time Trend
+                  </h2>
+                  <p className="text-xs" style={{ color: themeTokens.muted }}>
+                    Income vs. spending
+                    {trendScope === "year" ? ` — ${selectedYear}` : ", all tracked periods"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {(["all", "year"] as const).map((scope) => {
+                    const active = trendScope === scope;
+                    return (
+                      <button
+                        key={scope}
+                        onClick={() => {
+                          setTrendScope(scope);
+                          if (scope !== "year") setIsTrendYearDropdownOpen(false);
+                        }}
+                        className="px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
+                        style={{
+                          background: active ? "#6366f1" : themeTokens.hover,
+                          color: active ? "#fff" : themeTokens.muted,
+                        }}
+                      >
+                        {scope === "all" ? "All Time" : "Year"}
+                      </button>
+                    );
+                  })}
+                  {trendScope === "year" && (
+                    <div className="relative">
+                      <button
+                        onClick={() =>
+                          setIsTrendYearDropdownOpen((open) => !open)
+                        }
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all"
+                        style={{ background: themeTokens.hover, color: themeTokens.text }}
+                      >
+                        {selectedYear ?? "—"}
+                        <ChevronDown
+                          size={11}
+                          className={`transition-transform ${isTrendYearDropdownOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                      {isTrendYearDropdownOpen && (
+                        <div
+                          className="absolute right-0 top-full mt-2 rounded-xl overflow-hidden shadow-2xl z-50 min-w-[90px]"
+                          style={{
+                            background: themeTokens.card,
+                            border: `1px solid ${themeTokens.border}`,
+                          }}
+                        >
+                          {availableYears.map((year) => (
+                            <button
+                              key={year}
+                              onClick={() => {
+                                setSelectedYear(year);
+                                setIsTrendYearDropdownOpen(false);
+                              }}
+                              className="w-full text-left px-4 py-2.5 text-sm font-bold transition-colors hover:opacity-80"
+                              style={{ color: year === selectedYear ? "#6366f1" : themeTokens.text }}
+                            >
+                              {year}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {trendChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={240}>
+                  <LineChart data={trendChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke={themeTokens.border} />
                     <XAxis
-                      dataKey="name"
+                      dataKey={trendXKey}
                       tick={{ fill: themeTokens.muted, fontSize: 10 }}
                       axisLine={false}
                       tickLine={false}
@@ -1564,124 +1862,32 @@ export default function Stats() {
                     />
                     <Tooltip
                       content={<CustomTooltip themeTokens={themeTokens} />}
-                      cursor={{ fill: "transparent" }}
+                      cursor={{ stroke: themeTokens.border }}
                     />
-                    <Area
+                    <Legend wrapperStyle={{ fontSize: 11, color: themeTokens.muted }} />
+                    <Line
                       type="monotone"
-                      dataKey="total"
-                      stroke="#6366f1"
+                      dataKey="income"
+                      name="Income"
+                      stroke="#10b981"
                       strokeWidth={2}
-                      fill="url(#areaGrad)"
-                      dot={{ fill: "#6366f1", r: 2 }}
+                      dot={{ fill: "#10b981", r: 2 }}
                       activeDot={{ r: 5 }}
                     />
-                  </AreaChart>
+                    <Line
+                      type="monotone"
+                      dataKey="spending"
+                      name="Spending"
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      dot={{ fill: "#ef4444", r: 2 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
                 </ResponsiveContainer>
               ) : (
                 <EmptyState themeTokens={themeTokens} />
               )}
-            </div>
-
-            {/* Weekly + Daily charts — stacked on mobile, side-by-side on desktop */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              {/* Weekly Breakdown */}
-              <div
-                className="rounded-2xl p-4 sm:p-6"
-                style={{
-                  background: themeTokens.card,
-                  border: `1px solid ${themeTokens.border}`,
-                }}
-              >
-                <SectionHeader
-                  title="Weekly Breakdown"
-                  subtitle="How spending distributes across weeks"
-                  themeTokens={themeTokens}
-                />
-                {weeklyData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={180}>
-                    <BarChart data={weeklyData} barSize={10}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={themeTokens.border} />
-                      <XAxis
-                        dataKey="label"
-                        tick={{ fill: themeTokens.muted, fontSize: 9 }}
-                        axisLine={false}
-                        tickLine={false}
-                        interval="preserveStartEnd"
-                      />
-                      <YAxis
-                        tick={{ fill: themeTokens.muted, fontSize: 9 }}
-                        axisLine={false}
-                        tickLine={false}
-                        tickFormatter={(value) => `৳${(value / 1000).toFixed(0)}k`}
-                        width={34}
-                      />
-                      <Tooltip
-                        content={<CustomTooltip themeTokens={themeTokens} />}
-                        cursor={{ fill: "transparent" }}
-                      />
-                      <Bar dataKey="total" radius={[5, 5, 0, 0]}>
-                        {weeklyData.map((_, index) => (
-                          <Cell
-                            key={index}
-                            fill={PIE_COLORS[index % PIE_COLORS.length]}
-                            fillOpacity={0.85}
-                          />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <EmptyState themeTokens={themeTokens} />
-                )}
-              </div>
-
-              {/* Daily Average */}
-              <div
-                className="rounded-2xl p-4 sm:p-6"
-                style={{
-                  background: themeTokens.card,
-                  border: `1px solid ${themeTokens.border}`,
-                }}
-              >
-                <SectionHeader
-                  title="Avg Spend by Day of Month"
-                  subtitle="Which days you typically spend more"
-                  themeTokens={themeTokens}
-                />
-                {dailyAverages.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={180}>
-                    <BarChart data={dailyAverages} barSize={6}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={themeTokens.border} />
-                      <XAxis
-                        dataKey="day"
-                        tick={{ fill: themeTokens.muted, fontSize: 9 }}
-                        axisLine={false}
-                        tickLine={false}
-                        interval={4}
-                      />
-                      <YAxis
-                        tick={{ fill: themeTokens.muted, fontSize: 9 }}
-                        axisLine={false}
-                        tickLine={false}
-                        tickFormatter={(value) => `৳${(value / 1000).toFixed(0)}k`}
-                        width={34}
-                      />
-                      <Tooltip
-                        content={<CustomTooltip themeTokens={themeTokens} />}
-                        cursor={{ fill: "transparent" }}
-                      />
-                      <Bar
-                        dataKey="average"
-                        fill="#10b981"
-                        radius={[3, 3, 0, 0]}
-                        fillOpacity={0.8}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <EmptyState themeTokens={themeTokens} />
-                )}
-              </div>
             </div>
           </div>
         )}
@@ -2164,6 +2370,14 @@ export default function Stats() {
               <StatCard label="Highest Month" value={highestIncomeMonth.income > 0 ? highestIncomeMonth.shortLabel : "—"} subtitle={highestIncomeMonth.income > 0 ? `৳ ${highestIncomeMonth.income.toLocaleString()}` : undefined} icon={Flame} accentColor="#f59e0b" themeTokens={themeTokens} />
               <StatCard label="All-Time Income" value={`৳ ${allTimeIncome.reduce((s, i) => s + i.total, 0).toLocaleString()}`} subtitle={`${allIncome.length} months tracked`} icon={Wallet} accentColor="#8b5cf6" themeTokens={themeTokens} />
             </div>
+
+            <IncomeSourcePills
+              sources={incomeSources}
+              themeTokens={themeTokens}
+              onAdd={handleAddIncomeSource}
+              onRename={handleRenameIncomeSource}
+              onDelete={handleDeleteIncomeSource}
+            />
 
             <div className="rounded-2xl p-4 sm:p-6" style={{ background: themeTokens.card, border: `1px solid ${themeTokens.border}` }}>
               <SectionHeader title={`Monthly Income — ${selectedYear}`} subtitle="Income recorded each month" themeTokens={themeTokens} />

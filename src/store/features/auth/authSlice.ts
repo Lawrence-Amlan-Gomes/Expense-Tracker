@@ -21,12 +21,14 @@ export interface IMoney {
   banks: IBank[];
   inCash: number;
   Months: IMonth[];
+  categories: string[];
 }
 
 export interface IIncome {
   year: number;
   month: string;
   amount: number;
+  source: string;
 }
 
 export interface CleanUser {
@@ -42,6 +44,7 @@ export interface CleanUser {
   isEmailVerified: boolean;
   money: IMoney;
   income: IIncome[];
+  incomeSources: string[];
 }
 
 export interface CleanGoogleUser {
