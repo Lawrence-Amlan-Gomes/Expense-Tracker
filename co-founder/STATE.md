@@ -48,6 +48,13 @@
   entries) — now both sum by month first. **No DB migration was needed**
   for this piece — checked explicitly per the user's ask, confirmed
   nothing to change (this was a read-side computation fix only).
+- **All-Time Trend year picker** (2026-08-19, same session, follow-up):
+  the "Year" pill next to the All-Time Trend chart had no way to pick
+  *which* year — it silently used the page's top-nav `selectedYear` with
+  no visible control on the chart itself. Added a small year dropdown
+  next to the "All Time"/"Year" pills (opens on click, lists
+  `availableYears`, writes to the same shared `selectedYear` state so it
+  stays in sync with the rest of the page).
 - One user's live spending data (`amlangomes@gmail.com`) was manually
   categorized earlier this session via a one-off script — 432 items, all
   given a real category, verified cost-neutral. Backup was scratchpad-
@@ -76,9 +83,10 @@
   confirmed any of this session's or the previous session's work.
 
 ## Session port
-- Dev server running this session on port 3001 (port 3000 was occupied by
-  an external process, PID 3616, not started by us — left untouched per
-  port safety rule).
+- Dev server killed at End Today (was port 3001; port 3000 remained
+  occupied by an external process the whole session, not started by us,
+  never touched). No dev server running right now — start a fresh one
+  next session and report the port.
 
 ## Open questions / blockers
 - `skills/skill_buildCheck_gitADD_gitCommit_gitPush.md` still shows as a
