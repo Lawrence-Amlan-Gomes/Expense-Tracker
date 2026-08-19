@@ -182,3 +182,33 @@ Format per entry:
   to "Uncategorized" automatically — not requested; user's own wording
   ("delete: if it isn't connected with any item") implies delete should
   simply refuse rather than silently reassign, so that's what shipped.
+
+## 2026-08-19 — Expense tab: no category-management pills, unlike Income's source pills
+- Decision: the new Stats "Expense" tab mirrors the Income tab's layout
+  (stat cards, 3 charts) but does **not** get an equivalent to
+  `IncomeSourcePills` for add/rename/delete of categories.
+- Why: category CRUD (rename cascades across all months, delete blocked
+  while in use) already exists in the Dashboard's `CategoryPills`. Income
+  sources didn't have an existing management UI anywhere, so
+  `IncomeSourcePills` on the Stats page was net-new. Adding a second,
+  independent category-CRUD widget in Stats would duplicate that cascade
+  logic in two places with real risk of the two drifting out of sync.
+  Asked the user directly (three options: skip / read-only display /
+  full duplicate CRUD) — they picked skip.
+- Alternatives considered: a read-only pill display for visual parity
+  with Income — rejected in favor of skipping entirely, since the user
+  chose "skip" outright over the read-only middle option.
+
+## 2026-08-19 — Deleted Monthly/Categories/Insights tabs; Balance year picker drives shared state
+- Decision: removed the Monthly, Categories, and Insights tabs from
+  Stats entirely (not hidden — code and helpers fully deleted), leaving
+  Overview/Income/Expense/Balance. Added a local year-picker to the
+  Balance tab that writes to the page's existing shared `selectedYear`
+  state, not an independent scope.
+- Why: direct user instruction to simplify the Stats page down to 4
+  tabs. The Balance year-picker's scope (shared vs. tab-local) was
+  clarified by the user mid-request: they explicitly want it to affect
+  "the whole page," unlike the Income/Expense tabs' own trend-chart
+  toggles (which stayed tab-local by design, from an earlier session).
+- Alternatives considered: none — this was an explicit, unambiguous
+  instruction rather than an open design question.

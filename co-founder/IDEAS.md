@@ -21,6 +21,9 @@ Add a one-line rationale so future-you knows why it seemed worth doing.
   instead of the serialized item blob.
 - Category rename/delete shipped 2026-08-19 (same-day follow-up to the
   original add-only decision) — see DECISIONS.md.
+- ~~Stats page's "Categories" tab groups by item name, not the real
+  `category` field~~ — moot, the tab was deleted 2026-08-19 (same day,
+  user request) along with Monthly and Insights.
 
 ## Growth / monetization
 - (none yet)
