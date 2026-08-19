@@ -160,9 +160,10 @@
   technique now that it's established.
 
 ## Session port
-- Dev server running on port 3001 (started this session, pid 97384; port
-  3000 remains occupied by an external process, not started by us, not
-  touched).
+- Dev server killed at End Today (was port 3001, pid 97402; port 3000
+  remained occupied by an external process the whole session, not
+  started by us, never touched). No dev server running right now —
+  start a fresh one next session and report the port.
 
 ## Open questions / blockers
 - `skills/skill_buildCheck_gitADD_gitCommit_gitPush.md` still shows as a
