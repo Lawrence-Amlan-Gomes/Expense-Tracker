@@ -10,35 +10,22 @@ import LandingPage from "./Landing";
 //   logged out → show the landing page
 // An inline script in <head> sets data-has-auth="1" before paint when saved
 // credentials exist, so a signed-in user never sees the landing flash.
+// `hydrated` (from the auth store) says when saved credentials are resolved.
 export default function HomeGate() {
-  const { user } = useAuth();
+  const { user, hydrated } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
+    // Wait until saved credentials have been read (and a saved token verified).
+    if (!hydrated) return;
+
     if (user) {
       router.replace("/dashBoard");
       return;
     }
-
-    let hasStored = false;
-    try {
-      hasStored = !!(
-        localStorage.getItem("authUser") || localStorage.getItem("authToken")
-      );
-    } catch {
-      hasStored = false;
-    }
-
-    const root = document.documentElement;
-    if (!hasStored) {
-      root.removeAttribute("data-has-auth");
-      return;
-    }
-    // A saved token may still be verifying. If it never turns into a user,
-    // stop waiting and show the landing page.
-    const t = setTimeout(() => root.removeAttribute("data-has-auth"), 3000);
-    return () => clearTimeout(t);
-  }, [user, router]);
+    // Not signed in: show the landing page.
+    document.documentElement.removeAttribute("data-has-auth");
+  }, [user, hydrated, router]);
 
   return (
     <>

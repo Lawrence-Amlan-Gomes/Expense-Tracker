@@ -14,3 +14,9 @@
 - Routing: `/` redirect rule added; `/home` → `/`.
 - Checks: tsc OK, eslint 0 errors, next build OK. No browser check yet.
 - Gave Lawrence the hero image prompt for ChatGPT (`public/hero.png`, square 1:1).
+
+## 2026-11-09 — Session 1 (push + merge)
+- Added rules: auto commit+push at End Today; identity amlangomes@gmail.com (GitHub + Vercel).
+- Push was rejected (remote had 8 newer commits). Merged origin/main, kept remote logic for Dashboard/Stats/Calculator/Login/Billing/ChangePassword/EmailNotVerified, re-applied the new design on top.
+- Merged the two `skillCoFounder.md` files into one (newer rules win; old memory files listed as history).
+- tsc OK, eslint 0 errors, next build OK after the merge.

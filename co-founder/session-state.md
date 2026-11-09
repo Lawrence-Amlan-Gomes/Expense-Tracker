@@ -13,6 +13,12 @@ Last updated: 2026-11-09 (Session 1, after the UI rebuild prompt)
 - New rules saved: auto commit + push to `main` at End Today; identity = amlangomes@gmail.com (GitHub + Vercel, account Lawrence Amlan Gomes).
 - UI work pushed to GitHub main on 2026-11-09 (Lawrence asked).
 
+## Merge note (2026-11-09)
+- GitHub `main` already had 8 newer commits from an earlier cofounder setup (Aug 2026: spreadsheet-style spendings, categories, income sources, Stats rebuild, BDT inflation Calculator, `hydrated` auth flag).
+- I merged them (no force push). For Dashboard, Stats and Calculator I kept THEIR logic and re-applied the NerdWallet re-colour on top.
+- Their notes are in `co-founder/STATE.md`, `LOG.md`, `DECISIONS.md`, `IDEAS.md` and `CLAUDE.md` (read-only for me: I do not edit `CLAUDE.md`).
+- `HomeGate` now uses the store's `hydrated` flag.
+
 ## Next task (recommend this to Lawrence)
 1. (Done) Hero image added.
 2. Ask Lawrence if I may start localhost, then check every page in light + dark mode (landing, login, register, dashboard, stats, calculator, pricing, profile).

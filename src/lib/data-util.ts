@@ -20,12 +20,14 @@ interface Money {
   banks: BankAccount[];
   inCash: number;
   Months: MoneyMonth[];
+  categories: string[];
 }
 
 interface IncomeEntry {
   year: number;
   month: string;
   amount: number;
+  source: string;
 }
 
 interface ClientUser {
@@ -41,6 +43,7 @@ interface ClientUser {
   isEmailVerified: boolean;
   money: Money;
   income: IncomeEntry[];
+  incomeSources: string[];
 }
 
 // Type guard helpers
@@ -89,6 +92,7 @@ export const cleanUserForClient = (user: unknown): ClientUser | null => {
         banks: [],
         inCash: 0,
         Months: [],
+        categories: [],
       };
     }
 
@@ -138,7 +142,15 @@ export const cleanUserForClient = (user: unknown): ClientUser | null => {
       }
     }
 
-    return { banks, inCash, Months };
+    const categories: string[] = [];
+    const rawCategories = money.categories;
+    if (isArray(rawCategories)) {
+      for (const c of rawCategories) {
+        if (typeof c === "string") categories.push(c);
+      }
+    }
+
+    return { banks, inCash, Months, categories };
   };
 
   const id = user._id
@@ -153,7 +165,17 @@ export const cleanUserForClient = (user: unknown): ClientUser | null => {
       const year = getNumber(item, 'year');
       const month = getString(item, 'month');
       const amount = getNumber(item, 'amount');
-      if (year > 0 && month) result.push({ year, month, amount });
+      const source = getString(item, 'source');
+      if (year > 0 && month) result.push({ year, month, amount, source });
+    }
+    return result;
+  };
+
+  const cleanIncomeSources = (sources: unknown): string[] => {
+    if (!isArray(sources)) return [];
+    const result: string[] = [];
+    for (const s of sources) {
+      if (typeof s === 'string') result.push(s);
     }
     return result;
   };
@@ -175,6 +197,7 @@ export const cleanUserForClient = (user: unknown): ClientUser | null => {
     isEmailVerified: getBoolean(user, 'isEmailVerified', false),
     money: cleanMoney(user.money),
     income: cleanIncome(user.income),
+    incomeSources: cleanIncomeSources(user.incomeSources),
   };
 };
 

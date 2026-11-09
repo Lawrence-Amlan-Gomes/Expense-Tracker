@@ -31,16 +31,23 @@ type LeanUser = {
     banks: { name: string; amount: number }[];
     inCash: number;
     Months: { name: string; spendings: { date: string; item: string; cost: number }[] }[];
+    categories?: string[];
   };
-  income?: { year: number; month: string; amount: number }[];
+  income?: { year: number; month: string; amount: number; source?: string }[];
+  incomeSources?: string[];
   __v?: number;
 };
 
 function mapIncome(
-  raw?: { year: number; month: string; amount: number }[]
+  raw?: { year: number; month: string; amount: number; source?: string }[]
 ): IIncome[] {
   if (!raw) return [];
-  return raw.map((i) => ({ year: i.year, month: i.month, amount: i.amount }));
+  return raw.map((i) => ({
+    year: i.year,
+    month: i.month,
+    amount: i.amount,
+    source: i.source || "",
+  }));
 }
 
 // ==================== AUTH ACTIONS ====================
@@ -95,9 +102,11 @@ export async function performLogin({
               ),
             })
           ),
+          categories: user.money.categories || [],
         }
-      : { banks: [], inCash: 0, Months: [] },
+      : { banks: [], inCash: 0, Months: [], categories: [] },
     income: mapIncome(user.income),
+    incomeSources: user.incomeSources || [],
   };
 
   const token = await generateToken(cleanUser);
@@ -132,8 +141,9 @@ export async function createUser(data: {
     expiredAt,
     password: hashed,
     isEmailVerified: isGoogleAuth,
-    money: { banks: [], inCash: 0, Months: [] },
+    money: { banks: [], inCash: 0, Months: [], categories: [] },
     income: [],
+    incomeSources: ["Dad"],
   });
 
   await user.save();
@@ -276,9 +286,11 @@ export async function findUserByEmail(email: string) {
               ),
             })
           ),
+          categories: user.money.categories || [],
         }
-      : { banks: [], inCash: 0, Months: [] },
+      : { banks: [], inCash: 0, Months: [], categories: [] },
     income: mapIncome(user.income),
+    incomeSources: user.incomeSources || [],
   };
 }
 
@@ -306,6 +318,17 @@ export async function updateMoney(email: string, money: IMoney, income?: IIncome
   await dbConnect();
   const update = income !== undefined ? { money, income } : { money };
   await User.updateOne({ email }, update);
+  revalidatePath("/dashBoard");
+}
+
+export async function updateIncomeSources(
+  email: string,
+  income: IIncome[],
+  incomeSources: string[],
+) {
+  await dbConnect();
+  await User.updateOne({ email }, { income, incomeSources });
+  revalidatePath("/stats");
   revalidatePath("/dashBoard");
 }
 

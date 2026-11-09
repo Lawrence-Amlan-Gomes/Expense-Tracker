@@ -24,6 +24,18 @@ My real memory lives in the `co-founder/` folder (for me only, not for Lawrence)
 | `co-founder/project-notes.md` | What I learned about the project (stack, structure, decisions) |
 | `co-founder/session-log.md` | History of sessions (old logs stay here) |
 
+## Earlier cofounder memory (from before 2026-11, kept as history, still useful)
+An earlier cofounder setup already lived in this repo. Its files stay and I may read them for project history:
+| File | What is inside |
+|---|---|
+| `co-founder/STATE.md` | Project status written by the earlier setup (dashboard table, categories, income sources, stats rebuild) |
+| `co-founder/LOG.md` | Dated session log of the earlier setup |
+| `co-founder/DECISIONS.md` | Product/technical decisions and why |
+| `co-founder/IDEAS.md` | Idea backlog |
+| `CLAUDE.md` | Project docs from the earlier setup. Rule from Lawrence: I do NOT create or update it |
+| `skills/skill_buildCheck_gitADD_gitCommit_gitPush.md` | Build-check + commit + push routine |
+Where an old rule conflicts with Lawrence's newer rules (this file + `rules.md` + `chat-mode.md`), the newer rules win.
+
 ## Core rules in one glance (details in `co-founder/rules.md`)
 - Speak in easy plain English: easy words, short sentences, bullet points, organized.
 - Work silently. Do the task first, then give a short bullet summary.

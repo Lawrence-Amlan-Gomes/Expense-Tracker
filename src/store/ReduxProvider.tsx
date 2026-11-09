@@ -4,7 +4,7 @@
 import { Provider } from 'react-redux';
 import { store } from './store';
 import { ReactNode, useEffect } from 'react';
-import { setAuth, setGoogleAuth } from './features/auth/authSlice';
+import { setAuth, setGoogleAuth, setHydrated } from './features/auth/authSlice';
 
 export default function ReduxProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -56,6 +56,8 @@ export default function ReduxProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem('authGoogleUser');
         }
       }
+
+      store.dispatch(setHydrated(true));
     };
 
     loadAuth();
