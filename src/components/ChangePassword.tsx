@@ -2,16 +2,14 @@
 "use client";
 
 import { verifyAndChangePassword } from "@/app/actions";
-import colors from "@/app/color/color";
 import { useAuth } from "@/app/hooks/useAuth";
-import { useTheme } from "@/app/hooks/useTheme";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import EachField from "./EachField";
+import AuthShell from "./AuthShell";
 
 const ChangePassword = () => {
   const router = useRouter();
-  const { theme } = useTheme();
   const { user: auth } = useAuth(); // never touch auth.password
 
   const [oldPassword, setOldPassword] = useState("");
@@ -118,153 +116,80 @@ const ChangePassword = () => {
   /* --------------------------------------------------------------------- */
   if (!auth) {
     return (
-      <div
-        className={`w-full h-full flex justify-center items-center ${
-          theme ? "bg-[#ffffff] text-[#0a0a0a]" : "bg-[#000000] text-[#ebebeb]"
-        }`}
-      >
-        <div className="p-10 text-[18px] sm:text-[20px] md:text-[25px] lg:text-[30px] xl:text-[35px] 2xl:text-[40px]">
-          You have to login first
-        </div>
+      <div className="flex w-full flex-1 items-center justify-center bg-soft p-10">
+        <p className="text-lg font-bold text-ink">You have to sign in first</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full sm:p-0 p-[5%] overflow-y-auto lg:overflow-hidden lg:flex lg:justify-center lg:items-center sm:pt-[12%]">
-      <div
-        className={`p-10 overflow-hidden rounded-lg sm:my-[5%] sm:w-[80%] sm:mx-[10%] lg:w-[700px] xl:w-[800px] 2xl:w-[900px] lg:my-0 text-center ${
-          theme ? colors.cardLight : colors.cardDark
-        }`}
+    <div className="flex w-full flex-1 flex-col">
+      <AuthShell
+        title="Change password"
+        subtitle="Use at least 8 characters. Pick something you don't use elsewhere."
       >
-        {/* Title + fake field (keeps autofill happy) */}
-        <div className="w-full overflow-hidden">
-          <div className="text-[20px] sm:text-[25px] md:text-[30px] lg:text-[35px] xl:text-[40px] 2xl:text-[45px] font-bold mb-10">
-            Change Password
-          </div>
-          <div className="opacity-0">
-            <EachField
-              label="fake"
-              type="password"
-              name="password"
-              isReal={false}
-              placeholder="Enter your password"
-              value={oldPassword}
-              setValue={setOldPassword}
-              iserror={oldError.iserror}
-              error={oldError.error}
-            />
-          </div>
-        </div>
-
-        {/* ────── MOBILE ────── */}
-        <div className="w-full sm:hidden block overflow-hidden space-y-4">
+        <div className="absolute h-0 w-0 overflow-hidden opacity-0" aria-hidden="true">
           <EachField
-            label="Old Password"
+            label="fake"
             type="password"
             name="password"
-            isReal={true}
-            placeholder="Enter your old Password"
+            isReal={false}
+            placeholder="Enter your password"
             value={oldPassword}
             setValue={setOldPassword}
             iserror={oldError.iserror}
             error={oldError.error}
           />
-          <EachField
-            label="New Password"
-            type="password"
-            name="password"
-            isReal={true}
-            placeholder="Enter your new Password"
-            value={newPassword}
-            setValue={setNewPassword}
-            iserror={newError.iserror}
-            error={newError.error}
-          />
-          <EachField
-            label="Confirm New Password"
-            type="password"
-            name="password"
-            isReal={true}
-            placeholder="Confirm your Password"
-            value={confirmPassword}
-            setValue={setConfirmPassword}
-            iserror={confirmError.iserror}
-            error={confirmError.error}
-          />
-          <button
-            onClick={submitForm}
-            disabled={!noError || isLoading}
-            className={`text-[18px] cursor-pointer rounded-lg mt-10 py-2 px-6 mb-5 shadow-md w-full ${
-              noError && !isLoading
-                ? "bg-green-700 text-white"
-                : theme
-                ? "bg-[#dbdbdb] text-[#808080]"
-                : "bg-[#1a1a1a] text-[#696969]"
-            }`}
-          >
-            {isLoading ? "Changing…" : "Change Password"}
-          </button>
         </div>
 
-        {/* ────── DESKTOP ────── */}
-        <div className="hidden sm:block">
-          <div className="float-left w-[50%] pr-5 overflow-hidden">
-            <EachField
-              label="New Password"
-              type="password"
-              name="password"
-              isReal={true}
-              placeholder="Enter your new Password"
-              value={newPassword}
-              setValue={setNewPassword}
-              iserror={newError.iserror}
-              error={newError.error}
-            />
-            <EachField
-              label="Confirm New Password"
-              type="password"
-              name="password"
-              isReal={true}
-              placeholder="Confirm your Password"
-              value={confirmPassword}
-              setValue={setConfirmPassword}
-              iserror={confirmError.iserror}
-              error={confirmError.error}
-            />
-          </div>
+        <EachField
+          label="Old password"
+          type="password"
+          name="password"
+          isReal={true}
+          placeholder="Enter your old password"
+          value={oldPassword}
+          setValue={setOldPassword}
+          iserror={oldError.iserror}
+          error={oldError.error}
+        />
+        <EachField
+          label="New password"
+          type="password"
+          name="password"
+          isReal={true}
+          placeholder="Enter your new password"
+          value={newPassword}
+          setValue={setNewPassword}
+          iserror={newError.iserror}
+          error={newError.error}
+        />
+        <EachField
+          label="Confirm new password"
+          type="password"
+          name="password"
+          isReal={true}
+          placeholder="Confirm your new password"
+          value={confirmPassword}
+          setValue={setConfirmPassword}
+          iserror={confirmError.iserror}
+          error={confirmError.error}
+        />
 
-          <div className="float-left w-[50%] pl-5 overflow-hidden">
-            <EachField
-              label="Old Password"
-              type="password"
-              name="password"
-              isReal={true}
-              placeholder="Enter your old Password"
-              value={oldPassword}
-              setValue={setOldPassword}
-              iserror={oldError.iserror}
-              error={oldError.error}
-            />
-            <button
-              onClick={submitForm}
-              disabled={!noError || isLoading}
-              className={`text-[12px] lg:text-[16px] 2xl:text-[25px] cursor-pointer rounded-lg mt-10 py-2 px-6 mb-5 w-full ${
-                noError && !isLoading
-                  ? "bg-green-700 text-white"
-                  : theme
-                  ? "bg-[#dbdbdb] text-[#808080]"
-                  : "bg-[#1a1a1a] text-[#696969]"
-              }`}
-            >
-              {isLoading ? "Changing…" : "Change Password"}
-            </button>
-          </div>
-        </div>
+        <button
+          onClick={submitForm}
+          disabled={!noError || isLoading}
+          className="btn-primary w-full"
+        >
+          {isLoading ? "Changing…" : "Change password"}
+        </button>
 
-        {/* Server error */}
-        {serverMsg && <p className="mt-4 text-red-600 text-sm">{serverMsg}</p>}
-      </div>
+        {serverMsg && (
+          <p className="text-sm font-medium text-error" role="alert">
+            {serverMsg}
+          </p>
+        )}
+      </AuthShell>
     </div>
   );
 };

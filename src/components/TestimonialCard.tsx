@@ -1,9 +1,8 @@
 "use client";
-import colors from "@/app/color/color";
-import { useTheme } from "@/app/hooks/useTheme";
 import Image from "next/image";
 import { FaQuoteLeft } from "react-icons/fa";
 
+// rate-card style: white card, hairline border, no shadow.
 export default function TestimonialCard({
   clientName,
   clientImg,
@@ -15,60 +14,30 @@ export default function TestimonialCard({
   clientRole: string;
   clientQuote: string;
 }) {
-  const { theme } = useTheme();
-
   return (
-    <div
-      className={`w-full mx-auto p-8 rounded-2xl hover:cursor-pointer border-[1px] flex flex-col justify-between relative ${
-        theme
-          ? `bg-[#ffffff] hover:bg-[#fafafa] text-[#aaaaaa] ${colors.keyBorder}`
-          : `bg-[#000000] hover:bg-[#060606] text-[#eeeeee] ${colors.keyBorder}`
-      }`}
-    >
-      <div className="flex flex-col flex-grow">
-        {/* Quote Icon */}
-        <FaQuoteLeft
-          className={`text-xl mb-4 ${
-            theme ? "text-[#666666]" : "text-[#aaaaaa]"
-          }`}
-        />
-
-        {/* Quote Text */}
-        <p
-          className={`lg:text-md text-sm leading-relaxed text-justify mb-6 ${
-            theme ? "text-[#666666]" : "text-[#aaaaaa]"
-          }`}
-        >
+    <figure className="card relative mx-auto flex w-full flex-col justify-between p-6 sm:p-8">
+      <div className="flex flex-grow flex-col">
+        <FaQuoteLeft className="mb-4 text-xl text-brand" aria-hidden="true" />
+        <blockquote className="mb-6 text-sm font-light leading-relaxed text-body sm:text-base">
           {clientQuote}
-        </p>
+        </blockquote>
       </div>
 
-      {/* Author Section - Pinned to Bottom */}
-      <div className="flex items-center gap-4 mt-auto">
-        <div className="relative w-12 h-12 rounded-lg overflow-hidden">
+      <figcaption className="mt-auto flex items-center gap-4 border-t border-hairline pt-4">
+        <div className="relative h-12 w-12 overflow-hidden rounded-full bg-mint-100">
           <Image
             src={clientImg}
             alt={clientName}
-            width={50}
-            height={50}
-            className="object-cover"
+            width={48}
+            height={48}
+            className="h-12 w-12 object-cover"
           />
         </div>
         <div>
-          <h3
-            className={`font-semibold lg:text-md text-sm ${
-              theme ? "text-[#333333]" : "text-[#dddddd]"
-            }`}
-          >
-            {clientName}
-          </h3>
-          <p
-            className={`text-sm ${theme ? "text-[#666666]" : "text-[#aaaaaa]"}`}
-          >
-            {clientRole}
-          </p>
+          <h3 className="text-sm font-bold text-ink">{clientName}</h3>
+          <p className="text-xs text-muted">{clientRole}</p>
         </div>
-      </div>
-    </div>
+      </figcaption>
+    </figure>
   );
 }

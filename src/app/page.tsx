@@ -1,6 +1,7 @@
-// src/app/home/page.tsx
-import LandingPage from "@/components/Landing";
+// src/app/page.tsx
+// "/" → dashboard when logged in, landing page when not (see HomeGate).
+import HomeGate from "@/components/HomeGate";
 
-export default function LandingPageHome() {
-  return <LandingPage />;
+export default function RootPage() {
+  return <HomeGate />;
 }

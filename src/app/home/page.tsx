@@ -1,6 +1,7 @@
 // src/app/home/page.tsx
-import LandingPage from "@/components/Landing";
+// Old landing route. "/" now handles both cases.
+import { redirect } from "next/navigation";
 
 export default function LandingPageHome() {
-  return <LandingPage />;
+  redirect("/");
 }

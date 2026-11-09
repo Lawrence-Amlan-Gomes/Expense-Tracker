@@ -7,9 +7,7 @@ import {
   performLogin,
   updateUser,
 } from "@/app/actions";
-import colors from "@/app/color/color";
 import { useAuth } from "@/app/hooks/useAuth";
-import { useTheme } from "@/app/hooks/useTheme";
 import { CleanUser } from "@/store/features/auth/authSlice";
 import { signIn, useSession } from "next-auth/react";
 import Image from "next/image";
@@ -17,12 +15,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import EachField from "./EachField";
+import AuthShell from "./AuthShell";
 
 const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { data: session } = useSession();
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
-  const { theme } = useTheme();
   const { user: auth, setAuth, setGoogleAuth } = useAuth();
   const router = useRouter();
 
@@ -164,27 +162,19 @@ const LoginForm = () => {
       setIsLoadingGoogle(false);
     }
   };
+  const canSubmit = !emailError.iserror && !passwordError.iserror && !isLoading;
+
   return (
     <div
+      className="flex w-full flex-1 flex-col"
       onKeyDown={(event) => {
         if (event.key === "Enter") {
           submitForm();
         }
       }}
-      className={`h-screen w-full sm:pt-[5%] pt-[30%] sm:px-0 px-[10%] overflow-y-auto lg:overflow-hidden lg:flex lg:justify-center lg:items-center ${
-        theme ? `bg-white ${colors.bgLight}` : `bg-black ${colors.bgDark}`
-      }`}
     >
-      <div
-        className={`sm:p-10 p-5 rounded-md sm:my-[5%] sm:w-[50%] sm:mx-[25%] lg:w-[400px] xl:w-[450px] 2xl:w-[500px] lg:my-0 text-center ${
-          theme ? `${colors.cardLight}` : `${colors.cardDark}`
-        }`}
-      >
-        <div className="text-[20px] lg:text-[25px] 2xl:text-[40px] font-bold sm:mb-10">
-          Login
-        </div>
-
-        <div className="opacity-0">
+      <AuthShell title="Sign in" subtitle="Welcome back. Pick up where you left off.">
+        <div className="absolute h-0 w-0 overflow-hidden opacity-0" aria-hidden="true">
           <EachField
             label="fake"
             type="email"
@@ -214,7 +204,7 @@ const LoginForm = () => {
           type="email"
           name="email"
           isReal={true}
-          placeholder="Enter your email"
+          placeholder="you@example.com"
           value={email}
           setValue={setEmail}
           iserror={emailError.iserror}
@@ -233,82 +223,49 @@ const LoginForm = () => {
         />
 
         {mainError.isError && (
-          <div className="mt-3 text-red-600 text-[10px] lg:text-[14px] 2xl:text-[22px]">
+          <p className="text-sm font-medium text-error" role="alert">
             {mainError.error}
-          </div>
+          </p>
         )}
 
         <button
           onClick={submitForm}
-          disabled={emailError.iserror || passwordError.iserror || isLoading}
-          className={`
-    text-[12px] lg:text-[16px] 2xl:text-[25px]
-    ${!emailError.iserror && !passwordError.iserror ? "cursor-pointer" : "cursor-not-allowed"} rounded-lg mt-6 sm:mt-12 py-2 sm:py-2.5 md:py-3 px-5 sm:px-6 md:px-8
-    font-medium transition-all duration-300 ease-out
-    shadow-sm hover:shadow-md active:scale-[0.98]
-    border border-transparent
-    ${
-      !emailError.iserror && !passwordError.iserror
-        ? theme
-          ? "bg-green-600 hover:bg-green-700 text-white"
-          : "bg-green-700 hover:bg-green-800 text-white"
-        : theme
-          ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-          : "bg-gray-800 text-gray-500 cursor-not-allowed"
-    }
-  `}
+          disabled={!canSubmit}
+          className="btn-primary w-full"
         >
-          {isLoading ? "Logging in..." : "Login"}
+          {isLoading ? "Signing in…" : "Sign in"}
         </button>
 
-        <div className="w-full flex flex-col items-center justify-center">
-          <button
-            onClick={handleGoogleSignIn}
-            className={`text-[12px] lg:text-[16px] 2xl:text-[25px] flex items-center gap-4 lg:h-[60px] h-[40px] cursor-pointer rounded-md mt-10 py-2 px-4 lg:px-6 ${
-              theme
-                ? `${colors.keyBg} ${colors.keyHoverBg}`
-                : `${colors.keyBg} ${colors.keyHoverBg}`
-            } text-white`}
-          >
-            <div className="h-full flex justify-center items-center">
-              <div className="h-[30px] sm:h-[50px] w-[30px] sm:w-[50px] relative">
-                <Image
-                  priority
-                  src="/googleIcon.png"
-                  alt="Google Icon"
-                  fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 30vw"
-                  className="object-cover"
-                />
-              </div>
-            </div>
-            <div className="h-full text-center flex justify-center items-center">
-              <div>
-                {isLoadingGoogle
-                  ? `Logging...`
-                  : session
-                    ? `${session.user?.email}`
-                    : `Login with Google`}
-              </div>
-            </div>
-          </button>
-          {googleError.isError && (
-            <div className="mt-2 text-red-600 text-[10px] lg:text-[14px] 2xl:text-[22px]">
-              {googleError.error}
-            </div>
-          )}
+        <div className="flex items-center gap-3 text-xs text-muted" aria-hidden="true">
+          <span className="h-px flex-1 bg-hairline" />
+          or
+          <span className="h-px flex-1 bg-hairline" />
         </div>
 
-        <div className="sm:mt-18 mt-5 text-[12px] lg:text-[16px] 2xl:text-[26px]">
-          No Account?{" "}
-          <Link
-            href="/register"
-            className={`${colors.keyText} ${colors.keyHoverText}`}
-          >
-            Register
+        <button
+          onClick={handleGoogleSignIn}
+          className="btn-outline w-full !normal-case"
+        >
+          <Image src="/googleIcon.png" alt="" width={20} height={20} />
+          {isLoadingGoogle
+            ? "Signing in…"
+            : session
+              ? `${session.user?.email}`
+              : "Continue with Google"}
+        </button>
+        {googleError.isError && (
+          <p className="text-sm font-medium text-error" role="alert">
+            {googleError.error}
+          </p>
+        )}
+
+        <p className="pt-2 text-center text-sm text-body">
+          No account?{" "}
+          <Link href="/register" className="font-bold text-brand underline underline-offset-4">
+            Create one
           </Link>
-        </div>
-      </div>
+        </p>
+      </AuthShell>
     </div>
   );
 };

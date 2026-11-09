@@ -4,12 +4,10 @@ import {
   resendVerificationEmail,
 } from "@/app/actions";
 import { useAuth } from "@/app/hooks/useAuth";
-import { useTheme } from "@/app/hooks/useTheme";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function EmailNotVerified() {
-  const { theme } = useTheme();
   const { user: auth, setAuth } = useAuth();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -70,52 +68,36 @@ export default function EmailNotVerified() {
   }
 
   return (
-    <div
-      className={`h-screen w-full overflow-hidden flex justify-center items-center`}
-    >
-      <div>
-        <div className="text-red-600 rounded-lg">
-          Please verify your email to use Daily Routine!
-        </div>
-        <div
-          className={`${
-            theme ? "text-[#222222]" : "text-[#dddddd]"
-          } text-center mt-3`}
-        >
-          Haven&apos;t received verification email yet?
-        </div>
+    <div className="flex w-full flex-1 items-center justify-center bg-soft px-4 py-16">
+      <div className="card w-full max-w-md p-6 text-center sm:p-8">
+        <h1 className="text-2xl">Please verify your email</h1>
+        <p className="mt-3 text-sm font-light text-body">
+          Verify your email to start using Expense Tracker. Haven&apos;t received
+          the email yet?
+        </p>
 
         {message && (
-          <div
-            className={`text-center mt-3 text-sm ${
-              message.includes("success") ? "text-green-600" : "text-red-600"
+          <p
+            role="status"
+            className={`mt-4 text-sm font-medium ${
+              message.includes("success") ? "text-brand" : "text-error"
             }`}
           >
             {message}
-          </div>
+          </p>
         )}
 
-        <div className="w-full mt-5 flex justify-center items-center">
-          <button
-            onClick={reSend}
-            disabled={loading}
-            className={`${
-              theme
-                ? "text-white bg-black hover:bg-white hover:text-black border-black"
-                : "text-black bg-white hover:bg-black hover:text-white border-white"
-            } px-3 py-2 rounded-md text-center border-[1px] disabled:opacity-50 disabled:cursor-not-allowed transition-all`}
-          >
-            {loading ? "Sending..." : "Resend It"}
-          </button>
-        </div>
-
-        <div
-          className={`text-xs text-center mt-4 ${
-            theme ? "text-gray-600" : "text-gray-400"
-          }`}
+        <button
+          onClick={reSend}
+          disabled={loading}
+          className="btn-primary mt-6 w-full"
         >
-          Checking verification status automatically...
-        </div>
+          {loading ? "Sending…" : "Resend it"}
+        </button>
+
+        <p className="mt-4 text-xs text-muted">
+          Checking verification status automatically…
+        </p>
       </div>
     </div>
   );

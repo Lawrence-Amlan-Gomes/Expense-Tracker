@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useTheme } from "@/app/hooks/useTheme";
+import PageBand from "./PageBand";
 
 const buttons = [
   { label: "AC",  type: "action",   span: 1 },
@@ -28,8 +28,6 @@ const buttons = [
 type BtnLabel = (typeof buttons)[number]["label"];
 
 export default function Calculator() {
-  const { theme } = useTheme();
-
   const [display, setDisplay]               = useState("0");
   const [expression, setExpression]         = useState("");
   const [firstOperand, setFirstOperand]     = useState<string | null>(null);
@@ -169,152 +167,112 @@ export default function Calculator() {
     display.length > 5  ? "text-4xl sm:text-5xl" :
                           "text-5xl sm:text-6xl";
 
-  // ─── Button classes (same colors & style, only size & aspect adjusted) ───
-  const baseBtn = `
-    flex items-center justify-center h-20 sm:h-24 font-semibold select-none
-    transition-all duration-75 active:scale-95 touch-manipulation
-  `;
+  // ─── Button classes (design tokens; no theme ternaries needed) ───
+  const baseBtn =
+    "flex items-center justify-center h-16 sm:h-20 font-bold select-none transition-colors duration-75 active:bg-mint-200 touch-manipulation";
 
   const numBtnCls = (isPressed: boolean) =>
-    `${baseBtn} text-xl sm:text-2xl
-     ${isPressed ? "scale-95" : ""}
-     ${theme
-       ? "bg-gray-100 hover:bg-gray-200 text-gray-800 active:bg-gray-300"
-       : "bg-[#1e1e22] hover:bg-[#252528] text-gray-100 active:bg-[#2a2a2e]"
-     }`;
+    `${baseBtn} text-xl sm:text-2xl bg-surface text-ink hover:bg-mint-50 ${isPressed ? "bg-mint-100" : ""}`;
 
   const actionBtnCls = (isPressed: boolean) =>
-    `${baseBtn} text-lg sm:text-xl
-     ${isPressed ? "scale-95" : ""}
-     ${theme
-       ? "bg-gray-300 hover:bg-gray-400 text-gray-700 active:bg-gray-400"
-       : "bg-[#2a2a2e] hover:bg-[#323236] text-gray-300 active:bg-[#3a3a3e]"
-     }`;
+    `${baseBtn} text-lg sm:text-xl bg-soft text-body hover:bg-mint-50 ${isPressed ? "bg-mint-100" : ""}`;
 
   const operatorBtnCls = (isPressed: boolean, isActive: boolean) =>
-    `${baseBtn} text-2xl sm:text-3xl font-normal
-     ${isPressed ? "scale-95" : ""}
-     ${isActive
-       ? theme
-         ? "bg-blue-100 text-blue-500 ring-1 ring-inset ring-blue-300"
-         : "bg-blue-500/10 text-blue-300 ring-1 ring-inset ring-blue-500/30"
-       : theme
-         ? "bg-gray-100 hover:bg-gray-200 text-blue-500 active:bg-gray-300"
-         : "bg-[#1e1e22] hover:bg-[#252528] text-blue-400 active:bg-[#2a2a2e]"
-     }`;
+    `${baseBtn} text-2xl sm:text-3xl ${
+      isActive
+        ? "bg-primary text-on-primary"
+        : `bg-mint-50 text-brand hover:bg-mint-100 ${isPressed ? "bg-mint-200" : ""}`
+    }`;
 
   const equalsBtnCls = (isPressed: boolean) =>
-    `${baseBtn} text-2xl sm:text-3xl font-normal text-white shadow-inner
-     ${isPressed ? "scale-95" : ""}
-     bg-gradient-to-br from-blue-400 to-blue-600
-     hover:from-blue-300 hover:to-blue-500
-     active:from-blue-500 active:to-blue-700`;
+    `${baseBtn} text-2xl sm:text-3xl bg-primary text-on-primary hover:bg-primary-hover ${isPressed ? "bg-primary-hover" : ""}`;
 
   return (
-    <div className="flex flex-col items-center gap-4 p-4 sm:p-6 md:p-10 pt-20 md:pt-24">
+    <div className="w-full">
+      <PageBand
+        crumb="Calculator"
+        title="Calculator"
+        lead="A quick calculator with history. Keyboard works too."
+      />
 
-      {/* History Panel */}
-      {showHistory && (
-        <div className={`w-full max-w-[360px] sm:max-w-[400px] rounded-2xl p-4 max-h-[50vh] sm:max-h-[320px] overflow-y-auto
-          scrollbar-thin scrollbar-thumb-blue-400/30 scrollbar-track-transparent
-          ${theme
-            ? "bg-white border border-gray-200 shadow-lg"
-            : "bg-[#1a1a1e] border border-white/5 shadow-[0_16px_48px_rgba(0,0,0,0.6)]"
-          }`}
+      <section className="flex flex-col items-center gap-4 px-4 py-10 sm:py-14">
+        {/* History Panel */}
+        {showHistory && (
+          <div className="card max-h-[50vh] w-full max-w-[400px] overflow-y-auto p-4 sm:max-h-[320px]">
+            <p className="eyebrow mb-2 border-b border-hairline pb-2">History</p>
+            {history.length === 0 ? (
+              <p className="py-5 text-center text-sm text-muted">
+                No calculations yet
+              </p>
+            ) : (
+              history.map((h, i) => (
+                <div
+                  key={i}
+                  className="border-b border-hairline py-2 text-sm last:border-b-0"
+                >
+                  <p className="mb-0.5 text-right font-mono text-xs text-muted">
+                    {h.expr}
+                  </p>
+                  <p className="text-right font-mono font-medium text-ink">
+                    {h.result}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* History toggle */}
+        <button
+          onClick={() => setShowHistory((v) => !v)}
+          className="btn-outline"
         >
-          <p className={`text-xs sm:text-sm font-bold tracking-widest uppercase pb-2 mb-2 border-b
-            ${theme ? "text-blue-400 border-gray-200" : "text-blue-500/50 border-white/5"}`}>
-            History
-          </p>
-          {history.length === 0 ? (
-            <p className={`text-center text-sm sm:text-base py-5 font-mono
-              ${theme ? "text-gray-400" : "text-white/20"}`}>
-              no calculations yet
-            </p>
-          ) : (
-            history.map((h, i) => (
-              <div key={i} className={`py-2 border-b last:border-b-0 text-sm sm:text-base
-                ${theme ? "border-gray-100" : "border-white/[0.04]"}`}>
-                <p className={`text-right text-xs sm:text-sm font-mono mb-0.5
-                  ${theme ? "text-blue-400/60" : "text-blue-400/40"}`}>
-                  {h.expr}
-                </p>
-                <p className={`text-right font-mono font-medium
-                  ${theme ? "text-gray-800" : "text-gray-100/85"}`}>
-                  {h.result}
-                </p>
-              </div>
-            ))
-          )}
-        </div>
-      )}
+          {showHistory ? "Hide history" : "Show history"}
+        </button>
 
-      {/* History Toggle Button */}
-      <button
-        onClick={() => setShowHistory((v) => !v)}
-        className={`text-xs sm:text-sm font-bold tracking-widest uppercase px-4 sm:px-5 py-2 rounded-full
-          border transition-all duration-200 cursor-pointer
-          ${theme
-            ? "border-blue-300 text-blue-400 hover:bg-blue-50 hover:border-blue-400"
-            : "border-blue-500/20 text-blue-400/60 hover:bg-blue-500/8 hover:text-blue-400/90 hover:border-blue-500/40"
-          }`}
-      >
-        {showHistory ? "Hide History" : "Show History"}
-      </button>
-
-      {/* Calculator Shell */}
-      <div className={`w-full max-w-[360px] sm:max-w-[380px] rounded-[28px] p-1.5 sm:p-[6px] relative overflow-hidden
-        ${theme
-          ? "bg-gradient-to-br from-gray-200 to-gray-300 shadow-[0_0_0_1px_rgba(0,0,0,0.08),0_32px_64px_rgba(0,0,0,0.2)]"
-          : "bg-gradient-to-br from-[#1a1a1e] to-[#111113] shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_32px_64px_rgba(0,0,0,0.8)]"
-        }`}
-      >
-        <div className={`rounded-[23px] overflow-hidden border
-          ${theme
-            ? "bg-white border-gray-200"
-            : "bg-[#131315] border-white/5"
-          }`}
-        >
+        {/* Calculator shell */}
+        <div className="card w-full max-w-[400px] overflow-hidden">
           {/* Display */}
-          <div className={`relative px-5 sm:px-6 pt-6 pb-4 min-h-[110px] sm:min-h-[130px] flex flex-col justify-end
-            ${theme
-              ? "bg-gradient-to-b from-gray-50 to-white border-b border-gray-100"
-              : "bg-gradient-to-b from-[#0a0a0c] to-[#111113] border-b border-white/[0.04]"
-            }`}
-          >
-            <p className={`text-right text-xs sm:text-sm font-mono tracking-wide truncate mb-1 min-h-[18px]
-              ${theme ? "text-blue-400/70" : "text-blue-400/50"}`}>
+          <div className="flex min-h-[110px] flex-col justify-end border-b border-hairline bg-mint-50 px-5 pb-4 pt-6 sm:min-h-[130px] sm:px-6">
+            <p className="mb-1 min-h-[18px] truncate text-right font-mono text-xs tracking-wide text-muted sm:text-sm">
               {expression || "\u00A0"}
             </p>
-
-            <p className={`text-right font-mono font-light leading-none tracking-tight truncate
-              transition-all duration-150 ${displayFontSize}
-              ${theme ? "text-gray-900" : "text-gray-100"}`}>
+            <p
+              className={`truncate text-right font-mono font-light leading-none tracking-tight text-ink transition-all duration-150 ${displayFontSize}`}
+            >
               {formatDisplay(display)}
             </p>
           </div>
 
-          {/* Buttons Grid */}
-          <div className={`grid grid-cols-4 gap-px
-            ${theme ? "bg-gray-200" : "bg-white/[0.04]"}`}
-          >
+          {/* Buttons grid */}
+          <div className="grid grid-cols-4 gap-px bg-hairline">
             {buttons.map((btn, i) => {
-              const isPressed  = pressedKey === btn.label;
-              const isActiveOp = btn.type === "operator" && btn.label === operator && waitingForSecond;
+              const isPressed = pressedKey === btn.label;
+              const isActiveOp =
+                btn.type === "operator" &&
+                btn.label === operator &&
+                waitingForSecond;
 
               let cls = "";
-              if (btn.type === "number")   cls = numBtnCls(isPressed);
-              else if (btn.type === "action")   cls = actionBtnCls(isPressed);
-              else if (btn.type === "operator") cls = operatorBtnCls(isPressed, isActiveOp);
-              else if (btn.type === "equals")   cls = equalsBtnCls(isPressed);
+              if (btn.type === "number") cls = numBtnCls(isPressed);
+              else if (btn.type === "action") cls = actionBtnCls(isPressed);
+              else if (btn.type === "operator")
+                cls = operatorBtnCls(isPressed, isActiveOp);
+              else if (btn.type === "equals") cls = equalsBtnCls(isPressed);
 
               return (
                 <button
                   key={i}
                   className={cls}
-                  style={btn.span === 2
-                    ? { gridColumn: "span 2", justifyContent: "flex-start", paddingLeft: "1.5rem", paddingRight: "1.5rem" }
-                    : undefined
+                  style={
+                    btn.span === 2
+                      ? {
+                          gridColumn: "span 2",
+                          justifyContent: "flex-start",
+                          paddingLeft: "1.5rem",
+                          paddingRight: "1.5rem",
+                        }
+                      : undefined
                   }
                   onClick={() => handleClick(btn)}
                   onMouseDown={(e) => e.preventDefault()}
@@ -325,7 +283,7 @@ export default function Calculator() {
             })}
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

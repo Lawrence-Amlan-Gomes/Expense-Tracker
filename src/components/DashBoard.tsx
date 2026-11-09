@@ -49,28 +49,27 @@ function parseItem(item: string): {
 // ─── Theme tokens ─────────────────────────────────────────────────────────────
 
 function tk(theme: boolean) {
+  // Values come from DESIGN.md (NerdWallet): spruce green, mint ladder, hairlines.
   return {
-    bg: theme ? "#f7f7f8" : "#080808",
-    surface: theme ? "#ffffff" : "#0f0f0f",
-    surfaceAlt: theme ? "#f0f0f2" : "#141414",
-    border: theme ? "#e4e4e7" : "#1c1c1c",
-    borderStrong: theme ? "#d0d0d5" : "#2a2a2a",
-    text: theme ? "#0a0a0b" : "#f0f0f0",
-    textSub: theme ? "#5c5c6e" : "#666680",
-    textMuted: theme ? "#9898a8" : "#404055",
-    accent: "#6366f1",
-    accentHover: "#4f46e5",
-    accentSoft: theme ? "#eef2ff" : "#1a1a2e",
-    danger: "#ef4444",
-    success: "#10b981",
-    warning: "#f59e0b",
-    inputBg: theme ? "#f7f7f8" : "#0f0f0f",
-    shadow: theme
-      ? "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)"
-      : "0 1px 3px rgba(0,0,0,0.4)",
-    shadowMd: theme
-      ? "0 4px 16px rgba(0,0,0,0.08)"
-      : "0 4px 16px rgba(0,0,0,0.5)",
+    bg: theme ? "#f7f7f7" : "#0c1210",
+    surface: theme ? "#ffffff" : "#121c18",
+    surfaceAlt: theme ? "#effcf8" : "#16261f",
+    border: theme ? "#ebebec" : "#1f2a26",
+    borderStrong: theme ? "#d8d9da" : "#2c3a35",
+    text: theme ? "#000000" : "#f4f7f5",
+    textSub: theme ? "#3d4045" : "#c3cbc7",
+    textMuted: theme ? "#64666a" : "#8f9b96",
+    accent: "#008254", // fills (white text on top)
+    accentText: theme ? "#008254" : "#3dd89b", // green used as text
+    accentHover: "#006642",
+    accentSoft: theme ? "#e3faf2" : "#142a22",
+    danger: theme ? "#de2828" : "#ef5350",
+    success: "#008254",
+    warning: theme ? "#b45309" : "#d97706",
+    inputBg: theme ? "#ffffff" : "#121c18",
+    shadow: "none",
+    shadowMd:
+      "0 4px 16px rgba(100,102,106,0.05), 0 16px 40px rgba(100,102,104,0.05)",
   };
 }
 
@@ -392,19 +391,18 @@ const handleSave = async () => {
       <div className="px-4 pt-4 pb-3">
         <div
           onClick={() => setTotalBalanceModalOpen(true)}
-          className="cursor-pointer rounded-xl p-4 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          className="cursor-pointer rounded-lg p-4 transition-all hover:brightness-110"
           style={{
-            background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-            boxShadow: "0 4px 20px rgba(99,102,241,0.35)",
+            background: "#00482f",
           }}
         >
-          <div className="text-xs font-medium text-indigo-200 mb-1">
+          <div className="text-xs font-medium text-white/75 mb-1">
             Total Balance
           </div>
           <div className="text-2xl font-bold text-white tracking-tight">
             ৳ {totalBalance.toLocaleString()}
           </div>
-          <div className="text-xs text-indigo-300 mt-1">
+          <div className="text-xs text-white/75 mt-1">
             {banks.length} accounts · tap to compare
           </div>
         </div>
@@ -424,7 +422,6 @@ const handleSave = async () => {
               : {
                   background: t.success,
                   color: "#fff",
-                  boxShadow: "0 2px 8px rgba(16,185,129,0.3)",
                 }
           }
         >
@@ -450,7 +447,7 @@ const handleSave = async () => {
             value={bankSearch}
             onChange={(e) => setBankSearch(e.target.value)}
             placeholder="Search accounts…"
-            className="w-full pl-8 pr-3 py-2 text-sm rounded-lg outline-none transition-all"
+            className="w-full pl-8 pr-3 py-2 text-sm rounded-none outline-none transition-all"
             style={{
               background: t.inputBg,
               border: `1px solid ${t.border}`,
@@ -474,12 +471,12 @@ const handleSave = async () => {
               setBanks([...banks, { name: bankName.trim(), amount: 0 }]);
             }
           }}
-          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium border border-dashed transition-all hover:border-indigo-400 hover:text-indigo-500 group"
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium border border-dashed transition-all hover:border-primary hover:text-brand group"
           style={{ borderColor: t.borderStrong, color: t.textMuted }}
         >
           <Plus
             size={14}
-            className="group-hover:text-indigo-500 transition-colors"
+            className="group-hover:text-brand transition-colors"
           />
           Add Bank Account
         </button>
@@ -489,15 +486,14 @@ const handleSave = async () => {
           <div
             key={bank.name}
             onClick={() => setBankModal({ show: true, bank })}
-            className="rounded-xl p-3.5 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group"
+            className="rounded-lg p-3.5 cursor-pointer transition-all hover:brightness-110 group"
             style={{
-              background: "linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)",
-              boxShadow: "0 2px 8px rgba(29,78,216,0.2)",
+              background: "#006642",
             }}
           >
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
-                <div className="text-xs text-blue-300 mb-0.5">Bank</div>
+                <div className="text-xs text-white/75 mb-0.5">Bank</div>
                 <div className="text-sm font-semibold text-white truncate">
                   {bank.name}
                 </div>
@@ -507,7 +503,7 @@ const handleSave = async () => {
               </div>
               <Pencil
                 size={12}
-                className="text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity mt-1 flex-shrink-0"
+                className="text-white/75 opacity-0 group-hover:opacity-100 transition-opacity mt-1 flex-shrink-0"
               />
             </div>
           </div>
@@ -525,15 +521,14 @@ const handleSave = async () => {
         {/* Cash card */}
         <div
           onClick={() => setCashModal(true)}
-          className="rounded-xl p-3.5 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group"
+          className="rounded-lg p-3.5 cursor-pointer transition-all hover:brightness-110 group"
           style={{
-            background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
-            boxShadow: "0 2px 8px rgba(5,150,105,0.2)",
+            background: "#008254",
           }}
         >
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-xs text-emerald-300 mb-0.5">Available</div>
+              <div className="text-xs text-white/75 mb-0.5">Available</div>
               <div className="text-sm font-semibold text-white">Cash</div>
               <div className="text-lg font-bold text-white mt-1">
                 ৳ {inCash.toLocaleString()}
@@ -541,7 +536,7 @@ const handleSave = async () => {
             </div>
             <Pencil
               size={12}
-              className="text-emerald-300 opacity-0 group-hover:opacity-100 transition-opacity mt-1"
+              className="text-white/75 opacity-0 group-hover:opacity-100 transition-opacity mt-1"
             />
           </div>
         </div>
@@ -564,7 +559,7 @@ const handleSave = async () => {
             value={monthSearch}
             onChange={(e) => setMonthSearch(e.target.value)}
             placeholder="Search months…"
-            className="w-full pl-8 pr-3 py-2 text-sm rounded-lg outline-none"
+            className="w-full pl-8 pr-3 py-2 text-sm rounded-none outline-none"
             style={{
               background: t.inputBg,
               border: `1px solid ${t.border}`,
@@ -577,7 +572,7 @@ const handleSave = async () => {
       <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-1">
         <button
           onClick={() => setAddMonthModalOpen(true)}
-          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium border border-dashed transition-all hover:border-indigo-400 hover:text-indigo-500 group"
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium border border-dashed transition-all hover:border-primary hover:text-brand group"
           style={{ borderColor: t.borderStrong, color: t.textMuted }}
         >
           <Plus size={14} />
@@ -602,12 +597,11 @@ const handleSave = async () => {
                 setSelectedMonth(month.name);
                 setMobileTab("spendings"); // Auto-navigate to spendings on mobile
               }}
-              className="relative group rounded-xl px-3 py-3 cursor-pointer transition-all"
+              className="relative group rounded-lg px-3 py-3 cursor-pointer transition-all"
               style={
                 isSelected
                   ? {
                       background: t.accent,
-                      boxShadow: "0 2px 8px rgba(99,102,241,0.3)",
                     }
                   : { background: "transparent" }
               }
@@ -700,14 +694,13 @@ const handleSave = async () => {
                 setSubItemSearchQuery("");
                 setSubItemSearchModalOpen(true);
               }}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer transition-all active:scale-[0.98]"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all active:scale-[0.98]"
               style={{
-                background: "linear-gradient(135deg, #dc2626, #b91c1c)",
-                boxShadow: "0 2px 8px rgba(220,38,38,0.3)",
+                background: "#de2828",
               }}
             >
               <div>
-                <div className="text-xs text-red-300 leading-none">Total</div>
+                <div className="text-xs text-error leading-none">Total</div>
                 <div className="text-sm font-bold text-white">
                   ৳ {totalSpending.toLocaleString()}
                 </div>
@@ -722,10 +715,9 @@ const handleSave = async () => {
                   monthName: selectedMonth!,
                 })
               }
-              className="flex items-center justify-center w-9 h-9 rounded-xl text-white transition-all active:scale-[0.98]"
+              className="flex items-center justify-center w-9 h-9 rounded-lg text-white transition-all active:scale-[0.98]"
               style={{
                 background: t.accent,
-                boxShadow: "0 2px 8px rgba(99,102,241,0.3)",
               }}
             >
               <Plus size={18} />
@@ -743,7 +735,7 @@ const handleSave = async () => {
               style={{ color: t.textMuted }}
             >
               <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                className="w-16 h-16 rounded-lg flex items-center justify-center"
                 style={{ background: t.surfaceAlt }}
               >
                 <Plus size={28} style={{ color: t.textMuted }} />
@@ -766,7 +758,7 @@ const handleSave = async () => {
                   return (
                     <div
                       key={key}
-                      className="group flex items-center gap-3 rounded-xl px-3 py-3 transition-all border"
+                      className="group flex items-center gap-3 rounded-lg px-3 py-3 transition-all border"
                       style={{
                         background: isChecked ? t.surface : t.surfaceAlt,
                         borderColor: isChecked ? t.border : "transparent",
@@ -785,7 +777,7 @@ const handleSave = async () => {
                         className="flex-shrink-0 transition-all"
                       >
                         {isChecked ? (
-                          <CheckCircle2 size={18} style={{ color: t.accent }} />
+                          <CheckCircle2 size={18} style={{ color: t.accentText }} />
                         ) : (
                           <Circle size={18} style={{ color: t.textMuted }} />
                         )}
@@ -794,7 +786,7 @@ const handleSave = async () => {
                       {/* Date badge */}
                       <div
                         className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
-                        style={{ background: t.accentSoft, color: t.accent }}
+                        style={{ background: t.accentSoft, color: t.accentText }}
                       >
                         {spending.date}
                       </div>
@@ -875,7 +867,7 @@ const handleSave = async () => {
           style={{ color: t.textMuted }}
         >
           <div
-            className="w-20 h-20 rounded-2xl flex items-center justify-center"
+            className="w-20 h-20 rounded-lg flex items-center justify-center"
             style={{ background: t.surface }}
           >
             <Calendar size={32} style={{ color: t.textMuted }} />
@@ -902,10 +894,9 @@ const handleSave = async () => {
     <>
       {/* ── DESKTOP LAYOUT (lg and above) ──────────────────────────────────── */}
       <div
-        className="hidden lg:flex h-screen w-full overflow-hidden pt-[63px]"
+        className="hidden lg:flex h-[calc(100dvh-64px)] w-full overflow-hidden"
         style={{
           background: t.bg,
-          fontFamily: "'DM Sans', system-ui, sans-serif",
         }}
       >
         {/* LEFT PANEL — Accounts */}
@@ -928,7 +919,7 @@ const handleSave = async () => {
                 onClick={() => router.push("/stats")}
                 title="Analytics"
                 className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg transition-all hover:scale-105"
-                style={{ background: t.accentSoft, color: t.accent }}
+                style={{ background: t.accentSoft, color: t.accentText }}
               >
                 <BarChart2 size={13} />
                 Stats
@@ -936,19 +927,18 @@ const handleSave = async () => {
             </div>
             <div
               onClick={() => setTotalBalanceModalOpen(true)}
-              className="cursor-pointer rounded-xl p-4 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="cursor-pointer rounded-lg p-4 transition-all hover:brightness-110"
               style={{
-                background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                boxShadow: "0 4px 20px rgba(99,102,241,0.35)",
+                background: "#00482f",
               }}
             >
-              <div className="text-xs font-medium text-indigo-200 mb-1">
+              <div className="text-xs font-medium text-white/75 mb-1">
                 Total Balance
               </div>
               <div className="text-2xl font-bold text-white tracking-tight">
                 ৳ {totalBalance.toLocaleString()}
               </div>
-              <div className="text-xs text-indigo-300 mt-1">
+              <div className="text-xs text-white/75 mt-1">
                 {banks.length} accounts · tap to compare
               </div>
             </div>
@@ -966,7 +956,6 @@ const handleSave = async () => {
                   : {
                       background: t.success,
                       color: "#fff",
-                      boxShadow: "0 2px 8px rgba(16,185,129,0.3)",
                     }
               }
             >
@@ -990,7 +979,7 @@ const handleSave = async () => {
                 value={bankSearch}
                 onChange={(e) => setBankSearch(e.target.value)}
                 placeholder="Search accounts…"
-                className="w-full pl-8 pr-3 py-2 text-sm rounded-lg outline-none transition-all"
+                className="w-full pl-8 pr-3 py-2 text-sm rounded-none outline-none transition-all"
                 style={{
                   background: t.inputBg,
                   border: `1px solid ${t.border}`,
@@ -1014,12 +1003,12 @@ const handleSave = async () => {
                   setBanks([...banks, { name: bankName.trim(), amount: 0 }]);
                 }
               }}
-              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium border border-dashed transition-all hover:border-indigo-400 hover:text-indigo-500 group"
+              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium border border-dashed transition-all hover:border-primary hover:text-brand group"
               style={{ borderColor: t.borderStrong, color: t.textMuted }}
             >
               <Plus
                 size={14}
-                className="group-hover:text-indigo-500 transition-colors"
+                className="group-hover:text-brand transition-colors"
               />
               Add Bank Account
             </button>
@@ -1027,16 +1016,15 @@ const handleSave = async () => {
               <div
                 key={bank.name}
                 onClick={() => setBankModal({ show: true, bank })}
-                className="rounded-xl p-3.5 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group"
+                className="rounded-lg p-3.5 cursor-pointer transition-all hover:brightness-110 group"
                 style={{
                   background:
-                    "linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)",
-                  boxShadow: "0 2px 8px rgba(29,78,216,0.2)",
+                    "#006642",
                 }}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs text-blue-300 mb-0.5">Bank</div>
+                    <div className="text-xs text-white/75 mb-0.5">Bank</div>
                     <div className="text-sm font-semibold text-white truncate">
                       {bank.name}
                     </div>
@@ -1046,7 +1034,7 @@ const handleSave = async () => {
                   </div>
                   <Pencil
                     size={12}
-                    className="text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity mt-1 flex-shrink-0"
+                    className="text-white/75 opacity-0 group-hover:opacity-100 transition-opacity mt-1 flex-shrink-0"
                   />
                 </div>
               </div>
@@ -1061,15 +1049,14 @@ const handleSave = async () => {
             )}
             <div
               onClick={() => setCashModal(true)}
-              className="rounded-xl p-3.5 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group"
+              className="rounded-lg p-3.5 cursor-pointer transition-all hover:brightness-110 group"
               style={{
-                background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
-                boxShadow: "0 2px 8px rgba(5,150,105,0.2)",
+                background: "#008254",
               }}
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="text-xs text-emerald-300 mb-0.5">
+                  <div className="text-xs text-white/75 mb-0.5">
                     Available
                   </div>
                   <div className="text-sm font-semibold text-white">Cash</div>
@@ -1079,7 +1066,7 @@ const handleSave = async () => {
                 </div>
                 <Pencil
                   size={12}
-                  className="text-emerald-300 opacity-0 group-hover:opacity-100 transition-opacity mt-1"
+                  className="text-white/75 opacity-0 group-hover:opacity-100 transition-opacity mt-1"
                 />
               </div>
             </div>
@@ -1113,7 +1100,7 @@ const handleSave = async () => {
                   value={monthSearch}
                   onChange={(e) => setMonthSearch(e.target.value)}
                   placeholder="Search months…"
-                  className="w-full pl-8 pr-3 py-2 text-sm rounded-lg outline-none"
+                  className="w-full pl-8 pr-3 py-2 text-sm rounded-none outline-none"
                   style={{
                     background: t.inputBg,
                     border: `1px solid ${t.border}`,
@@ -1129,7 +1116,7 @@ const handleSave = async () => {
           >
             <button
               onClick={() => setAddMonthModalOpen(true)}
-              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium border border-dashed transition-all hover:border-indigo-400 hover:text-indigo-500 group"
+              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium border border-dashed transition-all hover:border-primary hover:text-brand group"
               style={{ borderColor: t.borderStrong, color: t.textMuted }}
             >
               <Plus size={14} />
@@ -1153,12 +1140,11 @@ const handleSave = async () => {
                 <div
                   key={month.name}
                   onClick={() => setSelectedMonth(month.name)}
-                  className="relative group rounded-xl px-3 py-3 cursor-pointer transition-all"
+                  className="relative group rounded-lg px-3 py-3 cursor-pointer transition-all"
                   style={
                     isSelected
                       ? {
                           background: t.accent,
-                          boxShadow: "0 2px 8px rgba(99,102,241,0.3)",
                         }
                       : { background: "transparent" }
                   }
@@ -1254,14 +1240,13 @@ const handleSave = async () => {
                     setSubItemSearchQuery("");
                     setSubItemSearchModalOpen(true);
                   }}
-                  className="flex items-center gap-3 px-4 py-2.5 rounded-xl cursor-pointer transition-all hover:scale-[1.02]"
+                  className="flex items-center gap-3 px-4 py-2.5 rounded-lg cursor-pointer transition-all"
                   style={{
-                    background: "linear-gradient(135deg, #dc2626, #b91c1c)",
-                    boxShadow: "0 2px 8px rgba(220,38,38,0.3)",
+                    background: "#de2828",
                   }}
                 >
                   <div>
-                    <div className="text-xs text-red-300">Month Total</div>
+                    <div className="text-xs text-error">Month Total</div>
                     <div className="text-lg font-bold text-white">
                       ৳ {totalSpending.toLocaleString()}
                     </div>
@@ -1275,10 +1260,9 @@ const handleSave = async () => {
                       monthName: selectedMonth!,
                     })
                   }
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[1.02]"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-all"
                   style={{
                     background: t.accent,
-                    boxShadow: "0 2px 8px rgba(99,102,241,0.3)",
                   }}
                 >
                   <Plus size={16} />
@@ -1298,7 +1282,7 @@ const handleSave = async () => {
                   style={{ color: t.textMuted }}
                 >
                   <div
-                    className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                    className="w-16 h-16 rounded-lg flex items-center justify-center"
                     style={{ background: t.surfaceAlt }}
                   >
                     <Plus size={28} style={{ color: t.textMuted }} />
@@ -1320,7 +1304,7 @@ const handleSave = async () => {
                       return (
                         <div
                           key={key}
-                          className="group flex items-center gap-3 rounded-xl px-4 py-3.5 transition-all border"
+                          className="group flex items-center gap-3 rounded-lg px-4 py-3.5 transition-all border"
                           style={{
                             background: isChecked ? t.surface : t.surfaceAlt,
                             borderColor: isChecked ? t.border : "transparent",
@@ -1340,7 +1324,7 @@ const handleSave = async () => {
                             {isChecked ? (
                               <CheckCircle2
                                 size={18}
-                                style={{ color: t.accent }}
+                                style={{ color: t.accentText }}
                               />
                             ) : (
                               <Circle
@@ -1353,7 +1337,7 @@ const handleSave = async () => {
                             className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold"
                             style={{
                               background: t.accentSoft,
-                              color: t.accent,
+                              color: t.accentText,
                             }}
                           >
                             {spending.date}
@@ -1400,7 +1384,7 @@ const handleSave = async () => {
                           >
                             <div
                               className="text-sm font-bold"
-                              style={{ color: t.danger }}
+                              style={{ color: t.text }}
                             >
                               ৳ {spending.cost.toLocaleString()}
                             </div>
@@ -1429,7 +1413,7 @@ const handleSave = async () => {
               style={{ color: t.textMuted }}
             >
               <div
-                className="w-20 h-20 rounded-2xl flex items-center justify-center"
+                className="w-20 h-20 rounded-lg flex items-center justify-center"
                 style={{ background: t.surface }}
               >
                 <BarChart2 size={32} style={{ color: t.textMuted }} />
@@ -1455,10 +1439,7 @@ const handleSave = async () => {
         className="flex lg:hidden flex-col"
         style={{
           background: t.bg,
-          fontFamily: "'DM Sans', system-ui, sans-serif",
-          height: "100dvh",
-          paddingTop: "63px",
-          paddingBottom: "0",
+          height: "calc(100dvh - 64px)",
         }}
       >
         {/* Mobile top header */}
@@ -1488,7 +1469,7 @@ const handleSave = async () => {
               <button
                 onClick={() => router.push("/stats")}
                 className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg"
-                style={{ background: t.accentSoft, color: t.accent }}
+                style={{ background: t.accentSoft, color: t.accentText }}
               >
                 <BarChart2 size={13} />
                 Stats
@@ -1545,7 +1526,7 @@ const handleSave = async () => {
                 key={id}
                 onClick={() => setMobileTab(id)}
                 className="flex-1 flex flex-col items-center justify-center gap-0.5 py-3 transition-all"
-                style={{ color: isActive ? t.accent : t.textMuted }}
+                style={{ color: isActive ? t.accentText : t.textMuted }}
               >
                 <div className="relative">
                   <Icon size={22} strokeWidth={isActive ? 2.2 : 1.8} />
@@ -1665,10 +1646,10 @@ function ModalShell({
       style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)" }}
     >
       <div
-        className={`w-full ${width} rounded-t-2xl sm:rounded-2xl overflow-hidden`}
+        className={`w-full ${width} rounded-t-xl sm:rounded-lg overflow-hidden`}
         style={{
           background: t.surface,
-          boxShadow: "0 24px 64px rgba(0,0,0,0.35)",
+          boxShadow: "0 20px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.08)",
           border: `1px solid ${t.border}`,
           maxHeight: "92dvh",
           display: "flex",
@@ -1728,7 +1709,7 @@ function StyledInput({
       )}
       <input
         {...props}
-        className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none transition-all"
+        className="w-full px-3.5 py-2.5 rounded-none text-sm outline-none transition-all"
         style={{
           background: t.inputBg,
           border: `1px solid ${t.border}`,
@@ -1736,8 +1717,8 @@ function StyledInput({
           ...props.style,
         }}
         onFocus={(e) => {
-          e.currentTarget.style.borderColor = "#6366f1";
-          e.currentTarget.style.boxShadow = "0 0 0 3px rgba(99,102,241,0.12)";
+          e.currentTarget.style.borderColor = "#008254";
+          e.currentTarget.style.boxShadow = "0 0 0 1px #008254";
           if (props.onFocus) props.onFocus(e);
         }}
         onBlur={(e) => {
@@ -1769,14 +1750,14 @@ function StyledSelect({
       )}
       <select
         {...props}
-        className="w-full px-3.5 py-2.5 rounded-xl text-sm outline-none transition-all"
+        className="w-full px-3.5 py-2.5 rounded-none text-sm outline-none transition-all"
         style={{
           background: t.inputBg,
           border: `1px solid ${t.border}`,
           color: t.text,
         }}
         onFocus={(e) => {
-          e.currentTarget.style.borderColor = "#6366f1";
+          e.currentTarget.style.borderColor = "#008254";
           if (props.onFocus) props.onFocus(e);
         }}
         onBlur={(e) => {
@@ -1796,7 +1777,7 @@ function TabBtn({
   label,
   active,
   onClick,
-  color = "#6366f1",
+  color = "#008254",
 }: {
   label: string;
   active: boolean;
@@ -1808,13 +1789,12 @@ function TabBtn({
   return (
     <button
       onClick={onClick}
-      className="flex-1 py-2 rounded-lg text-sm font-semibold transition-all"
+      className="flex-1 py-2 rounded-sm text-sm font-bold transition-all"
       style={
         active
           ? {
               background: color,
               color: "#fff",
-              boxShadow: `0 2px 6px ${color}55`,
             }
           : { background: t.surfaceAlt, color: t.textSub }
       }
@@ -1829,7 +1809,7 @@ function TabBtn({
 function PrimaryBtn({
   children,
   onClick,
-  color = "#6366f1",
+  color = "#008254",
   disabled,
 }: {
   children: React.ReactNode;
@@ -1841,7 +1821,7 @@ function PrimaryBtn({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+      className="w-full py-3 rounded-sm text-sm font-bold uppercase tracking-wide text-white transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
       style={{ background: color, boxShadow: `0 2px 8px ${color}44` }}
     >
       {children}
@@ -1865,7 +1845,7 @@ function BalanceChip({
   const t = tk(theme);
   return (
     <div
-      className="rounded-xl p-4"
+      className="rounded-lg p-4"
       style={{ background: t.surfaceAlt, border: `1px solid ${t.border}` }}
     >
       <div className="text-xs font-medium mb-1" style={{ color: t.textMuted }}>
@@ -1937,7 +1917,7 @@ function BankModal({
   const actionColors = {
     deposit: t.success,
     withdraw: t.danger,
-    transfer: "#3b82f6",
+    transfer: "#006642",
     rename: t.warning,
   };
 
@@ -2079,7 +2059,7 @@ function TotalBalanceModal({
               className="px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all"
               style={
                 allSelected
-                  ? { background: "#8b5cf6", color: "#fff" }
+                  ? { background: "#00482f", color: "#fff" }
                   : { background: t.surfaceAlt, color: t.textSub }
               }
             >
@@ -2094,7 +2074,7 @@ function TotalBalanceModal({
                   className="px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all"
                   style={
                     sel
-                      ? { background: "#6366f1", color: "#fff" }
+                      ? { background: "#008254", color: "#fff" }
                       : { background: t.surfaceAlt, color: t.textSub }
                   }
                 >
@@ -2105,17 +2085,16 @@ function TotalBalanceModal({
           </div>
         </div>
         <div
-          className="rounded-xl p-5"
+          className="rounded-lg p-5"
           style={{
-            background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-            boxShadow: "0 4px 20px rgba(99,102,241,0.3)",
+            background: "#008254",
           }}
         >
-          <div className="text-xs text-indigo-200 mb-1">Selected Total</div>
+          <div className="text-xs text-white/75 mb-1">Selected Total</div>
           <div className="text-3xl font-bold text-white">
             ৳ {selectedTotal.toLocaleString()}
           </div>
-          <div className="text-xs text-indigo-300 mt-2">
+          <div className="text-xs text-white/75 mt-2">
             Cash (excluded): ৳ {inCash.toLocaleString()}
           </div>
         </div>
@@ -2181,7 +2160,7 @@ function CashModal({
             label="Deposit to Bank"
             active={action === "deposit"}
             onClick={() => setAction("deposit")}
-            color="#3b82f6"
+            color="#006642"
           />
           <TabBtn
             label="Earn Cash"
@@ -2215,7 +2194,7 @@ function CashModal({
         )}
         <PrimaryBtn
           onClick={handleSubmit}
-          color={action === "deposit" ? "#3b82f6" : t.success}
+          color={action === "deposit" ? "#006642" : t.success}
         >
           Confirm
         </PrimaryBtn>
@@ -2343,7 +2322,7 @@ function SpendingModal({
               onChange={(e) => setDate(e.target.value)}
             />
             {isAddingNew && date && (
-              <p className="text-xs mt-1" style={{ color: t.success }}>
+              <p className="text-xs mt-1" style={{ color: t.accentText }}>
                 ✓ Next available date
               </p>
             )}
@@ -2370,7 +2349,7 @@ function SpendingModal({
                 setSubItems([...subItems, { subName: "", subCost: 0 }])
               }
               className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg transition-all"
-              style={{ background: t.accentSoft, color: t.accent }}
+              style={{ background: t.accentSoft, color: t.accentText }}
             >
               <Plus size={11} /> Add Item
             </button>
@@ -2423,7 +2402,7 @@ function SpendingModal({
                     setSubItems(subItems.filter((_, j) => j !== i))
                   }
                   className="p-2 rounded-lg transition-colors flex-shrink-0"
-                  style={{ background: "#ef444420", color: t.danger }}
+                  style={{ background: "#de282820", color: t.danger }}
                 >
                   <X size={14} />
                 </button>
@@ -2431,7 +2410,7 @@ function SpendingModal({
             ))}
             {subItems.length === 0 && (
               <div
-                className="text-center py-4 rounded-xl border border-dashed text-xs"
+                className="text-center py-4 rounded-lg border border-dashed text-xs"
                 style={{ borderColor: t.border, color: t.textMuted }}
               >
                 No items yet — tap &quot;Add Item&quot; above
@@ -2442,16 +2421,16 @@ function SpendingModal({
 
         {/* Total */}
         <div
-          className="flex items-center justify-between rounded-xl px-4 py-3"
+          className="flex items-center justify-between rounded-lg px-4 py-3"
           style={{
             background: t.accentSoft,
             border: `1px solid ${t.accent}33`,
           }}
         >
-          <span className="text-sm font-semibold" style={{ color: t.accent }}>
+          <span className="text-sm font-semibold" style={{ color: t.accentText }}>
             Total
           </span>
-          <span className="text-lg font-bold" style={{ color: t.accent }}>
+          <span className="text-lg font-bold" style={{ color: t.accentText }}>
             ৳ {totalCost.toLocaleString()}
           </span>
         </div>
@@ -2466,7 +2445,7 @@ function SpendingModal({
                 onClose();
               }
             }}
-            className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
+            className="flex-1 py-3 rounded-lg text-sm font-bold text-white transition-all hover:opacity-90"
             style={{ background: t.danger }}
           >
             Delete
@@ -2474,8 +2453,8 @@ function SpendingModal({
         )}
         <button
           onClick={handleSubmit}
-          className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
-          style={{ background: t.accent, boxShadow: `0 2px 8px ${t.accent}44` }}
+          className="flex-1 py-3 rounded-lg text-sm font-bold text-white transition-all hover:opacity-90"
+          style={{ background: t.accent, boxShadow: "none" }}
         >
           {spending ? "Update" : "Add Spending"}
         </button>
@@ -2552,7 +2531,7 @@ function AddMonthModal({
             onAddMonth(prevName);
             onClose();
           }}
-          className="w-full px-4 py-4 rounded-xl text-left transition-all hover:scale-[1.01] border"
+          className="w-full px-4 py-4 rounded-lg text-left transition-all hover:scale-[1.01] border"
           style={{ background: t.surfaceAlt, borderColor: t.border }}
         >
           <div
@@ -2570,7 +2549,7 @@ function AddMonthModal({
             onAddMonth(nextName);
             onClose();
           }}
-          className="w-full px-4 py-4 rounded-xl text-left transition-all hover:scale-[1.01] border"
+          className="w-full px-4 py-4 rounded-lg text-left transition-all hover:scale-[1.01] border"
           style={{ background: t.surfaceAlt, borderColor: t.border }}
         >
           <div
@@ -2629,11 +2608,11 @@ function SubItemSearchModal({
       style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)" }}
     >
       <div
-        className="w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col"
+        className="w-full sm:max-w-2xl rounded-t-xl sm:rounded-lg overflow-hidden flex flex-col"
         style={{
           background: t.surface,
           border: `1px solid ${t.border}`,
-          boxShadow: "0 24px 64px rgba(0,0,0,0.35)",
+          boxShadow: "0 20px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.08)",
           maxHeight: "92dvh",
         }}
       >
@@ -2688,14 +2667,14 @@ function SubItemSearchModal({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search items… (e.g. Coffee, Petrol)"
-              className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl outline-none"
+              className="w-full pl-9 pr-3 py-2.5 text-sm rounded-lg outline-none"
               style={{
                 background: t.inputBg,
                 border: `1px solid ${t.border}`,
                 color: t.text,
               }}
               onFocus={(e) => {
-                e.currentTarget.style.borderColor = "#6366f1";
+                e.currentTarget.style.borderColor = "#008254";
               }}
               onBlur={(e) => {
                 e.currentTarget.style.borderColor = t.border;
@@ -2737,12 +2716,12 @@ function SubItemSearchModal({
             items.map((entry, i) => (
               <div
                 key={i}
-                className="flex items-center gap-4 rounded-xl px-4 py-3 border"
+                className="flex items-center gap-4 rounded-lg px-4 py-3 border"
                 style={{ background: t.surface, borderColor: t.border }}
               >
                 <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-                  style={{ background: t.accentSoft, color: "#6366f1" }}
+                  style={{ background: t.accentSoft, color: t.accentText }}
                 >
                   {entry.date}
                 </div>

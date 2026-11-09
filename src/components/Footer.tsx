@@ -1,58 +1,65 @@
 "use client";
-import colors from "@/app/color/color";
-import { useTheme } from "@/app/hooks/useTheme";
 import Link from "next/link";
+import Logo from "./Logo";
+
+const columns = [
+  {
+    title: "Product",
+    links: [
+      { href: "/pricing", label: "Pricing" },
+      { href: "/testimonials", label: "Testimonials" },
+      { href: "/calculator", label: "Calculator" },
+    ],
+  },
+  {
+    title: "Account",
+    links: [
+      { href: "/login", label: "Sign in" },
+      { href: "/register", label: "Create account" },
+      { href: "/profile", label: "Profile" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { href: "/privacy-policy", label: "Privacy Policy" },
+      { href: "/terms-and-conditions", label: "Terms & Conditions" },
+    ],
+  },
+];
 
 function Footer() {
-  const { theme } = useTheme();
-
   return (
-    <footer
-      className={`w-full px-[5%] sm:px-[10%] py-[3%] bg-opacity-50 relative ${
-        theme
-          ? "bg-[#ffffff] border-t border-[#dddddd]"
-          : "bg-[#000000] border-t border-[#222222]"
-      }`}
-    >
-      <div className="w-full mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0">
-        <div className="flex flex-col sm:flex-row items-center space-x-0 sm:space-x-2 text-center sm:text-left">
-          <span
-            className={`text-base sm:text-lg font-bold ${
-              theme ? "text-[#0a0a0a]" : "text-[#ebebeb]"
-            }`}
-          >
-            Expense Tracker
-          </span>
-          <span className="hidden sm:inline text-xs sm:text-sm">|</span>
-          <span
-            className={`text-xs sm:text-sm ${
-              theme ? "text-[#555555]" : "text-[#cccccc]"
-            }`}
-          >
-            © {new Date().getFullYear()} All rights reserved.
-          </span>
+    <footer className="w-full border-t border-hairline bg-soft">
+      <div className="mx-auto grid max-w-container gap-10 px-4 py-10 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+        <div className="space-y-3">
+          <Logo />
+          <p className="max-w-xs text-sm font-light leading-relaxed text-body">
+            Track every bank, cash balance and daily spending in one calm place.
+          </p>
         </div>
-        <div className="flex items-center space-x-4 relative">
-          <Link href="/privacy-policy">
-            <div
-              className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-[15px] font-medium hover:cursor-pointer hover:bg-transparent border-[1px] ${
-                theme
-                  ? "bg-black text-white hover:text-black border-black"
-                  : "bg-white text-black hover:text-white border-white"
-              }`}
-            >
-              Privacy Policy
-            </div>
-          </Link>
-          <Link href="/terms-and-conditions">
-            <div
-              className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-[15px] font-medium hover:cursor-pointer
-                    ${colors.keyBg} text-[#ffffff] hover:bg-transparent border-[1px] ${colors.keyBorder} ${colors.keyHoverText}`}
-            >
-              Terms & Conditions
-            </div>
-          </Link>
-        </div>
+        {columns.map((col) => (
+          <div key={col.title}>
+            <h3 className="eyebrow mb-3 !tracking-wider">{col.title}</h3>
+            <ul className="space-y-2">
+              {col.links.map((l) => (
+                <li key={l.href}>
+                  <Link
+                    href={l.href}
+                    className="text-sm font-light text-body underline-offset-4 hover:text-brand hover:underline"
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-hairline">
+        <p className="mx-auto max-w-container px-4 py-5 text-xs text-muted sm:px-6">
+          © {new Date().getFullYear()} Expense Tracker. All rights reserved.
+        </p>
       </div>
     </footer>
   );

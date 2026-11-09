@@ -1,3 +1,210 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────
+   Design tokens — from DESIGN.md (NerdWallet).
+   Values are "R G B" channels so Tailwind can add opacity.
+   Light is the default. Dark is applied with data-theme="dark"
+   on <html> (set by ThemeWrapper and an early inline script).
+   ───────────────────────────────────────────────────────────── */
+:root,
+:root[data-theme="light"] {
+  --canvas: 255 255 255; /* #ffffff */
+  --soft: 247 247 247; /* #f7f7f7 */
+  --surface: 255 255 255; /* cards */
+  --mint-50: 239 252 248; /* #effcf8 */
+  --mint-100: 227 250 242; /* #e3faf2 */
+  --mint-200: 183 236 218; /* #b7ecda */
+  --hairline: 235 235 236; /* #ebebec */
+  --hairline-strong: 216 217 218; /* #d8d9da */
+  --ink: 0 0 0; /* #000000 */
+  --body: 61 64 69; /* #3d4045 */
+  --muted: 100 102 106; /* #64666a */
+  --faint: 177 179 181; /* #b1b3b5 */
+  --primary: 0 130 84; /* #008254 */
+  --primary-hover: 0 102 66; /* #006642 */
+  --primary-deep: 0 102 66; /* #006642 */
+  --forest: 0 72 47; /* #00482f */
+  --on-primary: 255 255 255;
+  --brand-text: 0 130 84; /* green used as TEXT */
+  --lime-hero: 154 230 0; /* #9ae600 */
+  --lime-panel: 232 253 172; /* #e8fdac */
+  --lime-accent: 221 250 136; /* #ddfa88 */
+  --lime-ribbon: 168 234 76; /* #a8ea4c */
+  --logo-lime: 141 198 63; /* #8dc63f */
+  --link: 0 95 185; /* #005fb9 */
+  --info: 75 153 230; /* #4b99e6 */
+  --error: 222 40 40; /* #de2828 */
+  --warn: 180 83 9;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --canvas: 12 18 16;
+  --soft: 16 24 21;
+  --surface: 18 28 24;
+  --mint-50: 15 31 25;
+  --mint-100: 20 42 34;
+  --mint-200: 30 70 54;
+  --hairline: 31 42 38;
+  --hairline-strong: 44 58 53;
+  --ink: 244 247 245;
+  --body: 195 203 199;
+  --muted: 143 155 150;
+  --faint: 93 104 99;
+  --primary: 0 130 84;
+  --primary-hover: 0 148 97;
+  --primary-deep: 0 102 66;
+  --forest: 0 72 47;
+  --on-primary: 255 255 255;
+  --brand-text: 61 216 155;
+  --lime-hero: 154 230 0;
+  --lime-panel: 31 45 12;
+  --lime-accent: 53 74 18;
+  --lime-ribbon: 168 234 76;
+  --logo-lime: 141 198 63;
+  --link: 107 178 255;
+  --info: 107 178 255;
+  --error: 255 107 107;
+  --warn: 245 165 36;
+  color-scheme: dark;
+}
+
+html {
+  background-color: rgb(var(--canvas));
+}
+
+body {
+  background-color: rgb(var(--canvas));
+  color: rgb(var(--body));
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings are pure ink, bold, with a small negative tracking
+   (the Montserrat substitute for Gotham runs slightly wide). */
+h1,
+h2,
+h3,
+h4 {
+  color: rgb(var(--ink));
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: rgb(var(--lime-accent));
+  color: #000;
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--brand-text));
+  outline-offset: 2px;
+}
+
+@layer components {
+  /* ── Buttons (button-primary / secondary / outline) ─────── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 text-center text-sm font-bold uppercase tracking-wide transition-colors duration-150 select-none;
+    min-height: 44px;
+    padding: 12px 20px;
+  }
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    @apply cursor-not-allowed opacity-50;
+  }
+  .btn-primary {
+    @apply btn rounded-sm bg-primary text-on-primary shadow-nw hover:bg-primary-hover;
+  }
+  .btn-secondary {
+    @apply btn rounded-sm bg-soft text-brand hover:bg-mint-100;
+  }
+  .btn-outline {
+    @apply btn rounded-lg border border-hairline-strong bg-transparent text-brand hover:bg-mint-50;
+    padding: 8px 16px;
+  }
+  .btn-danger {
+    @apply btn rounded-sm bg-error text-white hover:opacity-90;
+  }
+  .btn-lime {
+    @apply btn rounded-sm bg-lime-hero text-forest hover:brightness-95;
+  }
+
+  /* ── Surfaces ───────────────────────────────────────────── */
+  .card {
+    @apply rounded-lg border border-hairline-strong bg-surface;
+  }
+  .panel-mint {
+    @apply rounded-2xl bg-mint-50;
+  }
+  .tip-panel {
+    @apply rounded-lg bg-lime-panel text-ink;
+  }
+
+  /* ── Hero band: the only saturated plane ────────────────── */
+  .hero-band {
+    background: linear-gradient(100deg, #00482f 0%, #006642 45%, #008254 100%);
+    color: #ffffff;
+  }
+  .hero-band h1,
+  .hero-band h2,
+  .hero-band h3 {
+    color: #ffffff;
+  }
+
+  /* ── Text input (square, ruled by its container) ────────── */
+  .field {
+    @apply w-full border border-hairline-strong bg-surface px-3.5 py-3 text-base text-ink placeholder:text-faint;
+    border-radius: 0;
+  }
+  .field:focus {
+    @apply outline-none border-primary;
+    box-shadow: 0 0 0 1px rgb(var(--primary));
+  }
+
+  .eyebrow {
+    @apply text-xs font-bold uppercase tracking-wider text-muted;
+  }
+
+  .badge-compare {
+    @apply inline-block rounded-xl bg-lime-panel px-2.5 py-1 text-xs font-bold uppercase text-brand;
+  }
+  .award-pill {
+    @apply inline-block bg-mint-100 px-2.5 py-1 text-xs font-bold uppercase text-brand;
+  }
+}
+
+/* Marquee ribbon motion (respects reduced motion) */
+@keyframes nw-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee-track {
+  animation: nw-marquee 40s linear infinite;
+  width: max-content;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
+}
+
+/* "/" gate: hide the landing page while a signed-in user is being redirected */
+.landing-splash {
+  display: none;
+}
+html[data-has-auth="1"] .landing-splash {
+  display: flex;
+  min-height: 60vh;
+  align-items: center;
+  justify-content: center;
+}
+html[data-has-auth="1"] .landing-root {
+  display: none;
+}

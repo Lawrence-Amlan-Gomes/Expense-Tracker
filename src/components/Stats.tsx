@@ -124,6 +124,7 @@ interface ThemeTokens {
   text: string;
   muted: string;
   hover: string;
+  accent: string; // brand green used as TEXT (lighter in dark mode)
 }
 
 
@@ -133,9 +134,9 @@ interface ThemeTokens {
 
 /** Colors used for pie chart slices, bar chart cells, and category rankings. */
 const PIE_COLORS = [
-  "#6366f1", "#f43f5e", "#10b981", "#f59e0b",
-  "#3b82f6", "#8b5cf6", "#ec4899", "#14b8a6",
-  "#f97316", "#06b6d4",
+  "#008254", "#4b99e6", "#8dc63f", "#005fb9",
+  "#00a068", "#6aa820", "#7cb9ee", "#2a7f62",
+  "#a8ea4c", "#3d7fbf",
 ];
 
 /** Tab definitions for the navigation bar. */
@@ -168,25 +169,28 @@ const TAB_DEFINITIONS: { id: ViewTab; label: string; icon: React.ElementType }[]
  * and `theme === false` means DARK (black background, white text).
  */
 function getThemeTokens(isLightTheme: boolean): ThemeTokens {
+  // Palette from DESIGN.md (NerdWallet): spruce green, mint, hairlines.
   if (isLightTheme) {
     return {
-      background: "#f5f5f7",
+      background: "#f7f7f7",
       card:       "#ffffff",
-      border:     "#e8e8e8",
+      border:     "#ebebec",
       text:       "#000000",
-      muted:      "#999999",
-      hover:      "rgba(0, 0, 0, 0.03)",
+      muted:      "#64666a",
+      hover:      "rgba(0, 130, 84, 0.05)",
+      accent:     "#008254",
     };
   }
 
   // Dark mode
   return {
-    background: "#000000",
-    card:       "#0d0d0d",
-    border:     "#1e1e1e",
-    text:       "#ffffff",
-    muted:      "#555555",
-    hover:      "rgba(255, 255, 255, 0.04)",
+    background: "#0c1210",
+    card:       "#121c18",
+    border:     "#1f2a26",
+    text:       "#f4f7f5",
+    muted:      "#8f9b96",
+    hover:      "rgba(61, 216, 155, 0.07)",
+    accent:     "#3dd89b",
   };
 }
 
@@ -293,7 +297,7 @@ function CustomTooltip({ active, payload, label, themeTokens }: CustomTooltipPro
 
   return (
     <div
-      className="px-3 py-2 rounded-xl shadow-2xl text-xs"
+      className="px-3 py-2 rounded-lg shadow-nw-overlay text-xs"
       style={{
         background: themeTokens.card,
         border: `1px solid ${themeTokens.border}`,
@@ -369,21 +373,21 @@ function StatCard({
     switch (trendDirection) {
       case "up":
         return {
-          background: trendInverted ? "#10b98122" : "#f43f5e22",
-          color: trendInverted ? "#10b981" : "#f43f5e",
+          background: trendInverted ? "#4b99e622" : "#de282822",
+          color: trendInverted ? "#4b99e6" : "#de2828",
           label: "Higher",
           Icon: TrendingUp,
         };
       case "down":
         return {
-          background: trendInverted ? "#f43f5e22" : "#10b98122",
-          color: trendInverted ? "#f43f5e" : "#10b981",
+          background: trendInverted ? "#de282822" : "#4b99e622",
+          color: trendInverted ? "#de2828" : "#4b99e6",
           label: "Lower",
           Icon: TrendingDown,
         };
       default:
         return {
-          background: "#55555522",
+          background: "#64666a22",
           color: themeTokens.muted,
           label: "Stable",
           Icon: null,
@@ -393,7 +397,7 @@ function StatCard({
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl p-4 sm:p-6 transition-all hover:scale-[1.02]"
+      className="relative overflow-hidden rounded-lg p-4 sm:p-6 transition-all"
       style={{
         background: themeTokens.card,
         border: `1px solid ${themeTokens.border}`,
@@ -410,7 +414,7 @@ function StatCard({
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           {/* Icon */}
           <div
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center"
             style={{ background: accentColor + "22" }}
           >
             <IconComponent size={18} style={{ color: accentColor }} />
@@ -436,7 +440,7 @@ function StatCard({
 
         {/* Main value */}
         <div
-          className="text-lg sm:text-2xl font-black tracking-tight leading-tight"
+          className="text-lg sm:text-2xl font-bold tracking-tight leading-tight"
           style={{ color: themeTokens.text }}
         >
           {value}
@@ -480,17 +484,17 @@ interface InsightCardProps {
 function InsightCard({ type, title, body, themeTokens }: InsightCardProps) {
   // Map each insight type to its icon and color
   const insightStyles = {
-    warning: { icon: AlertTriangle, color: "#f59e0b", background: "#f59e0b15" },
-    success: { icon: CheckCircle,   color: "#10b981", background: "#10b98115" },
-    info:    { icon: Activity,      color: "#6366f1", background: "#6366f115" },
-    tip:     { icon: Sparkles,      color: "#ec4899", background: "#ec489915" },
+    warning: { icon: AlertTriangle, color: "#de2828", background: "#de282815" },
+    success: { icon: CheckCircle,   color: "#4b99e6", background: "#4b99e615" },
+    info:    { icon: Activity,      color: "#008254", background: "#00825415" },
+    tip:     { icon: Sparkles,      color: "#00a068", background: "#00a06815" },
   };
 
   const { icon: IconComponent, color, background } = insightStyles[type];
 
   return (
     <div
-      className="rounded-2xl p-4 sm:p-5 flex gap-3 sm:gap-4"
+      className="rounded-lg p-4 sm:p-5 flex gap-3 sm:gap-4"
       style={{
         background: themeTokens.card,
         border: `1px solid ${themeTokens.border}`,
@@ -498,7 +502,7 @@ function InsightCard({ type, title, body, themeTokens }: InsightCardProps) {
     >
       {/* Icon */}
       <div
-        className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex-shrink-0 flex items-center justify-center"
+        className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex-shrink-0 flex items-center justify-center"
         style={{ background }}
       >
         <IconComponent size={18} style={{ color }} />
@@ -553,7 +557,7 @@ function SectionHeader({
   return (
     <>
       <h2
-        className="text-xs font-black uppercase tracking-widest mb-0.5"
+        className="text-xs font-bold uppercase tracking-widest mb-0.5"
         style={{ color: themeTokens.muted }}
       >
         {title}
@@ -1358,7 +1362,7 @@ export default function Stats() {
       >
         <div
           className="w-8 h-8 rounded-full border-2 animate-spin"
-          style={{ borderColor: "#6366f1", borderTopColor: "transparent" }}
+          style={{ borderColor: themeTokens.accent, borderTopColor: "transparent" }}
         />
       </div>
     );
@@ -1372,7 +1376,7 @@ export default function Stats() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div
-      className="min-h-screen pt-[63px] font-sans"
+      className="min-h-screen font-sans"
       style={{ background: themeTokens.background, color: themeTokens.text }}
     >
 
@@ -1380,7 +1384,7 @@ export default function Stats() {
       {/* STICKY HEADER — Back button, title, year picker, and tab bar       */}
       {/* ================================================================== */}
       <div
-        className="sticky top-[63px] z-40 border-b"
+        className="sticky top-16 z-40 border-b"
         style={{ background: themeTokens.background, borderColor: themeTokens.border }}
       >
         {/* Top bar: Back button + Title + Year picker */}
@@ -1403,7 +1407,7 @@ export default function Stats() {
             />
 
             <h1
-              className="text-base sm:text-xl font-black tracking-tight truncate"
+              className="text-base sm:text-xl font-bold tracking-tight truncate"
               style={{ color: themeTokens.text }}
             >
               Financial Analytics
@@ -1414,14 +1418,14 @@ export default function Stats() {
           <div className="relative flex-shrink-0">
             <button
               onClick={() => setIsYearDropdownOpen(!isYearDropdownOpen)}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-sm font-bold transition-colors"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-bold transition-colors"
               style={{
                 background: themeTokens.card,
                 border: `1px solid ${themeTokens.border}`,
                 color: themeTokens.text,
               }}
             >
-              <Calendar size={13} style={{ color: "#6366f1" }} />
+              <Calendar size={13} style={{ color: themeTokens.accent }} />
               {selectedYear != null && !isNaN(selectedYear) ? selectedYear : "—"}
               <ChevronDown
                 size={13}
@@ -1433,7 +1437,7 @@ export default function Stats() {
             {/* Dropdown menu */}
             {isYearDropdownOpen && (
               <div
-                className="absolute right-0 top-full mt-2 rounded-xl overflow-hidden shadow-2xl z-50 min-w-[90px]"
+                className="absolute right-0 top-full mt-2 rounded-lg overflow-hidden shadow-nw-overlay z-50 min-w-[90px]"
                 style={{
                   background: themeTokens.card,
                   border: `1px solid ${themeTokens.border}`,
@@ -1447,7 +1451,7 @@ export default function Stats() {
                       setIsYearDropdownOpen(false);
                     }}
                     className="w-full text-left px-4 py-3 text-sm font-bold transition-colors hover:opacity-80"
-                    style={{ color: year === selectedYear ? "#6366f1" : themeTokens.text }}
+                    style={{ color: year === selectedYear ? themeTokens.accent : themeTokens.text }}
                   >
                     {year}
                   </button>
@@ -1466,7 +1470,7 @@ export default function Stats() {
                 key={id}
                 onClick={() => setActiveTab(id)}
                 className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold transition-all relative flex-shrink-0"
-                style={{ color: isActive ? "#6366f1" : themeTokens.muted }}
+                style={{ color: isActive ? themeTokens.accent : themeTokens.muted }}
               >
                 <TabIcon size={14} />
                 {label}
@@ -1474,7 +1478,7 @@ export default function Stats() {
                 {isActive && (
                   <span
                     className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
-                    style={{ background: "#6366f1" }}
+                    style={{ background: "#008254" }}
                   />
                 )}
               </button>
@@ -1501,7 +1505,7 @@ export default function Stats() {
                 value={`৳ ${totalThisYear.toLocaleString()}`}
                 subtitle={`Across ${monthlyTotals.length} months`}
                 icon={Wallet}
-                accentColor="#6366f1"
+                accentColor="#008254"
                 themeTokens={themeTokens}
                 trend="neutral"
               />
@@ -1510,7 +1514,7 @@ export default function Stats() {
                 value={`৳ ${averagePerMonth.toLocaleString()}`}
                 subtitle="Based on completed months"
                 icon={BarChart3}
-                accentColor="#10b981"
+                accentColor="#4b99e6"
                 themeTokens={themeTokens}
                 trend={monthOverMonthTrend}
               />
@@ -1519,7 +1523,7 @@ export default function Stats() {
                 value={highestMonth.total > 0 ? highestMonth.shortLabel : "—"}
                 subtitle={highestMonth.total > 0 ? `৳ ${highestMonth.total.toLocaleString()}` : undefined}
                 icon={Flame}
-                accentColor="#f43f5e"
+                accentColor="#de2828"
                 themeTokens={themeTokens}
               />
               <StatCard
@@ -1527,14 +1531,14 @@ export default function Stats() {
                 value={lowestMonth ? lowestMonth.shortLabel : "—"}
                 subtitle={lowestMonth ? `৳ ${lowestMonth.total.toLocaleString()}` : undefined}
                 icon={Target}
-                accentColor="#f59e0b"
+                accentColor="#8dc63f"
                 themeTokens={themeTokens}
               />
             </div>
 
             {/* All-time spending area chart */}
             <div
-              className="rounded-2xl p-4 sm:p-6"
+              className="rounded-lg p-4 sm:p-6"
               style={{
                 background: themeTokens.card,
                 border: `1px solid ${themeTokens.border}`,
@@ -1550,8 +1554,8 @@ export default function Stats() {
                   <AreaChart data={allTimeMonthlyTotals}>
                     <defs>
                       <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.35} />
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                        <stop offset="5%"  stopColor="#008254" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="#008254" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke={themeTokens.border} />
@@ -1576,10 +1580,10 @@ export default function Stats() {
                     <Area
                       type="monotone"
                       dataKey="total"
-                      stroke="#6366f1"
+                      stroke="#008254"
                       strokeWidth={2}
                       fill="url(#areaGrad)"
-                      dot={{ fill: "#6366f1", r: 2 }}
+                      dot={{ fill: "#008254", r: 2 }}
                       activeDot={{ r: 5 }}
                     />
                   </AreaChart>
@@ -1593,7 +1597,7 @@ export default function Stats() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {/* Weekly Breakdown */}
               <div
-                className="rounded-2xl p-4 sm:p-6"
+                className="rounded-lg p-4 sm:p-6"
                 style={{
                   background: themeTokens.card,
                   border: `1px solid ${themeTokens.border}`,
@@ -1644,7 +1648,7 @@ export default function Stats() {
 
               {/* Daily Average */}
               <div
-                className="rounded-2xl p-4 sm:p-6"
+                className="rounded-lg p-4 sm:p-6"
                 style={{
                   background: themeTokens.card,
                   border: `1px solid ${themeTokens.border}`,
@@ -1679,7 +1683,7 @@ export default function Stats() {
                       />
                       <Bar
                         dataKey="average"
-                        fill="#10b981"
+                        fill="#4b99e6"
                         radius={[3, 3, 0, 0]}
                         fillOpacity={0.8}
                       />
@@ -1701,7 +1705,7 @@ export default function Stats() {
 
             {/* Bar chart: Monthly spending for the selected year */}
             <div
-              className="rounded-2xl p-4 sm:p-6"
+              className="rounded-lg p-4 sm:p-6"
               style={{
                 background: themeTokens.card,
                 border: `1px solid ${themeTokens.border}`,
@@ -1737,7 +1741,7 @@ export default function Stats() {
                       {monthlyTotals.map((month, index) => (
                         <Cell
                           key={index}
-                          fill={month.total === highestMonth.total ? "#f43f5e" : "#6366f1"}
+                          fill={month.total === highestMonth.total ? "#de2828" : "#008254"}
                           fillOpacity={0.85}
                         />
                       ))}
@@ -1751,7 +1755,7 @@ export default function Stats() {
 
             {/* Line chart: Month-over-month trend with average line */}
             <div
-              className="rounded-2xl p-4 sm:p-6"
+              className="rounded-lg p-4 sm:p-6"
               style={{
                 background: themeTokens.card,
                 border: `1px solid ${themeTokens.border}`,
@@ -1787,9 +1791,9 @@ export default function Stats() {
                       type="monotone"
                       dataKey="total"
                       name="Spending"
-                      stroke="#6366f1"
+                      stroke="#008254"
                       strokeWidth={2}
-                      dot={{ fill: "#6366f1", r: 3 }}
+                      dot={{ fill: "#008254", r: 3 }}
                       activeDot={{ r: 6 }}
                     />
                     {/* Average reference line (dashed) */}
@@ -1798,7 +1802,7 @@ export default function Stats() {
                         type="monotone"
                         dataKey={() => averagePerMonth}
                         name="Average"
-                        stroke="#f59e0b"
+                        stroke="#8dc63f"
                         strokeWidth={1.5}
                         strokeDasharray="5 5"
                         dot={false}
@@ -1814,7 +1818,7 @@ export default function Stats() {
 
             {/* Summary table — card list on mobile, proper table on desktop */}
             <div
-              className="rounded-2xl overflow-hidden"
+              className="rounded-lg overflow-hidden"
               style={{
                 background: themeTokens.card,
                 border: `1px solid ${themeTokens.border}`,
@@ -1826,7 +1830,7 @@ export default function Stats() {
                 style={{ borderColor: themeTokens.border }}
               >
                 <h2
-                  className="text-xs font-black uppercase tracking-widest"
+                  className="text-xs font-bold uppercase tracking-widest"
                   style={{ color: themeTokens.muted }}
                 >
                   Month Summary
@@ -1865,7 +1869,7 @@ export default function Stats() {
                             </div>
                             <div className="text-right">
                               <div
-                                className="font-black text-sm"
+                                className="font-bold text-sm"
                                 style={{ color: themeTokens.text }}
                               >
                                 ৳ {month.total.toLocaleString()}
@@ -1873,8 +1877,8 @@ export default function Stats() {
                               <span
                                 className="text-xs font-bold px-2 py-0.5 rounded-full"
                                 style={{
-                                  background: differenceFromAverage > 0 ? "#f43f5e22" : "#10b98122",
-                                  color: differenceFromAverage > 0 ? "#f43f5e" : "#10b981",
+                                  background: differenceFromAverage > 0 ? "#de282822" : "#4b99e622",
+                                  color: differenceFromAverage > 0 ? "#de2828" : "#4b99e6",
                                 }}
                               >
                                 {differenceFromAverage > 0 ? "+" : ""}
@@ -1890,7 +1894,7 @@ export default function Stats() {
                             >
                               <div
                                 className="h-full rounded-full"
-                                style={{ width: `${shareOfTotal}%`, background: "#6366f1" }}
+                                style={{ width: `${shareOfTotal}%`, background: "#008254" }}
                               />
                             </div>
                             <span
@@ -1914,7 +1918,7 @@ export default function Stats() {
                             (headerText) => (
                               <th
                                 key={headerText}
-                                className="text-left px-6 py-3 font-black text-xs uppercase tracking-widest"
+                                className="text-left px-6 py-3 font-bold text-xs uppercase tracking-widest"
                                 style={{ color: themeTokens.muted }}
                               >
                                 {headerText}
@@ -1956,8 +1960,8 @@ export default function Stats() {
                                 <span
                                   className="text-xs font-bold px-2 py-1 rounded-full"
                                   style={{
-                                    background: differenceFromAverage > 0 ? "#f43f5e22" : "#10b98122",
-                                    color: differenceFromAverage > 0 ? "#f43f5e" : "#10b981",
+                                    background: differenceFromAverage > 0 ? "#de282822" : "#4b99e622",
+                                    color: differenceFromAverage > 0 ? "#de2828" : "#4b99e6",
                                   }}
                                 >
                                   {differenceFromAverage > 0 ? "+" : ""}
@@ -1974,7 +1978,7 @@ export default function Stats() {
                                       className="h-full rounded-full"
                                       style={{
                                         width: `${shareOfTotal}%`,
-                                        background: "#6366f1",
+                                        background: "#008254",
                                       }}
                                     />
                                   </div>
@@ -2013,7 +2017,7 @@ export default function Stats() {
 
               {/* Donut chart */}
               <div
-                className="rounded-2xl p-4 sm:p-6"
+                className="rounded-lg p-4 sm:p-6"
                 style={{
                   background: themeTokens.card,
                   border: `1px solid ${themeTokens.border}`,
@@ -2061,7 +2065,7 @@ export default function Stats() {
 
               {/* Category ranking (horizontal bars) */}
               <div
-                className="rounded-2xl p-4 sm:p-6"
+                className="rounded-lg p-4 sm:p-6"
                 style={{
                   background: themeTokens.card,
                   border: `1px solid ${themeTokens.border}`,
@@ -2121,7 +2125,7 @@ export default function Stats() {
             {/* Radar chart (only shown with 3+ months of data) */}
             {radarData.length >= 3 && (
               <div
-                className="rounded-2xl p-4 sm:p-6"
+                className="rounded-lg p-4 sm:p-6"
                 style={{
                   background: themeTokens.card,
                   border: `1px solid ${themeTokens.border}`,
@@ -2142,15 +2146,15 @@ export default function Stats() {
                     <Radar
                       name="Spending"
                       dataKey="spending"
-                      stroke="#6366f1"
-                      fill="#6366f1"
+                      stroke="#008254"
+                      fill="#008254"
                       fillOpacity={0.3}
                     />
                     <Radar
                       name="Avg"
                       dataKey="average"
-                      stroke="#f59e0b"
-                      fill="#f59e0b"
+                      stroke="#8dc63f"
+                      fill="#8dc63f"
                       fillOpacity={0.1}
                       strokeDasharray="4 4"
                     />
@@ -2166,13 +2170,13 @@ export default function Stats() {
         {activeTab === "income" && (
           <div className="space-y-4 sm:space-y-8">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <StatCard label="Total Income" value={`৳ ${totalIncomeThisYear.toLocaleString()}`} subtitle={`${selectedYear}`} icon={DollarSign} accentColor="#10b981" themeTokens={themeTokens} />
-              <StatCard label="Monthly Average" value={`৳ ${averageMonthlyIncome.toLocaleString()}`} subtitle="Completed months" icon={BarChart3} accentColor="#6366f1" themeTokens={themeTokens} trend={completedIncomeMonths.length >= 2 ? (completedIncomeMonths[completedIncomeMonths.length-1].income > completedIncomeMonths[completedIncomeMonths.length-2].income ? "up" : "down") : "neutral"} trendInverted />
-              <StatCard label="Highest Month" value={highestIncomeMonth.income > 0 ? highestIncomeMonth.shortLabel : "—"} subtitle={highestIncomeMonth.income > 0 ? `৳ ${highestIncomeMonth.income.toLocaleString()}` : undefined} icon={Flame} accentColor="#f59e0b" themeTokens={themeTokens} />
-              <StatCard label="All-Time Income" value={`৳ ${allTimeIncome.reduce((s, i) => s + i.total, 0).toLocaleString()}`} subtitle={`${allIncome.length} months tracked`} icon={Wallet} accentColor="#8b5cf6" themeTokens={themeTokens} />
+              <StatCard label="Total Income" value={`৳ ${totalIncomeThisYear.toLocaleString()}`} subtitle={`${selectedYear}`} icon={DollarSign} accentColor="#4b99e6" themeTokens={themeTokens} />
+              <StatCard label="Monthly Average" value={`৳ ${averageMonthlyIncome.toLocaleString()}`} subtitle="Completed months" icon={BarChart3} accentColor="#008254" themeTokens={themeTokens} trend={completedIncomeMonths.length >= 2 ? (completedIncomeMonths[completedIncomeMonths.length-1].income > completedIncomeMonths[completedIncomeMonths.length-2].income ? "up" : "down") : "neutral"} trendInverted />
+              <StatCard label="Highest Month" value={highestIncomeMonth.income > 0 ? highestIncomeMonth.shortLabel : "—"} subtitle={highestIncomeMonth.income > 0 ? `৳ ${highestIncomeMonth.income.toLocaleString()}` : undefined} icon={Flame} accentColor="#8dc63f" themeTokens={themeTokens} />
+              <StatCard label="All-Time Income" value={`৳ ${allTimeIncome.reduce((s, i) => s + i.total, 0).toLocaleString()}`} subtitle={`${allIncome.length} months tracked`} icon={Wallet} accentColor="#005fb9" themeTokens={themeTokens} />
             </div>
 
-            <div className="rounded-2xl p-4 sm:p-6" style={{ background: themeTokens.card, border: `1px solid ${themeTokens.border}` }}>
+            <div className="rounded-lg p-4 sm:p-6" style={{ background: themeTokens.card, border: `1px solid ${themeTokens.border}` }}>
               <SectionHeader title={`Monthly Income — ${selectedYear}`} subtitle="Income recorded each month" themeTokens={themeTokens} />
               {monthlyIncome.length > 0 ? (
                 <ResponsiveContainer width="100%" height={240}>
@@ -2181,28 +2185,28 @@ export default function Stats() {
                     <XAxis dataKey="shortLabel" tick={{ fill: themeTokens.muted, fontSize: 10 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fill: themeTokens.muted, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `৳${(v/1000).toFixed(0)}k`} width={38} />
                     <Tooltip content={<CustomTooltip themeTokens={themeTokens} />} cursor={{ fill: "transparent" }} />
-                    <Bar dataKey="income" name="Income" radius={[7,7,0,0]} fill="#10b981" fillOpacity={0.85} />
+                    <Bar dataKey="income" name="Income" radius={[7,7,0,0]} fill="#4b99e6" fillOpacity={0.85} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : <EmptyState themeTokens={themeTokens} message="No income recorded yet. Deposit to a bank or earn cash to start tracking." />}
             </div>
 
-            <div className="rounded-2xl p-4 sm:p-6" style={{ background: themeTokens.card, border: `1px solid ${themeTokens.border}` }}>
+            <div className="rounded-lg p-4 sm:p-6" style={{ background: themeTokens.card, border: `1px solid ${themeTokens.border}` }}>
               <SectionHeader title="All-Time Income Trend" subtitle="Income across all tracked periods" themeTokens={themeTokens} />
               {allTimeIncome.length > 0 ? (
                 <ResponsiveContainer width="100%" height={220}>
                   <AreaChart data={allTimeIncome}>
                     <defs>
                       <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.35} />
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                        <stop offset="5%" stopColor="#4b99e6" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="#4b99e6" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke={themeTokens.border} />
                     <XAxis dataKey="name" tick={{ fill: themeTokens.muted, fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                     <YAxis tick={{ fill: themeTokens.muted, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `৳${(v/1000).toFixed(0)}k`} width={38} />
                     <Tooltip content={<CustomTooltip themeTokens={themeTokens} />} cursor={{ fill: "transparent" }} />
-                    <Area type="monotone" dataKey="total" name="Income" stroke="#10b981" strokeWidth={2} fill="url(#incomeGrad)" dot={{ fill: "#10b981", r: 2 }} activeDot={{ r: 5 }} />
+                    <Area type="monotone" dataKey="total" name="Income" stroke="#4b99e6" strokeWidth={2} fill="url(#incomeGrad)" dot={{ fill: "#4b99e6", r: 2 }} activeDot={{ r: 5 }} />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : <EmptyState themeTokens={themeTokens} />}
@@ -2214,13 +2218,13 @@ export default function Stats() {
         {activeTab === "balance" && (
           <div className="space-y-4 sm:space-y-8">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <StatCard label="Net Balance" value={`৳ ${netBalanceThisYear.toLocaleString()}`} subtitle={selectedYear?.toString()} icon={PiggyBank} accentColor={netBalanceThisYear >= 0 ? "#10b981" : "#f43f5e"} themeTokens={themeTokens} />
-              <StatCard label="Savings Rate" value={`${savingsRateThisYear}%`} subtitle="Income saved" icon={Target} accentColor="#6366f1" themeTokens={themeTokens} />
-              <StatCard label="Surplus Months" value={surplusMonths.toString()} subtitle="Income > spending" icon={CheckCircle} accentColor="#10b981" themeTokens={themeTokens} />
-              <StatCard label="Deficit Months" value={deficitMonths.toString()} subtitle="Spending > income" icon={AlertTriangle} accentColor="#f43f5e" themeTokens={themeTokens} />
+              <StatCard label="Net Balance" value={`৳ ${netBalanceThisYear.toLocaleString()}`} subtitle={selectedYear?.toString()} icon={PiggyBank} accentColor={netBalanceThisYear >= 0 ? "#4b99e6" : "#de2828"} themeTokens={themeTokens} />
+              <StatCard label="Savings Rate" value={`${savingsRateThisYear}%`} subtitle="Income saved" icon={Target} accentColor="#008254" themeTokens={themeTokens} />
+              <StatCard label="Surplus Months" value={surplusMonths.toString()} subtitle="Income > spending" icon={CheckCircle} accentColor="#4b99e6" themeTokens={themeTokens} />
+              <StatCard label="Deficit Months" value={deficitMonths.toString()} subtitle="Spending > income" icon={AlertTriangle} accentColor="#de2828" themeTokens={themeTokens} />
             </div>
 
-            <div className="rounded-2xl p-4 sm:p-6" style={{ background: themeTokens.card, border: `1px solid ${themeTokens.border}` }}>
+            <div className="rounded-lg p-4 sm:p-6" style={{ background: themeTokens.card, border: `1px solid ${themeTokens.border}` }}>
               <SectionHeader title="Income vs Spending" subtitle="Side-by-side monthly comparison" themeTokens={themeTokens} />
               {balanceData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={260}>
@@ -2229,8 +2233,8 @@ export default function Stats() {
                     <XAxis dataKey="shortLabel" tick={{ fill: themeTokens.muted, fontSize: 10 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fill: themeTokens.muted, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `৳${(v/1000).toFixed(0)}k`} width={38} />
                     <Tooltip content={<CustomTooltip themeTokens={themeTokens} />} cursor={{ fill: "transparent" }} />
-                    <Bar dataKey="income" name="Income" fill="#10b981" fillOpacity={0.75} radius={[4,4,0,0]} barSize={16} />
-                    <Bar dataKey="spending" name="Spending" fill="#f43f5e" fillOpacity={0.75} radius={[4,4,0,0]} barSize={16} />
+                    <Bar dataKey="income" name="Income" fill="#4b99e6" fillOpacity={0.75} radius={[4,4,0,0]} barSize={16} />
+                    <Bar dataKey="spending" name="Spending" fill="#de2828" fillOpacity={0.75} radius={[4,4,0,0]} barSize={16} />
                     <Legend wrapperStyle={{ fontSize: 11, color: themeTokens.muted }} />
                   </ComposedChart>
                 </ResponsiveContainer>
@@ -2238,7 +2242,7 @@ export default function Stats() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              <div className="rounded-2xl p-4 sm:p-6" style={{ background: themeTokens.card, border: `1px solid ${themeTokens.border}` }}>
+              <div className="rounded-lg p-4 sm:p-6" style={{ background: themeTokens.card, border: `1px solid ${themeTokens.border}` }}>
                 <SectionHeader title="Monthly Net (Income − Spending)" subtitle="Positive = surplus, negative = deficit" themeTokens={themeTokens} />
                 {balanceData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={200}>
@@ -2250,7 +2254,7 @@ export default function Stats() {
                       <ReferenceLine y={0} stroke={themeTokens.border} />
                       <Bar dataKey="net" name="Net" radius={[4,4,0,0]}>
                         {balanceData.map((entry, i) => (
-                          <Cell key={i} fill={entry.net >= 0 ? "#10b981" : "#f43f5e"} fillOpacity={0.85} />
+                          <Cell key={i} fill={entry.net >= 0 ? "#4b99e6" : "#de2828"} fillOpacity={0.85} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -2258,15 +2262,15 @@ export default function Stats() {
                 ) : <EmptyState themeTokens={themeTokens} />}
               </div>
 
-              <div className="rounded-2xl p-4 sm:p-6" style={{ background: themeTokens.card, border: `1px solid ${themeTokens.border}` }}>
+              <div className="rounded-lg p-4 sm:p-6" style={{ background: themeTokens.card, border: `1px solid ${themeTokens.border}` }}>
                 <SectionHeader title="Cumulative Balance" subtitle="Running total of net savings" themeTokens={themeTokens} />
                 {cumulativeBalance.length > 0 ? (
                   <ResponsiveContainer width="100%" height={200}>
                     <AreaChart data={cumulativeBalance}>
                       <defs>
                         <linearGradient id="cumGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.35} />
-                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                          <stop offset="5%" stopColor="#008254" stopOpacity={0.35} />
+                          <stop offset="95%" stopColor="#008254" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke={themeTokens.border} />
@@ -2274,7 +2278,7 @@ export default function Stats() {
                       <YAxis tick={{ fill: themeTokens.muted, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `৳${(v/1000).toFixed(0)}k`} width={38} />
                       <Tooltip content={<CustomTooltip themeTokens={themeTokens} />} cursor={{ fill: "transparent" }} />
                       <ReferenceLine y={0} stroke={themeTokens.border} />
-                      <Area type="monotone" dataKey="cumulative" name="Cumulative" stroke="#6366f1" strokeWidth={2} fill="url(#cumGrad)" dot={{ fill: "#6366f1", r: 2 }} />
+                      <Area type="monotone" dataKey="cumulative" name="Cumulative" stroke="#008254" strokeWidth={2} fill="url(#cumGrad)" dot={{ fill: "#008254", r: 2 }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : <EmptyState themeTokens={themeTokens} />}
@@ -2282,15 +2286,15 @@ export default function Stats() {
             </div>
 
             {bestSavingsMonth && bestSavingsMonth.net > 0 && (
-              <div className="rounded-2xl p-4 sm:p-6" style={{ background: themeTokens.card, border: `1px solid ${themeTokens.border}` }}>
+              <div className="rounded-lg p-4 sm:p-6" style={{ background: themeTokens.card, border: `1px solid ${themeTokens.border}` }}>
                 <SectionHeader title="Best Savings Month" subtitle="Month with the highest net balance" themeTokens={themeTokens} />
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: "#10b98120" }}>
-                    <PiggyBank size={26} style={{ color: "#10b981" }} />
+                  <div className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "#4b99e620" }}>
+                    <PiggyBank size={26} style={{ color: "#4b99e6" }} />
                   </div>
                   <div>
-                    <div className="text-xl font-black" style={{ color: themeTokens.text }}>{bestSavingsMonth.shortLabel}</div>
-                    <div className="text-sm font-semibold mt-0.5" style={{ color: "#10b981" }}>+৳ {bestSavingsMonth.net.toLocaleString()} saved</div>
+                    <div className="text-xl font-bold" style={{ color: themeTokens.text }}>{bestSavingsMonth.shortLabel}</div>
+                    <div className="text-sm font-semibold mt-0.5" style={{ color: "#4b99e6" }}>+৳ {bestSavingsMonth.net.toLocaleString()} saved</div>
                     <div className="text-xs mt-0.5" style={{ color: themeTokens.muted }}>
                       Income ৳{bestSavingsMonth.income.toLocaleString()} · Spending ৳{bestSavingsMonth.spending.toLocaleString()}
                     </div>
@@ -2309,12 +2313,12 @@ export default function Stats() {
             <div className="text-center mb-6 sm:mb-10">
               <div
                 className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest mb-3 sm:mb-4"
-                style={{ background: "#6366f115", color: "#6366f1" }}
+                style={{ background: "#00825415", color: themeTokens.accent }}
               >
                 <Sparkles size={12} /> AI-Powered Analysis
               </div>
               <h2
-                className="text-2xl sm:text-3xl font-black tracking-tight"
+                className="text-2xl sm:text-3xl font-bold tracking-tight"
                 style={{ color: themeTokens.text }}
               >
                 Your Financial Insights
@@ -2344,7 +2348,7 @@ export default function Stats() {
                 {
                   value: allMonths.length,
                   label: "Months Tracked",
-                  color: "#6366f1",
+                  color: themeTokens.accent,
                 },
                 {
                   value: allMonths.reduce(
@@ -2352,29 +2356,29 @@ export default function Stats() {
                     0
                   ),
                   label: "Total Spending Entries",
-                  color: "#10b981",
+                  color: "#4b99e6",
                 },
                 {
                   value: categoryData.length,
                   label: `Unique Categories (${selectedYear})`,
-                  color: "#f59e0b",
+                  color: "#8dc63f",
                 },
                 {
                   value: availableYears.length,
                   label: "Years of Data",
-                  color: "#f43f5e",
+                  color: "#de2828",
                 },
               ].map((pill, index) => (
                 <div
                   key={index}
-                  className="rounded-2xl p-4 sm:p-5 text-center"
+                  className="rounded-lg p-4 sm:p-5 text-center"
                   style={{
                     background: themeTokens.card,
                     border: `1px solid ${themeTokens.border}`,
                   }}
                 >
                   <div
-                    className="text-2xl sm:text-3xl font-black"
+                    className="text-2xl sm:text-3xl font-bold"
                     style={{ color: pill.color }}
                   >
                     {pill.value}

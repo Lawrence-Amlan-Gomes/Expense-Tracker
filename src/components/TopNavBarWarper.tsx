@@ -1,21 +1,11 @@
 "use client";
-import { useTheme } from "@/app/hooks/useTheme";
-import { motion } from "framer-motion"; // Import framer-motion
-import { ReactNode } from "react"; // ← ONLY ADDED THIS
+import { ReactNode } from "react";
 
-// ──────────────────────────────────────────────────────────────
-//  ONLY ADDED: Props interface + type annotation
-// ──────────────────────────────────────────────────────────────
 interface TopNavBarWarperProps {
   children: ReactNode;
 }
 
+// The navbar is sticky (it takes its own space), so pages need no top offset.
 export default function TopNavBarWarper({ children }: TopNavBarWarperProps) {
-  return (
-    <>
-      <motion.div className={`w-full overflow-auth scrollbar`}>
-        {children}
-      </motion.div>
-    </>
-  );
+  return <main className="w-full flex-1">{children}</main>;
 }
