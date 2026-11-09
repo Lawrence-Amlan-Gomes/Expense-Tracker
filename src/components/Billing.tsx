@@ -63,7 +63,7 @@ export default function Billing() {
           <button onClick={handleConfirm} className="btn-primary w-full">
             Confirm &amp; pay
           </button>
-          <Link href="/pricing" className="btn-secondary w-full">
+          <Link href="/dashBoard" className="btn-secondary w-full">
             Go back
           </Link>
         </div>

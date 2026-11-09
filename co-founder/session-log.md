@@ -20,3 +20,8 @@
 - Push was rejected (remote had 8 newer commits). Merged origin/main, kept remote logic for Dashboard/Stats/Calculator/Login/Billing/ChangePassword/EmailNotVerified, re-applied the new design on top.
 - Merged the two `skillCoFounder.md` files into one (newer rules win; old memory files listed as history).
 - tsc OK, eslint 0 errors, next build OK after the merge.
+
+## 2026-11-10 — End Today (Session 1)
+- Removed the Pricing page and the landing testimonials section (links cleaned in nav, footer, hero, FAQ, billing).
+- Checks: eslint 0 errors, next build OK (19 pages). No ports were created, so none to kill.
+- Committed and pushed to `main` (auto-deploys on Vercel).

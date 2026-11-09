@@ -10,7 +10,6 @@ import {
   Receipt,
 } from "lucide-react";
 import Hero from "./Hero";
-import LandingTestimonials from "./LandingTestimonials";
 import Footer from "./Footer";
 
 const features = [
@@ -50,7 +49,7 @@ const steps = [
 const faqs = [
   {
     q: "Is Expense Tracker free?",
-    a: "You can use it free for 7 days. After that, plans start at $4 a month. See the Pricing page for details.",
+    a: "You can try it free for 7 days. No card needed.",
   },
   {
     q: "What can I track?",
@@ -170,8 +169,6 @@ export default function LandingPage() {
       </section>
 
       <Ribbon />
-
-      <LandingTestimonials />
 
       {/* FAQ accordion */}
       <section className="mx-auto w-full max-w-3xl px-4 pb-12 sm:px-6 md:pb-16">

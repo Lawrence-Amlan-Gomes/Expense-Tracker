@@ -101,12 +101,10 @@ const TopNavbar = () => {
         { href: "/dashBoard", label: "Dashboard" },
         { href: "/stats", label: "Stats" },
         { href: "/calculator", label: "Calculator" },
-        { href: "/pricing", label: "Pricing" },
         ...(auth?.isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
       ]
     : [
         { href: "/", label: "Home" },
-        { href: "/pricing", label: "Pricing" },
         { href: "/testimonials", label: "Testimonials" },
       ];
 

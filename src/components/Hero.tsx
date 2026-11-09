@@ -29,10 +29,10 @@ export default function Hero() {
               Get started free
             </Link>
             <Link
-              href="/pricing"
+              href="/login"
               className="btn rounded-sm border border-white/60 text-white hover:bg-white/10"
             >
-              See pricing
+              Sign in
             </Link>
           </div>
 

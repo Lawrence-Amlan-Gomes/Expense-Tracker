@@ -9,7 +9,7 @@
 
 ## Routes
 - `/` = gate: logged in → `/dashBoard`; logged out → landing (`HomeGate.tsx`, `Landing.tsx`).
-- `/home` redirects to `/`. App pages: dashBoard, stats, calculator, pricing, billing, profile, changePassword, login, register, admin, testimonials, privacy-policy, terms-and-conditions.
+- `/home` redirects to `/`. App pages: dashBoard, stats, calculator, billing (orphan), profile, changePassword, login, register, admin, testimonials, privacy-policy, terms-and-conditions.
 
 ## Design system (from `DESIGN.md`, NerdWallet)
 - Tokens are CSS variables in `src/app/globals.css` ("R G B" channels), mapped in `tailwind.config.ts`.
@@ -23,6 +23,9 @@
 - Dashboard.tsx and Stats.tsx keep their own token functions (`tk()` and `getThemeTokens()`); they were re-coloured, not rewritten.
 - Chart palette: spruce green, info blue, lime, error red. No warm accents.
 - Nav is `sticky` (h-16). Pages need no top offset. Dashboard uses `h-[calc(100dvh-64px)]`.
+
+- Pricing page removed 2026-11-10. Landing has no testimonials section.
+- Earlier cofounder history (Aug 2026) lives in `co-founder/STATE.md`, `LOG.md`, `DECISIONS.md`, `IDEAS.md`.
 
 ## Ideas to make the SaaS better
 - Real testimonials + pricing copy; write Privacy and Terms.
